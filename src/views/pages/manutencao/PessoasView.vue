@@ -559,7 +559,7 @@
                     @edit-item="editarPessoa"
                     @confirm-delete="confirmarExclusao"
                 >
-                  <template #item.tipo_pessoa="{ item }">
+                  <template v-slot:[`item.tipo_pessoa`]="{ item }">
                     <v-chip
                         :color="item.tipo_pessoa === 'F' ? 'blue' : 'purple'"
                         size="x-small"
@@ -569,7 +569,7 @@
                     </v-chip>
                   </template>
 
-                  <template #item._classificacao="{ item }">
+                  <template v-slot:[`item._classificacao`]="{ item }">
                     <div class="d-flex flex-wrap gap-1">
                       <v-chip v-if="item.cliente === 'S'" color="success" size="x-small" variant="tonal">
                         Cliente
