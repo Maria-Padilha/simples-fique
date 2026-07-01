@@ -153,47 +153,31 @@
 
                         <!-- Cliente -->
                         <v-col cols="12" md="4">
-                          <v-text-field
+                          <v-autocomplete
+                              v-model="formData.id_cliente"
+                              v-model:search="clienteSearch"
+                              :items="pessoas"
+                              :loading="clienteLoading"
+                              :item-title="(item) => item.apelido_fantasia || item.nome_razao || item.nome || ''"
+                              item-value="id"
                               label="Cliente *"
-                              v-model="clienteSelecionado"
+                              :rules="[rules.required]"
+                              class="required-left-border"
                               variant="outlined"
                               density="compact"
                               hide-details="auto"
-                              :rules="[rules.required]"
-                              class="required-left-border"
                               prepend-inner-icon="mdi-account-box"
-                              readonly
-                              placeholder="Selecione um cliente"
+                              no-data-text="Digite o nome para buscar (mín. 3 caracteres)"
+                              :no-filter="true"
+                              clearable
+                              @update:model-value="onClienteSelecionado"
                           >
-                            <template #append-inner>
-                              <busca-padrao-menu
-                                  v-model="menuCliente"
-                                  :pesquisar="pesquisarClientes"
-                                  :modelInput="termoCliente"
-                                  :resultados="clienteResultados"
-                                  @update:modelInput="termoCliente = $event"
-                                  @selecionar="selecionarCliente"
-                              >
-                                <template #resultados="{ selecionar }">
-                                  <v-virtual-scroll
-                                      :items="clienteResultados"
-                                      :height="120"
-                                      item-height="42"
-                                      class="mt-3"
-                                  >
-                                    <template #default="{ item }">
-                                      <div
-                                          class="hover:bg-surface-variant rounded-md px-3 py-2 cursor-pointer"
-                                          @click="selecionar(item)"
-                                      >
-                                        <p class="text-body-1">{{ item.apelido_fantasia || item.nome_razao || item.nome || item.apelido }}</p>
-                                      </div>
-                                    </template>
-                                  </v-virtual-scroll>
-                                </template>
-                              </busca-padrao-menu>
+                            <template v-slot:item="{ props, item }">
+                              <v-list-item v-bind="props">
+                                <v-list-item-subtitle>{{ item.raw.cpf_cnpj }}</v-list-item-subtitle>
+                              </v-list-item>
                             </template>
-                          </v-text-field>
+                          </v-autocomplete>
                         </v-col>
 
                         <!-- Plano de Conta -->
@@ -1188,11 +1172,6 @@ const tipoDocumentoSelecionado = ref('')
 const planoContaSelecionado = ref('')
 const clienteSelecionado = ref('')
 
-// Cliente (campo de busca)
-const menuCliente = ref(false)
-const termoCliente = ref('')
-const clienteResultados = ref([])
-
 // Histórico Contábil (campo de busca + modal de cadastro)
 const menuHistContabil = ref(false)
 const termoHistContabil = ref('')
@@ -1959,34 +1938,21 @@ const selecionarCliente = (cliente) => {
   formData.id_cliente = cliente.id
   formData.id_red_ctb_cli = cliente.id_red_ctb_cli || cliente.id_red_ctb || null
   clienteSelecionado.value = cliente.apelido_fantasia || cliente.nome_razao || cliente.nome || cliente.apelido || ''
+  clienteLabel.value = clienteSelecionado.value
+}
+
+const onClienteSelecionado = (id) => {
+  if (!id) {
+    clienteSelecionado.value = ''
+    clienteLabel.value = ''
+    formData.id_red_ctb_cli = null
+    return
+  }
+  const c = pessoas.value.find(p => p.id === id)
+  if (c) selecionarCliente(c)
 }
 
 // Cliente: pesquisar e selecionar
-const pesquisarClientes = async () => {
-  try {
-    // usar lista já carregada ou buscar clientes via financeiroStore
-    let dados = pessoas.value && pessoas.value.length > 0 ? pessoas.value : null
-
-    if (!dados) {
-      // Buscar clientes usando o mesmo método que já funciona no código
-      dados = await financeiroStore.buscarPessoasClientes('', idEmpresa.value)
-    }
-
-    if (!termoCliente.value || termoCliente.value.length < 2) {
-      clienteResultados.value = dados || []
-      return
-    }
-    const termo = termoCliente.value.toLowerCase()
-    clienteResultados.value = (dados || []).filter(d => {
-      const nome = d.apelido_fantasia || d.nome_razao || d.nome || d.apelido || ''
-      return nome.toLowerCase().includes(termo) || String(d.id).includes(termo)
-    })
-  } catch (error) {
-    console.error('Erro ao buscar clientes:', error)
-    mostrarMensagem('Erro ao buscar clientes', 'error')
-  }
-}
-
 // Histórico Contábil: pesquisar, selecionar e cadastrar
 const pesquisarHistoricosContabil = async () => {
   try {
