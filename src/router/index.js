@@ -85,6 +85,11 @@ const routes = [
         component: ClientesView
     },
     {
+        path: '/paginas/manutencao/pessoas',
+        name: 'manutencao_pessoas',
+        component: () => import('@/views/pages/manutencao/PessoasView.vue')
+    },
+    {
         path: '/paginas/manutencao/empresas',
         name: 'manutencao_empresas',
         component: EmpresaView
