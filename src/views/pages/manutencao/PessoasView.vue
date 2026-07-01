@@ -829,7 +829,7 @@ async function editarPessoa(p) {
   const pessoaData = resultado?.pessoa ?? p
   const enderecoData = resultado?.endereco ?? []
   Object.assign(form, pessoaData)
-  form.enderecos = Array.isArray(enderecoData) ? enderecoData.map(e => ({ ...e })) : []
+  form.enderecos = Array.isArray(enderecoData) ? enderecoData.map(e => ({ ...e, _buscandoCep: false })) : []
 }
 
 async function confirmarExclusao(p) {

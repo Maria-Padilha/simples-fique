@@ -48,7 +48,7 @@ export const usePessoasStore = defineStore('pessoas', {
 
             const payload = {
                 ...pessoaData,
-                endereco: enderecos
+                endereco: enderecos.map(({ _buscandoCep, ...e }) => e)
             }
 
             this.loading = true
