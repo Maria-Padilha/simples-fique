@@ -691,12 +691,12 @@ export const useFinanceiroStore = defineStore('financeiro', {
 
     // ========== CONTAS A PAGAR ==========
 
-    // Buscar baixas de contas a pagar por período
+    // Buscar lotes de baixas de contas a pagar por período
     async buscarBaixasPagar({ data_inicio, data_fim }) {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get('/financeiro/baixa-pagars', {
+        const res = await apiPhp.get('/financeiro/lote-baixa-pagars', {
           params: { data_inicio, data_fim }
         })
         return res.data?.data ?? res.data ?? []
@@ -708,12 +708,12 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Buscar baixa de conta a pagar por ID
+    // Buscar lote de baixa de conta a pagar por ID
     async buscarBaixaPagarPorId(id) {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get(`/financeiro/baixa-pagars/${id}`)
+        const res = await apiPhp.get(`/financeiro/lote-baixa-pagars/${id}`)
         return res.data?.data ?? res.data
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -832,7 +832,38 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
+    // Buscar contas a pagar pendentes de autorização
+    // GET /api/v1/financeiro/conta-pagars/pendentes-autorizacao
+    async buscarContasPagarPendentesAutorizacao(filtros = {}) {
+      this.loading = true
+      this.error = null
+      try {
+        const params = {}
+        const dtini = filtros.dtini || filtros.dt_inicio
+        const dtfim = filtros.dtfim || filtros.dt_fim
+
+        if (!dtini || !dtfim) throw new Error('As datas de início e fim são obrigatórias')
+
+        params.data_inicio = dtini
+        params.data_fim = dtfim
+        if (filtros.idfornecedor) params.fornecedor = filtros.idfornecedor
+        if (filtros.cnpj_cpf) params.cnpj_cpf = filtros.cnpj_cpf
+        if (filtros.nrdocumento) params.nrdocumento = filtros.nrdocumento
+        if (filtros.idtpdocumento) params.idtpdocumento = filtros.idtpdocumento
+        if (filtros.idlocalcobranca) params.idlocalcobranca = filtros.idlocalcobranca
+
+        const res = await apiPhp.get('/financeiro/conta-pagars/pendentes-autorizacao', { params })
+        return res.data?.data ?? res.data ?? []
+      } catch (error) {
+        this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     // Buscar contas a pagar para baixa
+    // GET /api/v1/financeiro/conta-pagars/para-baixa
     async buscarContasPagarBaixa(idEmpresa, filtros = {}) {
       this.loading = true
       this.error = null
@@ -843,10 +874,10 @@ export const useFinanceiroStore = defineStore('financeiro', {
 
         if (!dtini || !dtfim) throw new Error('As datas de início (dtini) e fim (dtfim) são obrigatórias')
 
-        params.dtini = dtini
-        params.dtfim = dtfim
+        params.data_inicio = dtini
+        params.data_fim = dtfim
         if (filtros.tpperiodo !== undefined) params.tpperiodo = filtros.tpperiodo
-        if (filtros.idfornecedor) params.idfornecedor = filtros.idfornecedor
+        if (filtros.idfornecedor) params.fornecedor = filtros.idfornecedor
         if (filtros.cnpj_cpf) params.cnpj_cpf = filtros.cnpj_cpf
         if (filtros.nrdocumento) params.nrdocumento = filtros.nrdocumento
         if (filtros.idtpdocumento) params.idtpdocumento = filtros.idtpdocumento
@@ -854,7 +885,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
         if (filtros.baixado) params.baixado = filtros.baixado
         if (filtros.liberadopagto) params.liberadopagto = filtros.liberadopagto
 
-        const res = await apiPhp.get('/financeiro/conta-pagars', { params })
+        const res = await apiPhp.get('/financeiro/conta-pagars/para-baixa', { params })
         return res.data?.data ?? res.data ?? []
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
