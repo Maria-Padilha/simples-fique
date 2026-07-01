@@ -385,7 +385,143 @@
                         </v-col>
                       </v-row>
 
-                      <!-- Grupo 4: Endereços — adicionado na Task 4 -->
+                      <!-- ── Grupo 4: Endereços ─────────────────────────── -->
+                      <v-divider class="my-4"/>
+                      <div class="d-flex align-center justify-space-between mt-2 mb-3">
+                        <div class="text-subtitle-2 font-weight-bold">
+                          <v-icon icon="mdi-map-marker" class="mr-1" size="18px"/>
+                          Endereços
+                        </div>
+                        <v-btn
+                            prepend-icon="mdi-plus"
+                            size="x-small"
+                            color="var(--text-color-laranja)"
+                            variant="flat"
+                            class="text-white"
+                            :disabled="form.enderecos.length >= 4"
+                            @click="adicionarEndereco"
+                        >
+                          Adicionar
+                        </v-btn>
+                      </div>
+
+                      <v-col cols="12" v-for="(end, idx) in form.enderecos" :key="idx" class="px-0">
+                        <v-card class="background-secondary pa-3 mb-2" elevation="0">
+                          <v-row align="center" dense>
+                            <v-col cols="12" md="2">
+                              <v-select
+                                  v-model="end.tipo_endereco"
+                                  :items="tiposDisponiveis(idx)"
+                                  item-title="label"
+                                  item-value="value"
+                                  label="Tipo de Endereço"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details="auto"
+                                  :theme="themeStore.darkMode ? 'dark' : 'light'"
+                                  class="custom-text-field"
+                                  prepend-inner-icon="mdi-home-map-marker"
+                              />
+                            </v-col>
+
+                            <v-col cols="12" md="2">
+                              <v-text-field
+                                  v-model="end.cep"
+                                  label="CEP"
+                                  maxlength="9"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details="auto"
+                                  :theme="themeStore.darkMode ? 'dark' : 'light'"
+                                  class="custom-text-field"
+                                  prepend-inner-icon="mdi-map-marker"
+                                  :loading="end._buscandoCep"
+                                  @blur="buscarCep(end)"
+                              />
+                            </v-col>
+
+                            <v-col cols="12" md="2">
+                              <v-text-field
+                                  v-model="end.cidade"
+                                  label="Cidade"
+                                  maxlength="100"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details="auto"
+                                  :theme="themeStore.darkMode ? 'dark' : 'light'"
+                                  class="custom-text-field"
+                                  prepend-inner-icon="mdi-city"
+                              />
+                            </v-col>
+
+                            <v-col cols="12" md="2">
+                              <v-text-field
+                                  v-model="end.bairro"
+                                  label="Bairro"
+                                  maxlength="100"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details="auto"
+                                  :theme="themeStore.darkMode ? 'dark' : 'light'"
+                                  class="custom-text-field"
+                                  prepend-inner-icon="mdi-map-marker-radius"
+                              />
+                            </v-col>
+
+                            <v-col cols="12" md="2">
+                              <v-text-field
+                                  v-model="end.logradouro"
+                                  label="Logradouro"
+                                  maxlength="100"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details="auto"
+                                  :theme="themeStore.darkMode ? 'dark' : 'light'"
+                                  class="custom-text-field"
+                                  prepend-inner-icon="mdi-road-variant"
+                              />
+                            </v-col>
+
+                            <v-col cols="6" md="1">
+                              <v-text-field
+                                  v-model="end.numero"
+                                  label="Número"
+                                  maxlength="10"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details="auto"
+                                  :theme="themeStore.darkMode ? 'dark' : 'light'"
+                                  class="custom-text-field"
+                                  prepend-inner-icon="mdi-numeric"
+                              />
+                            </v-col>
+
+                            <v-col cols="6" md="1">
+                              <v-text-field
+                                  v-model="end.complemento"
+                                  label="Complemento"
+                                  maxlength="100"
+                                  variant="outlined"
+                                  density="compact"
+                                  hide-details="auto"
+                                  :theme="themeStore.darkMode ? 'dark' : 'light'"
+                                  class="custom-text-field"
+                                  prepend-inner-icon="mdi-home-plus"
+                              />
+                            </v-col>
+
+                            <v-col cols="12" md="auto" class="d-flex justify-end">
+                              <v-btn
+                                  icon="mdi-delete-outline"
+                                  size="small"
+                                  color="error"
+                                  variant="text"
+                                  @click="removerEndereco(idx)"
+                              />
+                            </v-col>
+                          </v-row>
+                        </v-card>
+                      </v-col>
                     </v-form>
                   </v-card-text>
                   <v-card-actions class="pa-4">
@@ -487,6 +623,9 @@ import { usePessoasStore } from '@/stores/APIs/pessoas'
 import { useThemeStore } from '@/stores/config-temas/theme'
 import { useFinanceiroStore } from '@/stores/APIs/financeiro'
 
+// ─── 3b. Serviços ────────────────────────────────────────
+import api from '@/services/api'
+
 const pessoasStore = usePessoasStore()
 const themeStore = useThemeStore()
 const financeiroStore = useFinanceiroStore()
@@ -539,6 +678,58 @@ const snackbar = reactive({ show: false, message: '', color: 'success' })
 // usado pelo formulário na Task 3
 const rules = {
   required: (v) => !!v || 'Campo obrigatório',
+}
+
+// ─── Endereços ───────────────────────────────────────────
+const tiposEndereco = [
+  { label: 'Residencial/Comercial', value: 1 },
+  { label: 'Entrega', value: 2 },
+  { label: 'Cobrança', value: 3 },
+  { label: 'Fiscal', value: 4 },
+]
+
+const tiposDisponiveis = (idx) => {
+  const usados = form.enderecos.map((e, i) => i !== idx ? e.tipo_endereco : null).filter(t => t !== null)
+  return tiposEndereco.filter(t => !usados.includes(t.value))
+}
+
+const adicionarEndereco = () => {
+  if (form.enderecos.length >= 4) return
+  form.enderecos.push({
+    tipo_endereco: null,
+    cidade: '',
+    bairro: '',
+    logradouro: '',
+    numero: '',
+    complemento: '',
+    cep: '',
+    _buscandoCep: false,
+  })
+}
+
+const removerEndereco = (idx) => {
+  form.enderecos.splice(idx, 1)
+}
+
+const buscarCep = async (end) => {
+  const cep = (end.cep || '').replace(/\D/g, '')
+  if (cep.length !== 8) return
+  end._buscandoCep = true
+  try {
+    const resp = await api.get(`/cep/${cep}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+    const d = resp.data?.data?.[0] ?? resp.data
+    if (d) {
+      if (d.logradouro) end.logradouro = d.logradouro
+      if (d.bairro)     end.bairro     = d.bairro
+      if (d.localidade) end.cidade     = d.localidade
+    }
+  } catch (e) {
+    console.error('Erro ao buscar CEP:', e)
+  } finally {
+    end._buscandoCep = false
+  }
 }
 
 // ─── 8. Headers da Tabela ────────────────────────────────
