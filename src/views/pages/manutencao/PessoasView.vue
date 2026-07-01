@@ -126,10 +126,8 @@ import AcessoNegadoModal from '@/components/base/modais/AcessoNegadoModal.vue'
 
 // ─── 3. Stores ───────────────────────────────────────────
 import { usePessoasStore } from '@/stores/APIs/pessoas'
-import { useThemeStore } from '@/stores/config-temas/theme'
 
 const pessoasStore = usePessoasStore()
-const themeStore = useThemeStore()
 
 // ─── 4. Composables ──────────────────────────────────────
 import { usePermissoes } from '@/utils/usePermissoes'
@@ -149,7 +147,7 @@ const tipoAcessoNegado = ref('visualizar')
 
 const form = reactive({
   id: null,
-  tipo_pessoa: '',
+  tipo_pessoa: 'F',
   nome_razao: '',
   apelido_fantasia: '',
   cpf_cnpj: '',
@@ -176,6 +174,7 @@ const form = reactive({
 const snackbar = reactive({ show: false, message: '', color: 'success' })
 
 // ─── 7. Regras de Validação ──────────────────────────────
+// usado pelo formulário na Task 3
 const rules = {
   required: (v) => !!v || 'Campo obrigatório',
 }
@@ -258,6 +257,7 @@ function resetarForm() {
 }
 
 async function salvarPessoa() {
+  pessoasStore.errorMessage = ''
   await pessoasStore.salvarPessoa(formRef.value, form, editando.value, snackbar)
   if (!pessoasStore.errorMessage) cancelarFormulario()
 }
