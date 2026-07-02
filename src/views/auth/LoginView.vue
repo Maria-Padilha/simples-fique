@@ -96,8 +96,11 @@ const login = async () => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('login_timestamp', new Date().toISOString());
 
-      if (data.usuario) {
+      await apiStore.fetchMe();
+
+      if (data.usuario && !apiStore.dataUsuario) {
         localStorage.setItem('usuario', JSON.stringify(data.usuario));
+        apiStore.dataUsuario = data.usuario;
       }
       if (data.saas) {
         localStorage.setItem('saas', JSON.stringify(data.saas));
