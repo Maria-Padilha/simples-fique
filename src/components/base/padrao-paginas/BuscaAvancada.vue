@@ -260,10 +260,21 @@ const emit = defineEmits(['update:modelValue', 'aplicar'])
 
 const expanded = ref(0) // 0 = primeiro painel aberto, null = todos fechados
 
+const primeiroDiaMes = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+}
+
+const ultimoDiaMes = () => {
+  const now = new Date()
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  return `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`
+}
+
 const filtrosLocal = reactive({
-  tpperiodo: 2, // Padrão: Data de Vencimento
-  dtini: '',
-  dtfim: '',
+  tpperiodo: 1, // Padrão: Data de Emissão
+  dtini: primeiroDiaMes(),
+  dtfim: ultimoDiaMes(),
   idfornecedor: null,
   cnpj_cpf: '',
   nrdocumento: '',
@@ -338,9 +349,9 @@ const aplicarFiltros = () => {
 
 const limparFiltros = () => {
   Object.assign(filtrosLocal, {
-    tpperiodo: 2,
-    dtini: '',
-    dtfim: '',
+    tpperiodo: 1,
+    dtini: primeiroDiaMes(),
+    dtfim: ultimoDiaMes(),
     idfornecedor: null,
     cnpj_cpf: '',
     nrdocumento: '',
@@ -421,7 +432,7 @@ onMounted(async () => {
   // Inicializar filtros com o período do mês atual
   filtrosLocal.dtini = formatarData(primeiroDia)
   filtrosLocal.dtfim = formatarData(ultimoDia)
-  filtrosLocal.tpperiodo = 2 // Vencimento
+  filtrosLocal.tpperiodo = 1 // Emissão
   
   // Carregar dados auxiliares
   await carregarDadosAuxiliares()

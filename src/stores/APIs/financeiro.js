@@ -743,7 +743,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get('/financeiro/baixa-recebers', {
+        const res = await apiPhp.get('/financeiro/lote-baixa-recebers', {
           params: { data_inicio, data_fim }
         })
         return res.data?.data ?? res.data ?? []
@@ -1053,7 +1053,8 @@ export const useFinanceiroStore = defineStore('financeiro', {
       this.error = null
       try {
         const res = await apiPhp.get(`/financeiro/plano-contas/${id}`)
-        return res.data?.data ?? res.data ?? []
+        const dados = res.data?.data ?? res.data ?? null
+        return Array.isArray(dados) ? dados[0] : dados
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
         throw error
@@ -1124,6 +1125,23 @@ export const useFinanceiroStore = defineStore('financeiro', {
         const dados = res.data?.data ?? res.data ?? []
         this.tiposDocumento = dados
         return dados
+      } catch (error) {
+        this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Buscar tipo de documento por ID (GET /financeiro/tipo-documentos/:id)
+    async buscarTipoDocumentoPorId(id) {
+      this.loading = true
+      this.error = null
+      try {
+        const res = await apiPhp.get(`/financeiro/tipo-documentos/${id}`)
+        const dados = res.data?.data ?? res.data ?? null
+        // Se veio como array (ex: paginação com 1 elemento), extrair primeiro
+        return Array.isArray(dados) ? dados[0] : dados
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
         throw error
@@ -1317,12 +1335,14 @@ export const useFinanceiroStore = defineStore('financeiro', {
     },
 
     // Buscar conta a receber por ID
-    async buscarContaReceberPorId(idEmpresa, id) {
+    async buscarContaReceberPorId(id) {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get(`/financeiro/conta-recebers/${idEmpresa}/${id}`)
-        return res.data?.data ?? res.data
+        const res = await apiPhp.get(`/financeiro/conta-recebers/${id}`)
+        const dados = res.data?.data ?? res.data
+        // Se veio como array (ex: paginação com 1 elemento), extrair primeiro
+        return Array.isArray(dados) ? dados[0] : dados
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
         throw error
@@ -1355,7 +1375,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
     },
 
     // Atualizar conta a receber
-    async atualizarContaReceber(idEmpresa, id, payload) {
+    async atualizarContaReceber(id, payload) {
       this.loading = true
       this.error = null
       try {
@@ -1366,7 +1386,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
           ...(payload.media && { media: payload.media }),
           ...(payload.ccusto && { ccusto: payload.ccusto })
         }
-        const res = await apiPhp.put(`/financeiro/conta-recebers/${idEmpresa}/${id}`, phpPayload)
+        const res = await apiPhp.put(`/financeiro/conta-recebers/${id}`, phpPayload)
         return res.data?.data ?? res.data
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -1377,11 +1397,11 @@ export const useFinanceiroStore = defineStore('financeiro', {
     },
 
     // Deletar conta a receber
-    async deletarContaReceber(idEmpresa, id) {
+    async deletarContaReceber(id) {
       this.loading = true
       this.error = null
       try {
-        await apiPhp.delete(`/financeiro/conta-recebers/${idEmpresa}/${id}`)
+        await apiPhp.delete(`/financeiro/conta-recebers/${id}`)
         return true
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -1456,7 +1476,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
             params[key] = value
           }
         })
-        const res = await apiPhp.get('/financeiro/conta-recebers', { params })
+        const res = await apiPhp.get('/financeiro/conta-recebers/para-baixa', { params })
         return res.data?.data ?? res.data ?? []
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
