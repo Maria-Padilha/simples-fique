@@ -413,7 +413,13 @@ const pesquisarBaixas = async () => {
       data_fim: filtros.value.dataFim
     })
     
-    baixas.value = Array.isArray(response) ? response : []
+    const dados = Array.isArray(response) ? response : []
+    baixas.value = dados.map(item => ({
+      ...item,
+      id_recbaixa_lote: item.id_lote,
+      vlrbaixado_lote: parseFloat(item.vlrtotalbaixado || 0),
+      usuario_baixou: item.usuario,
+    }))
     
     if (baixas.value.length === 0) {
       toast.info('Nenhuma baixa encontrada no período informado')

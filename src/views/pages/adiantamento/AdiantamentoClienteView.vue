@@ -452,8 +452,8 @@
                     density="compact"
                 >
                   <!-- Coluna Cliente -->
-                  <template v-slot:[`item.nome_razao`]="{ item }">
-                    {{ item.nome_razao || '--' }}
+                  <template v-slot:[`item.cliente`]="{ item }">
+                    {{ item.cliente || item.nome_razao || '--' }}
                   </template>
 
                   <!-- Coluna Data -->
@@ -521,6 +521,17 @@
             </v-card>
           </v-card-text>
         </v-card>
+      <!-- Modal de Exclusão -->
+      <ExcluirModal
+          :modal-excluir="modalExcluir"
+          :loading="loading"
+          :deletar="excluirLancamento"
+          :cancelar="() => { modalExcluir = false; itemParaExcluir = null }"
+      >
+        <template #item>
+          {{ itemParaExcluir?.cliente || 'Lançamento' }}
+        </template>
+      </ExcluirModal>
       </div>
     </template>
   </top-all-pages>
@@ -536,6 +547,7 @@ import { useEmpresaStore } from '@/stores/APIs/empresa'
 import { useAdiantamentoStore } from '@/stores/APIs/adiantamento'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
+import ExcluirModal from '@/components/base/modais/ExcluirModal.vue'
 
 const themeStore = useThemeStore()
 const pessoasStore = usePessoasStore()
@@ -570,6 +582,8 @@ const contasCorrentes = ref([])
 const historicosBancarios = ref([])
 const lancamentos = ref([])
 const saldoAnterior = ref(0)
+const modalExcluir = ref(false)
+const itemParaExcluir = ref(null)
 
 // Filtros de busca
 const periodoSelecionado = ref('mes')
@@ -605,6 +619,7 @@ const formData = reactive({
   id_tipodocumento: null,
   dtlancamento: new Date().toISOString().split('T')[0],
   dtcobranca: '',
+  tipo: 'C',
   nrdocumento: '',
   valor: 0,
   observacao: ''
@@ -625,7 +640,7 @@ const rules = {
 
 // Headers da tabela
 const headers = [
-  { title: 'Cliente', key: 'nome_razao', sortable: true, width: '250px' },
+  { title: 'Cliente', key: 'cliente', sortable: true, width: '250px' },
   { title: 'Data', key: 'dtlancamento', sortable: true, width: '100px' },
   { title: 'Nr Documento', key: 'nrdocumento', sortable: true, width: '120px' },
   { title: 'Valor', key: 'valor', sortable: true, align: 'end', width: '120px' },
@@ -742,6 +757,7 @@ const limparFormulario = () => {
     id_tipodocumento: null,
     dtlancamento: new Date().toISOString().split('T')[0],
     dtcobranca: '',
+    tipo: 'C',
     nrdocumento: '',
     valor: 0,
     observacao: ''
@@ -787,7 +803,10 @@ const carregarCaixas = async () => {
     if (!idEmpresa) return
     
     const dados = await caixaStore.buscarCaixasUsuarioAberto(idEmpresa)
-    caixasDisponiveis.value = Array.isArray(dados) ? dados : []
+    caixasDisponiveis.value = Array.isArray(dados) ? dados.map(c => ({
+      ...c,
+      id_caixa: c.id ?? c.id_caixa,
+    })) : []
   } catch (error) {
     console.error('Erro ao carregar caixas:', error)
     caixasDisponiveis.value = []
@@ -964,6 +983,7 @@ const salvarLancamento = async () => {
       tipo: formData.tipo,
       dtlancamento: formData.dtlancamento,
       valor: parseFloat(formData.valor),
+      data_cobranca: formData.dtcobranca || null,
       origem: 'ADT',
       observacao: formData.observacao || null,
       id_tipopagrec: formData.id_tipopagrec,
@@ -993,39 +1013,51 @@ const salvarLancamento = async () => {
 }
 
 // Editar lançamento
-const editarLancamento = (item) => {
-  Object.assign(formData, {
-    id: item.id,
-    id_pessoa: item.id_pessoa,
-    id_planoconta: item.id_planoconta,
-    id_hist_contabil: item.id_hist_contabil || null,
-    local_lct: item.local_lct || 'CAI',
-    id_caixa: item.id_caixa,
-    id_ccorrente: item.id_ccorrente || null,
-    id_historico: item.id_historico || null,
-    id_hist_contabil_caixa: item.id_hist_contabil_caixa || null,
-    id_tipopagrec: item.id_tipopagrec,
-    id_tipodocumento: item.id_tipodocumento || null,
-    dtlancamento: item.dtlancamento,
-    dtcobranca: item.dtcobranca || '',
-    nrdocumento: item.nrdocumento || '',
-    valor: item.valor,
-    observacao: item.observacao || ''
-  })
-  
-  editando.value = true
-  formularioAberto.value = true
+const editarLancamento = async (item) => {
+  loading.value = true
+  try {
+    const dados = await adiantamentoStore.buscarAdiantamentoPorId(item.id)
+    const apiData = dados?.data ?? dados ?? {}
+    const record = { ...item, ...apiData }
+
+    Object.assign(formData, {
+      id: record.id,
+      id_pessoa: record.id_pessoa ?? record.id_cliente,
+      id_planoconta: record.id_planoconta,
+      id_hist_contabil: record.id_hist_contabil ?? record.id_historico_ctb ?? null,
+      local_lct: record.local_lct || (record.id_caixamov ? 'CAI' : record.id_ccorrentemov ? 'BAN' : 'CAI'),
+      id_caixa: record.id_caixa ?? record.id_caixamov,
+      id_ccorrente: record.id_ccorrente ?? record.id_ccorrentemov ?? null,
+      id_historico: record.id_historico ?? null,
+      id_hist_contabil_caixa: record.id_caixahist ?? record.id_hist_contabil_caixa ?? null,
+      id_tipopagrec: record.id_tipopagrec,
+      id_tipodocumento: record.id_tipodocumento ?? null,
+      dtlancamento: record.dtlancamento,
+      tipo: record.tipo || 'C',
+      dtcobranca: record.data_cobranca || record.dtcobranca || '',
+      nrdocumento: record.nrdocumento || '',
+      valor: record.valor,
+      observacao: record.observacao || ''
+    })
+    
+    editando.value = true
+    formularioAberto.value = true
+  } catch (error) {
+    console.error('Erro ao carregar adiantamento:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 // Confirmar exclusão
 const confirmarExclusao = (item) => {
-  if (confirm(`Deseja realmente excluir este lançamento?\n\nCliente: ${item.nome_razao}\nValor: ${formatarMoeda(item.valor)}`)) {
-    excluirLancamento(item)
-  }
+  itemParaExcluir.value = item
+  modalExcluir.value = true
 }
 
 // Excluir lançamento
-const excluirLancamento = async (item) => {
+const excluirLancamento = async () => {
+  if (!itemParaExcluir.value) return
   loading.value = true
   try {
     const idEmpresa = empresaStore.empresa?.id || empresaStore.empresaSelecionada?.id
@@ -1036,8 +1068,9 @@ const excluirLancamento = async (item) => {
       return
     }
     
-    await adiantamentoStore.excluirAdiantamento(idEmpresa, item.id)
-    console.log('Lançamento excluído com sucesso!')
+    await adiantamentoStore.excluirAdiantamento(idEmpresa, itemParaExcluir.value.id)
+    modalExcluir.value = false
+    itemParaExcluir.value = null
     await carregarLancamentos()
   } catch (error) {
     console.error('Erro ao excluir lançamento:', error)
@@ -1061,6 +1094,8 @@ onMounted(async () => {
   ])
   
   console.log('✅ Carregamento inicial completo')
+
+  await carregarLancamentos()
 })
 </script>
 

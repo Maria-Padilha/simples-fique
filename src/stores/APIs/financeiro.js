@@ -744,7 +744,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       this.error = null
       try {
         const res = await apiPhp.get('/financeiro/lote-baixa-recebers', {
-          params: { data_inicio, data_fim }
+          params: { dtini: data_inicio, dtfim: data_fim }
         })
         return res.data?.data ?? res.data ?? []
       } catch (error) {

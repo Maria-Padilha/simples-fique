@@ -26,7 +26,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
         const params = { data_ini: dtini, data_fim: dtfim }
         if (idCliente) params.cliente = idCliente
 
-        const res = await apiPhp.get('/adiantamento-clientes', { params })
+        const res = await apiPhp.get('/financeiro/adiantamento-clientes', { params })
 
         const dados = res.data?.data ?? res.data ?? []
         this.adiantamentos = Array.isArray(dados) ? dados : []
@@ -50,10 +50,28 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
       this.loading = true
 
       try {
-        const res = await apiPhp.post('/adiantamento-clientes', payload)
+        const res = await apiPhp.post('/financeiro/adiantamento-clientes', payload)
         return res.data?.data ?? res.data
       } catch (error) {
         console.error('Erro ao criar adiantamento:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Buscar adiantamento de cliente por ID
+     * @param {number} id - ID do adiantamento
+     * @returns {Promise}
+     */
+    async buscarAdiantamentoPorId(id) {
+      this.loading = true
+      try {
+        const res = await apiPhp.get(`/financeiro/adiantamento-clientes/${id}`)
+        return res.data?.data ?? res.data
+      } catch (error) {
+        console.error('Erro ao buscar adiantamento:', error)
         throw error
       } finally {
         this.loading = false
@@ -70,7 +88,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
       this.loading = true
 
       try {
-        const res = await apiPhp.put(`/adiantamento-clientes/${id}`, payload)
+        const res = await apiPhp.put(`/financeiro/adiantamento-clientes/${id}`, payload)
         return res.data?.data ?? res.data
       } catch (error) {
         console.error('Erro ao atualizar adiantamento:', error)
@@ -90,7 +108,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
       this.loading = true
 
       try {
-        const res = await apiPhp.delete(`/adiantamento-clientes/${id}`)
+        const res = await apiPhp.delete(`/financeiro/adiantamento-clientes/${id}`)
         return res.data?.data ?? res.data
       } catch (error) {
         console.error('Erro ao excluir adiantamento:', error)

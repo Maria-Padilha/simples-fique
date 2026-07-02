@@ -1132,7 +1132,10 @@ const carregarCaixas = async () => {
     if (!idEmpresa) return
     
     const dados = await caixaStore.buscarCaixasUsuarioAberto(idEmpresa)
-    caixasDisponiveis.value = Array.isArray(dados) ? dados : []
+    caixasDisponiveis.value = Array.isArray(dados) ? dados.map(c => ({
+      ...c,
+      id_caixa: c.id ?? c.id_caixa,
+    })) : []
   } catch (error) {
     console.error('Erro ao carregar caixas:', error)
     caixasDisponiveis.value = []
