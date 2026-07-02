@@ -1483,8 +1483,8 @@ const parcelasCalculadas = ref(false)
 // Flag para suprimir o watcher que limpa parcelas enquanto carregamos um documento existente
 const suppressParcelWatcher = ref(false)
 
-// Rateio por centro de custo
-const centrosCusto = ref([])
+// Rateio por centro de custo — computed garante reatividade ao store
+const centrosCusto = computed(() => ccustoStore.centrosCusto || [])
 
 // Parâmetro de centro de custo (obrigatoriedade)
 const ccustoParametro = ref({
@@ -1880,7 +1880,6 @@ watch(() => parcelasCalculadas.value, (val) => {
     if ((centrosCusto.value || []).length === 0) {
       // tentar carregar novamente
       ccustoStore.listarCCusto().then(() => {
-        centrosCusto.value = ccustoStore.centrosCusto || []
         inicializarRateio()
       }).catch(() => {
         inicializarRateio()
@@ -1956,43 +1955,41 @@ const carregarCCustoParametro = async () => {
 
 // Carregar dados auxiliares dos dropdowns
 const carregarDadosAuxiliares = async () => {
-  try {
-    // Carregar parâmetro de centro de custo
-    await carregarCCustoParametro()
+  await carregarCCustoParametro()
 
-    // Carregar tipos de documento
+  try {
     const tiposDoc = await financeiroStore.buscarTiposDocumento()
     tiposDocumento.value = tiposDoc
+  } catch (err) {
+    console.warn('Não foi possível carregar tipos de documento:', err)
+  }
 
-    // Carregar locais de cobrança
+  try {
     const locaisCobrancaData = await financeiroStore.buscarLocaisCobranca()
     locaisCobranca.value = locaisCobrancaData
+  } catch (err) {
+    console.warn('Não foi possível carregar locais de cobrança:', err)
+  }
 
-    // Não carregar fornecedores por padrão — busca remota só ao digitar (>=3 chars)
-    pessoas.value = []
+  pessoas.value = []
 
-    // Carregar planos de conta
+  try {
     await financeiroStore.buscarPlanosConta()
+  } catch (err) {
+    console.warn('Não foi possível carregar planos de conta:', err)
+  }
 
-    // Carregar históricos contábeis
-    try {
-      const historicosRes = await financeiroStore.buscarHistoricosContabil()
-      historicoContabilResultados.value = historicosRes || []
-    } catch (err) {
-      console.warn('Não foi possível carregar históricos contábeis:', err)
-    }
+  try {
+    const historicosRes = await financeiroStore.buscarHistoricosContabil()
+    historicoContabilResultados.value = historicosRes || []
+  } catch (err) {
+    console.warn('Não foi possível carregar históricos contábeis:', err)
+  }
 
-    // Carregar centros de custo
-    try {
-      await ccustoStore.listarCCusto()
-      centrosCusto.value = ccustoStore.centrosCusto || []
-    } catch (err) {
-      console.warn('Não foi possível carregar centros de custo:', err)
-    }
-
-  } catch (error) {
-    console.error('Erro ao carregar dados auxiliares:', error)
-    mostrarMensagem('Erro ao carregar dados auxiliares', 'error')
+  try {
+    await ccustoStore.listarCCusto()
+  } catch (err) {
+    console.warn('Não foi possível carregar centros de custo:', err)
   }
 }
 
@@ -2318,7 +2315,6 @@ const editarContaPagar = async (item) => {
       if ((centrosCusto.value || []).length === 0) {
         try {
           await ccustoStore.listarCCusto()
-          centrosCusto.value = ccustoStore.centrosCusto || []
         } catch (e) {
           console.warn('Não foi possível carregar centros de custo ao editar documento', e)
         }

@@ -410,6 +410,9 @@ const montarPayloadBaixa = async (tipo, dadosBaixa) => {
       id_reduzido_ctb_banco: dadosBaixa?.id_reduzido_ctb_banco ?? parfin?.pag_id_red_ctb_banco ?? null,
       id_caixa: tipo === 'caixa' ? (dadosBaixa?.codigoCaixa ?? null) : null,
       id_ccorrente: tipo === 'banco' ? (dadosBaixa?.codigoBanco ?? null) : null,
+      id_historico: local_lct === 'CAI'
+        ? (parfin?.pag_id_hist_bxa_caixa ?? null)
+        : (parfin?.pag_id_hist_bxa_banco ?? null),
       pag_id_hist_bxa_caixa: local_lct === 'CAI' ? (parfin?.pag_id_hist_bxa_caixa ?? null) : null,
       pag_id_hist_bxa_caixa_ctb: local_lct === 'CAI' ? (parfin?.pag_id_hist_bxa_caixa_ctb ?? null) : null,
       pag_id_hist_bxa_banco: local_lct === 'BAN' ? (parfin?.pag_id_hist_bxa_banco ?? null) : null,

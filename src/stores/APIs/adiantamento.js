@@ -117,7 +117,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
         const params = { data_ini: dtini, data_fim: dtfim }
         if (idFornecedor) params.fornecedor = idFornecedor
 
-        const res = await apiPhp.get('/adiantamento-fornecedors', { params })
+        const res = await apiPhp.get('/financeiro/adiantamento-fornecedors', { params })
 
         const dados = res.data?.data ?? res.data ?? []
         this.adiantamentos = Array.isArray(dados) ? dados : []
@@ -141,7 +141,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
       this.loading = true
 
       try {
-        const res = await apiPhp.post('/adiantamento-fornecedors', payload)
+        const res = await apiPhp.post('/financeiro/adiantamento-fornecedors', payload)
         return res.data?.data ?? res.data
       } catch (error) {
         console.error('Erro ao criar adiantamento de fornecedor:', error)
@@ -161,7 +161,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
       this.loading = true
 
       try {
-        const res = await apiPhp.put(`/adiantamento-fornecedors/${id}`, payload)
+        const res = await apiPhp.put(`/financeiro/adiantamento-fornecedors/${id}`, payload)
         return res.data?.data ?? res.data
       } catch (error) {
         console.error('Erro ao atualizar adiantamento de fornecedor:', error)
@@ -181,7 +181,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
       this.loading = true
 
       try {
-        const res = await apiPhp.delete(`/adiantamento-fornecedors/${id}`)
+        const res = await apiPhp.delete(`/financeiro/adiantamento-fornecedors/${id}`)
         return res.data?.data ?? res.data
       } catch (error) {
         console.error('Erro ao excluir adiantamento de fornecedor:', error)
@@ -200,7 +200,7 @@ export const useAdiantamentoStore = defineStore('adiantamento', {
       this.loading = true
 
       try {
-        const res = await apiPhp.get(`/adiantamento-fornecedors/${id}`)
+        const res = await apiPhp.get(`/financeiro/adiantamento-fornecedors/${id}`)
         return res.data?.data ?? res.data
       } catch (error) {
         console.error('Erro ao buscar adiantamento de fornecedor:', error)

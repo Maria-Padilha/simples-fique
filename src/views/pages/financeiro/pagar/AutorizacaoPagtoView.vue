@@ -335,7 +335,6 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
 import { useFinanceiroStore } from '@/stores/APIs/financeiro'
-import { useEmpresaStore } from '@/stores/APIs/empresa'
 import { toast } from 'vue3-toastify'
 import { abrirImpressaoTitulos, gerarHTMLTitulos } from '@/components/impressos/titulos'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
@@ -346,7 +345,6 @@ import PdfPreviewModal from '@/components/base/modais/PdfPreviewModal.vue'
 
 const themeStore = useThemeStore()
 const financeiroStore = useFinanceiroStore()
-const empresaStore = useEmpresaStore()
 
 // Refs
 const search = ref('')
@@ -504,18 +502,19 @@ const confirmarAutorizacao = async () => {
     const isMultiplo = Array.isArray(dialogAutorizacao.item)
     const itens = isMultiplo ? dialogAutorizacao.item : [dialogAutorizacao.item]
     
-    // Preparar payload para a API
+    // Preparar payload para a API (PHP/Laravel)
+    // A API PHP espera lista de IDs e observação
     const payload = {
-      data: itens.map(item => ({
+      ids: itens.map(item => item.id_parcela),
+      observacao: observacaoAutorizacao.value || null,
+      itens: itens.map(item => ({
         id: item.id_parcela,
-        vlrliberadopagto: item.vlrparcela,
-        vlroriginalparcela: item.vlrparcela
+        vlr_liberado: item.vlrparcela
       }))
     }
     
     console.log('Autorizando pagamento(s):', {
       payload,
-      observacao: observacaoAutorizacao.value,
       quantidade: itens.length
     })
     
@@ -586,20 +585,6 @@ const carregarAutorizacoes = async () => {
   try {
     console.log('Carregando autorizações...')
     
-    // Carregar empresa selecionada se necessário
-    if (!empresaStore.empresa?.id && !empresaStore.empresaSelecionada?.id) {
-      empresaStore.carregarEmpresaSelecionada()
-    }
-    
-    const idEmpresa = empresaStore.empresa?.id || empresaStore.empresaSelecionada?.id
-    
-    if (!idEmpresa) {
-      mostrarSnackbar('ID da empresa não encontrado', 'error')
-      return
-    }
-    
-    console.log('ID da empresa:', idEmpresa)
-    
     // Verificar obrigatoriedade de datas
     const temDataInicio = filtrosAvancados.value.dtini || filtrosAvancados.value.dt_inicio
     const temDataFim = filtrosAvancados.value.dtfim || filtrosAvancados.value.dt_fim
@@ -609,19 +594,31 @@ const carregarAutorizacoes = async () => {
       return
     }
 
-    // Sempre buscar contas não baixadas e não liberadas para pagamento
-    const filtros = {
-      ...filtrosAvancados.value,
-      baixado: 'N', // sempre fixo para autorização
-      liberadopagto: 'N' // sempre fixo para autorização
-    }
+    console.log('Filtros aplicados:', filtrosAvancados.value)
     
-    console.log('Filtros aplicados:', filtros)
-    
-    const resultado = await financeiroStore.buscarContasPagar(idEmpresa, filtros)
+    // Endpoint dedicado /financeiro/conta-pagars/pendentes-autorizacao
+    const resultado = await financeiroStore.buscarContasPagarPendentesAutorizacao(filtrosAvancados.value)
     
     if (resultado && Array.isArray(resultado)) {
-      autorizacoes.value = resultado
+      // API já retorna os campos no formato esperado (fornecedor como nome, vlrparcela, etc.)
+      autorizacoes.value = resultado.map(item => ({
+        id_parcela: item.id_parcela,
+        nrdocumento: item.nrdocumento || '',
+        serie: item.serie || '',
+        especie: item.especie || '',
+        qtdparcelas: item.qtdparcelas || 1,
+        dtemissao: item.dtvencimento || '',
+        dtvencimento: item.dtvencimento || '',
+        vlrdocumento: parseFloat(item.vlrparcela || 0),
+        vlrparcela: parseFloat(item.vlrparcela || 0),
+        vlroriginal: parseFloat(item.vlrparcela || 0),
+        origem: item.origem || '',
+        fornecedor: item.fornecedor || '--',
+        abreviatura: item.abreviatura || '',
+        desclocalcobranca: item.desclocalcobranca || '',
+        user_inc: item.user_inc || '',
+        observacao: ''
+      }))
       console.log(`Carregadas ${resultado.length} autorizações`)
     } else {
       console.error('Estrutura de dados inválida:', resultado)
@@ -824,7 +821,7 @@ const handleImprimir = ({ dados, filtros }) => {
 
 // Ciclo de vida
 onMounted(async () => {
-  // Aguardar filtros do componente filho
+  // Dados agora são carregados via filtros do BuscaAvancadaAutorizacao
   console.log('Tela de autorização carregada')
 })
 </script>

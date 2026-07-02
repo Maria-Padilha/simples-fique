@@ -126,66 +126,72 @@
                       <td :colspan="headers.length" class="pa-4">
                         <v-card flat class="background-secondary">
                           <v-card-text>
-                            <v-data-table
-                                :headers="headersDetalhes"
-                                :items="item.detalhes"
-                                hide-default-footer
-                                density="compact"
-                                class="elevation-0 background-card"
-                            >
-                              <!-- Número da Parcela -->
-                              <template v-slot:[`item.nrparcela`]="{ item: detalhe }">
-                                <v-chip size="small" :color="detalhe.nrparcela ? 'info' : 'grey'">
-                                  {{ detalhe.nrparcela || '-' }}
-                                </v-chip>
-                              </template>
+                            <div v-if="item.detalhes && item.detalhes.length > 0">
+                              <v-data-table
+                                  :headers="headersDetalhes"
+                                  :items="item.detalhes"
+                                  hide-default-footer
+                                  density="compact"
+                                  class="elevation-0 background-card"
+                              >
+                                <!-- Número da Parcela -->
+                                <template v-slot:[`item.nrparcela`]="{ item: detalhe }">
+                                  <v-chip size="small" :color="detalhe.nrparcela ? 'info' : 'grey'">
+                                    {{ detalhe.nrparcela || '-' }}
+                                  </v-chip>
+                                </template>
 
-                              <!-- Vencimento -->
-                              <template v-slot:[`item.dtvencimento`]="{ item: detalhe }">
-                                <div>{{ detalhe.dtvencimento }}</div>
-                              </template>
+                                <!-- Vencimento -->
+                                <template v-slot:[`item.dtvencimento`]="{ item: detalhe }">
+                                  <div>{{ detalhe.dtvencimento }}</div>
+                                </template>
 
-                              <!-- Fornecedor -->
-                              <template v-slot:[`item.fornecedor`]="{ item: detalhe }">
-                                <div>{{ detalhe.fornecedor || '-' }}</div>
-                              </template>
+                                <!-- Fornecedor -->
+                                <template v-slot:[`item.fornecedor`]="{ item: detalhe }">
+                                  <div>{{ detalhe.fornecedor || '-' }}</div>
+                                </template>
 
-                              <!-- Valor Parcela -->
-                              <template v-slot:[`item.vlrparcela`]="{ item: detalhe }">
-                                <div>{{ formatarMoeda(detalhe.vlrparcela) }}</div>
-                              </template>
+                                <!-- Valor Parcela -->
+                                <template v-slot:[`item.vlrparcela`]="{ item: detalhe }">
+                                  <div>{{ formatarMoeda(detalhe.vlrparcela) }}</div>
+                                </template>
 
-                              <!-- Juros -->
-                              <template v-slot:[`item.vlrjuros`]="{ item: detalhe }">
-                                <div :class="detalhe.vlrjuros > 0 ? 'text-error' : ''">
-                                  {{ formatarMoeda(detalhe.vlrjuros) }}
-                                </div>
-                              </template>
+                                <!-- Juros -->
+                                <template v-slot:[`item.vlrjuros`]="{ item: detalhe }">
+                                  <div :class="detalhe.vlrjuros > 0 ? 'text-error' : ''">
+                                    {{ formatarMoeda(detalhe.vlrjuros) }}
+                                  </div>
+                                </template>
 
-                              <!-- Multa -->
-                              <template v-slot:[`item.vlrmulta`]="{ item: detalhe }">
-                                <div :class="detalhe.vlrmulta > 0 ? 'text-error' : ''">
-                                  {{ formatarMoeda(detalhe.vlrmulta) }}
-                                </div>
-                              </template>
+                                <!-- Multa -->
+                                <template v-slot:[`item.vlrmulta`]="{ item: detalhe }">
+                                  <div :class="detalhe.vlrmulta > 0 ? 'text-error' : ''">
+                                    {{ formatarMoeda(detalhe.vlrmulta) }}
+                                  </div>
+                                </template>
 
-                              <!-- Desconto -->
-                              <template v-slot:[`item.vlrdesconto`]="{ item: detalhe }">
-                                <div :class="detalhe.vlrdesconto > 0 ? 'text-success' : ''">
-                                  {{ formatarMoeda(detalhe.vlrdesconto) }}
-                                </div>
-                              </template>
+                                <!-- Desconto -->
+                                <template v-slot:[`item.vlrdesconto`]="{ item: detalhe }">
+                                  <div :class="detalhe.vlrdesconto > 0 ? 'text-success' : ''">
+                                    {{ formatarMoeda(detalhe.vlrdesconto) }}
+                                  </div>
+                                </template>
 
-                              <!-- Tipo Composição -->
-                              <template v-slot:[`item.tipo_composicao`]="{ item: detalhe }">
-                                <v-chip
-                                    size="small"
-                                    :color="detalhe.tipo_composicao?.includes('CAIXA') ? 'orange' : detalhe.tipo_composicao?.includes('BANCO') ? 'blue' : 'grey'"
-                                >
-                                  {{ detalhe.tipo_composicao?.includes('CAIXA') ? 'CAIXA' : detalhe.tipo_composicao?.includes('BANCO') ? 'BANCO' : detalhe.tipo_composicao || '-' }}
-                                </v-chip>
-                              </template>
-                            </v-data-table>
+                                <!-- Tipo Composição -->
+                                <template v-slot:[`item.tipo_composicao`]="{ item: detalhe }">
+                                  <v-chip
+                                      size="small"
+                                      :color="detalhe.tipo_composicao?.includes('CAIXA') ? 'orange' : detalhe.tipo_composicao?.includes('BANCO') ? 'blue' : 'grey'"
+                                  >
+                                    {{ detalhe.tipo_composicao?.includes('CAIXA') ? 'CAIXA' : detalhe.tipo_composicao?.includes('BANCO') ? 'BANCO' : detalhe.tipo_composicao || '-' }}
+                                  </v-chip>
+                                </template>
+                              </v-data-table>
+                            </div>
+                            <div v-else class="text-center text-grey py-4">
+                              <v-icon icon="mdi-information-outline" class="mr-1"></v-icon>
+                              Detalhes do lote não disponíveis
+                            </div>
 
                             <!-- Botão de Estorno do Lote -->
                             <div class="d-flex justify-end mt-4">
@@ -363,33 +369,42 @@ const headersDetalhes = [
   { title: 'Tipo', key: 'tipo_composicao', sortable: false }
 ]
 
-// Agrupar baixas por lote
+// Agrupar itens por lote (API retorna itens individuais com dados do lote)
 const baixasAgrupadas = computed(() => {
   const grupos = {}
   
-  baixas.value.forEach(baixa => {
-    const loteId = baixa.id_pagbaixa_lote || 'sem-lote'
+  baixas.value.forEach(item => {
+    const loteId = item.id || 'sem-lote'
     
     if (!grupos[loteId]) {
       grupos[loteId] = {
-        id_pagbaixa_lote: baixa.id_pagbaixa_lote,
-        vlrbaixado_lote: parseFloat(baixa.vlrbaixado_lote || 0),
-        dhinc: formatarDataHora(baixa.dhinc),
-        usuario_baixou: baixa.usuario_baixou,
+        id_pagbaixa_lote: item.id,
+        vlrbaixado_lote: parseFloat(item.vlrtotalbaixado || 0),
+        dhinc: formatarDataHora(item.dhinc),
+        usuario_baixou: 'Usuário #' + (item.id_user_inc || 'S/N'),
         quantidade: 0,
+        tipo_composicao: item.tipo_composicao,
         detalhes: []
       }
     }
     
     grupos[loteId].quantidade += 1
     grupos[loteId].detalhes.push({
-      ...baixa,
-      dhinc: formatarDataHora(baixa.dhinc),
-      dtvencimento: formatarData(baixa.dtvencimento)
+      nrparcela: item.id_pagparcela,
+      nrdocumento: item.nrdocumento || '',
+      fornecedor: item.fornecedor || '--',
+      vlrparcela: parseFloat(item.vlrbaixa || 0),
+      vlrjuros: parseFloat(item.vlrjuros || 0),
+      vlrmulta: parseFloat(item.vlrmulta || 0),
+      vlrdesconto: parseFloat(item.vlrdesconto || 0),
+      tipo_composicao: grupos[loteId].tipo_composicao === 'C' ? 'CAIXA'
+        : grupos[loteId].tipo_composicao === 'B' ? 'BANCO'
+        : grupos[loteId].tipo_composicao || '-',
+      dtvencimento: item.dtvencimento || '',
+      abreviatura: item.abreviatura || ''
     })
   })
   
-  // Adicionar ID único para cada grupo
   return Object.values(grupos).map((grupo, index) => ({
     ...grupo,
     uniqueId: `lote-${grupo.id_pagbaixa_lote || 'sem'}-${index}`
@@ -483,18 +498,6 @@ const formatarDataHora = (dataISO) => {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(data)
-}
-
-// Formatar apenas data
-const formatarData = (dataISO) => {
-  if (!dataISO) return '-'
-  
-  const data = new Date(dataISO + 'T00:00:00')
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
   }).format(data)
 }
 

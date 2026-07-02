@@ -519,16 +519,16 @@
                      </v-chip>
                    </template>
 
-                   <!-- Coluna Tipo -->
-                   <template v-slot:[`item.tipo`]="{ item }">
-                     <v-chip
-                         :color="item.tipo === 'Saida' ? 'var(--text-color-laranja)' : 'var(--text-secondary-laranja)'"
-                         size="small"
-                         variant="tonal"
-                     >
-                       {{ item.tipo }}
-                     </v-chip>
-                   </template>
+                    <!-- Coluna Tipo -->
+                    <template v-slot:[`item.tipo`]="{ item }">
+                      <v-chip
+                          :color="['Saida', '-'].includes(item.tipo) ? 'var(--text-color-laranja)' : 'var(--text-secondary-laranja)'"
+                          size="small"
+                          variant="tonal"
+                      >
+                        {{ ['Saida', '-'].includes(item.tipo) ? 'Saída' : 'Entrada' }}
+                      </v-chip>
+                    </template>
 
                    <!-- Coluna Origem -->
                    <template v-slot:[`item.origem`]="{ item }">
@@ -640,8 +640,8 @@
                <v-divider class="mb-4"></v-divider>
 
                <div class="d-flex flex-column gap-3">
-                 <!-- Ações para situação Pendente (1) -->
-                 <template v-if="itemSelecionado?.situacao === '1'">
+                  <!-- Ações para situação Pendente (1 ou P) -->
+                  <template v-if="['1', 'P'].includes(itemSelecionado?.situacao)">
                    <v-btn
                        color="var(--text-color-laranja)"
                        variant="flat"
@@ -699,8 +699,8 @@
                    </v-btn>
                  </template>
 
-                 <!-- Ações para situação Aprovado (2) -->
-                 <template v-if="itemSelecionado?.situacao === '2'">
+                  <!-- Ações para situação Aprovado (2 ou A) -->
+                  <template v-if="['2', 'A'].includes(itemSelecionado?.situacao)">
                    <v-btn
                        color="var(--text-color-laranja)"
                        variant="flat"
@@ -714,8 +714,8 @@
                    </v-btn>
                  </template>
 
-                 <!-- Ações para situação Recusado (3) -->
-                 <template v-if="itemSelecionado?.situacao === '3'">
+                  <!-- Ações para situação Recusado (3 ou R) -->
+                  <template v-if="['3', 'R'].includes(itemSelecionado?.situacao)">
                    <v-btn
                        color="var(--text-secondary-laranja)"
                        variant="outlined"
@@ -738,8 +738,8 @@
                    </v-btn>
                  </template>
 
-                 <!-- Situação Pago (9) - Apenas visualização -->
-                 <template v-if="itemSelecionado?.situacao === '9'">
+                  <!-- Situação Pago (9 ou PG) - Apenas visualização -->
+                  <template v-if="['9', 'PG'].includes(itemSelecionado?.situacao)">
                    <v-alert
                        color="var(--text-secondary-laranja)"
                        variant="tonal"
@@ -905,15 +905,18 @@ const lancamentosFiltrados = computed(() => {
 })
 
 // Cálculos de totais
+const ehEntrada = (tipo) => ['Entrada', '+'].includes(tipo)
+const ehSaida = (tipo) => ['Saida', '-'].includes(tipo)
+
 const totalEntradas = computed(() => {
   return lancamentosFiltrados.value
-    .filter(l => l.tipo === 'Entrada')
+    .filter(l => ehEntrada(l.tipo))
     .reduce((sum, l) => sum + parseFloat(l.valor_autorizado || 0), 0)
 })
 
 const totalSaidas = computed(() => {
   return lancamentosFiltrados.value
-    .filter(l => l.tipo === 'Saida')
+    .filter(l => ehSaida(l.tipo))
     .reduce((sum, l) => sum + parseFloat(l.valor_autorizado || 0), 0)
 })
 
@@ -954,20 +957,20 @@ const formatarDataHora = (dataHora) => {
 // Funções para formatar situação
 const getSituacaoTexto = (situacao) => {
   switch(situacao) {
-    case '1': return 'Pendente'
-    case '2': return 'Aprovado'
-    case '3': return 'Negado'
-    case '9': return 'Pago'
+    case '1': case 'P': return 'Pendente'
+    case '2': case 'A': return 'Aprovado'
+    case '3': case 'R': return 'Negado'
+    case '9': case 'PG': return 'Pago'
     default: return 'Desconhecido'
   }
 }
 
 const getCorSituacao = (situacao) => {
   switch(situacao) {
-    case '1': return 'var(--text-secondary-laranja)'    // Pendente - laranja claro
-    case '2': return 'var(--text-color-laranja)'        // Aprovado - laranja principal  
-    case '3': return 'var(--text-secondary-laranja)'    // Negado - laranja claro
-    case '9': return 'var(--text-color-laranja)'        // Pago - laranja principal
+    case '1': case 'P': return 'var(--text-secondary-laranja)'    // Pendente
+    case '2': case 'A': return 'var(--text-color-laranja)'        // Aprovado
+    case '3': case 'R': return 'var(--text-secondary-laranja)'    // Negado
+    case '9': case 'PG': return 'var(--text-color-laranja)'       // Pago
     default: return 'grey'
   }
 }
@@ -1262,6 +1265,12 @@ const carregarLancamentos = async () => {
     lancamentos.value = Array.isArray(resultado.data) ? resultado.data : []
     utilizaAprovacaoAdiantamento.value = resultado.pag_utiliza_aprov_adt_for || 'N'
     
+    // Mapear nome do fornecedor a partir do id_fornecedor
+    lancamentos.value = lancamentos.value.map(item => {
+      const fornecedor = fornecedores.value.find(f => f.id === item.id_fornecedor)
+      return { ...item, nome_razao: fornecedor?.nome_razao || '--' }
+    })
+    
     console.log('Lançamentos carregados:', lancamentos.value.length)
     console.log('Saldo anterior:', saldoAnterior.value)
   } catch (error) {
@@ -1347,7 +1356,7 @@ const salvarAdiantamento = async () => {
       id_ccorrente: formData.local_lct === 'BAN' ? formData.id_ccorrente : null,
       id_historico: formData.local_lct === 'BAN' ? formData.id_historico : null,      
       local_lct: formData.local_lct,
-      tipo: formData.tipo,
+      tipo: formData.tipo === 'Entrada' ? '+' : '-',
       origem: formData.origem,
       dtlancamento: formData.dtlancamento,
       dtprevisao_pagto: formData.dtprevisao_pagto || null,
