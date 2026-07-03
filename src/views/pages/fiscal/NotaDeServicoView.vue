@@ -100,14 +100,18 @@ const parseXML = (xmlString) => {
 
     // Detectar o tipo de XML
     const infNFSe = xmlDoc.querySelector('infNFSe')
+    const infNFSe204 = xmlDoc.querySelector('InfNfse')
     const loteRps = xmlDoc.querySelector('LoteRps')
     const infRps = xmlDoc.querySelector('InfRps')
 
     let nota = null
 
     if (infNFSe) {
-      // Formato NFSe (primeiro formato)
+      // Formato NFSe (Caxias do Sul)
       nota = parseNFSeFormat(xmlDoc, infNFSe)
+    } else if (infNFSe204) {
+      // Formato NFSe ABRASF 2.04 (padrão nacional)
+      nota = parseABRASFNFSe204Format(xmlDoc, infNFSe204)
     } else if (loteRps || infRps) {
       // Formato ABRASF/RPS
       nota = parseABRASFFormat(xmlDoc)
@@ -216,6 +220,139 @@ const parseNFSeFormat = (xmlDoc, infNFSe) => {
         valor: parseFloat(getTextContent(valoresDPS, 'trib tribFed piscofins vCofins') || '0')
       },
       csll: parseFloat(getTextContent(valoresDPS, 'trib tribFed vRetCSLL') || '0')
+    },
+
+    intermediario: null,
+    construcaoCivil: null
+  }
+}
+
+// Parser para formato ABRASF NFSe 2.04 (padrão nacional - Nfse > InfNfse)
+const parseABRASFNFSe204Format = (xmlDoc, infNfse) => {
+  const valoresNfse = infNfse.querySelector('ValoresNfse')
+  const prestadorServico = infNfse.querySelector('PrestadorServico')
+  const prestadorEndereco = prestadorServico?.querySelector('Endereco')
+  const prestadorContato = prestadorServico?.querySelector('Contato')
+  const declaracao = infNfse.querySelector('DeclaracaoPrestacaoServico')
+  const infDeclaracao = declaracao?.querySelector('InfDeclaracaoPrestacaoServico')
+  const rps = infDeclaracao?.querySelector('Rps')
+  const identificacaoRps = rps?.querySelector('IdentificacaoRps')
+  const servico = infDeclaracao?.querySelector('Servico')
+  const valoresServico = servico?.querySelector('Valores')
+  const prestadorDecl = infDeclaracao?.querySelector('Prestador')
+  const tomadorServico = infDeclaracao?.querySelector('TomadorServico')
+  const tomadorIdentificacao = tomadorServico?.querySelector('IdentificacaoTomador')
+  const tomadorEndereco = tomadorServico?.querySelector('Endereco')
+  const tomadorContato = tomadorServico?.querySelector('Contato')
+
+  const valorServicos = parseFloat(getTextContent(valoresServico, 'ValorServicos') || '0')
+  const valorDeducoes = parseFloat(getTextContent(valoresServico, 'ValorDeducoes') || '0')
+  const valorPis = parseFloat(getTextContent(valoresServico, 'ValorPis') || '0')
+  const valorCofins = parseFloat(getTextContent(valoresServico, 'ValorCofins') || '0')
+  const valorInss = parseFloat(getTextContent(valoresServico, 'ValorInss') || '0')
+  const valorIr = parseFloat(getTextContent(valoresServico, 'ValorIr') || '0')
+  const valorCsll = parseFloat(getTextContent(valoresServico, 'ValorCsll') || '0')
+  const outrasRetencoes = valorPis + valorCofins + valorInss + valorIr + valorCsll
+  const descontoIncondicionado = parseFloat(getTextContent(valoresServico, 'DescontoIncondicionado') || '0')
+  const descontoCondicionado = parseFloat(getTextContent(valoresServico, 'DescontoCondicionado') || '0')
+
+  let aliquotaIss = parseFloat(getTextContent(valoresNfse, 'Aliquota') || '0')
+  if (aliquotaIss > 0 && aliquotaIss < 1) aliquotaIss *= 100
+
+  const valorIss = parseFloat(getTextContent(valoresNfse, 'ValorIss') || '0')
+  const baseCalculo = parseFloat(getTextContent(valoresNfse, 'BaseCalculo') || '0')
+  const valorLiquido = parseFloat(getTextContent(valoresNfse, 'ValorLiquidoNfse') || '0')
+
+  const issRetido = getTextContent(valoresServico, 'IssRetido')
+  const statusRps = getTextContent(rps, 'Status')
+  const statusNormalizado = statusRps === '1' ? '100' : statusRps === '2' ? 'CANCELADO' : statusRps
+
+  return {
+    id: getTextContent(infDeclaracao, null, 'Id') || Date.now().toString(),
+    numero: getTextContent(infNfse, 'Numero'),
+    codigoVerificacao: getTextContent(infNfse, 'CodigoVerificacao'),
+    serie: getTextContent(identificacaoRps, 'Serie'),
+    tipo: getTextContent(identificacaoRps, 'Tipo'),
+    status: statusNormalizado,
+    dataEmissao: getTextContent(infNfse, 'DataEmissao'),
+    dataCompetencia: getTextContent(infDeclaracao, 'Competencia'),
+    dataProcessamento: null,
+    localEmissao: getTextContent(servico, 'CodigoMunicipio'),
+    localPrestacao: getTextContent(servico, 'CodigoMunicipio'),
+    tribNacional: null,
+    ambiente: null,
+    versaoApp: null,
+    tipoXml: 'NFSe',
+
+    prestador: prestadorServico ? {
+      cnpj: getTextContent(prestadorDecl, 'CpfCnpj Cnpj'),
+      inscricaoMunicipal: getTextContent(prestadorDecl, 'InscricaoMunicipal'),
+      razaoSocial: getTextContent(prestadorServico, 'RazaoSocial'),
+      nomeFantasia: getTextContent(prestadorServico, 'NomeFantasia'),
+      telefone: getTextContent(prestadorContato, 'Telefone'),
+      email: getTextContent(prestadorContato, 'Email'),
+      endereco: prestadorEndereco ? {
+        logradouro: getTextContent(prestadorEndereco, 'Endereco'),
+        numero: getTextContent(prestadorEndereco, 'Numero'),
+        complemento: getTextContent(prestadorEndereco, 'Complemento'),
+        bairro: getTextContent(prestadorEndereco, 'Bairro'),
+        municipio: getTextContent(prestadorEndereco, 'CodigoMunicipio'),
+        uf: getTextContent(prestadorEndereco, 'Uf'),
+        cep: getTextContent(prestadorEndereco, 'Cep')
+      } : null
+    } : null,
+
+    tomador: tomadorServico ? {
+      cnpj: getTextContent(tomadorIdentificacao, 'CpfCnpj Cnpj') || getTextContent(tomadorIdentificacao, 'CpfCnpj Cpf'),
+      cpf: getTextContent(tomadorIdentificacao, 'CpfCnpj Cpf'),
+      inscricaoMunicipal: getTextContent(tomadorIdentificacao, 'InscricaoMunicipal'),
+      razaoSocial: getTextContent(tomadorServico, 'RazaoSocial'),
+      email: getTextContent(tomadorContato, 'Email'),
+      telefone: getTextContent(tomadorContato, 'Telefone'),
+      endereco: tomadorEndereco ? {
+        logradouro: getTextContent(tomadorEndereco, 'Endereco'),
+        numero: getTextContent(tomadorEndereco, 'Numero'),
+        complemento: getTextContent(tomadorEndereco, 'Complemento'),
+        bairro: getTextContent(tomadorEndereco, 'Bairro'),
+        municipio: getTextContent(tomadorEndereco, 'CodigoMunicipio'),
+        uf: getTextContent(tomadorEndereco, 'Uf'),
+        cep: getTextContent(tomadorEndereco, 'Cep')
+      } : null
+    } : null,
+
+    servico: servico ? {
+      itemListaServico: getTextContent(servico, 'ItemListaServico'),
+      codigoCnae: getTextContent(servico, 'CodigoCnae'),
+      codigoTribNacional: getTextContent(servico, 'ItemListaServico'),
+      codigoTribMunicipal: getTextContent(servico, 'CodigoTributacaoMunicipio'),
+      descricao: getTextContent(servico, 'Discriminacao'),
+      localPrestacao: getTextContent(servico, 'CodigoMunicipio'),
+      infoComplementar: null
+    } : null,
+
+    valores: {
+      valorServico: valorServicos,
+      valorDeducoes: valorDeducoes,
+      baseCalculo: baseCalculo,
+      valorLiquido: valorLiquido,
+      totalRetido: outrasRetencoes,
+      descontoIncondicionado: descontoIncondicionado,
+      descontoCondicionado: descontoCondicionado
+    },
+
+    tributos: {
+      issqn: {
+        aliquota: aliquotaIss,
+        valor: valorIss,
+        retido: issRetido === '1',
+        valorRetido: 0
+      },
+      pis: { aliquota: 0, valor: valorPis },
+      cofins: { aliquota: 0, valor: valorCofins },
+      inss: valorInss,
+      ir: valorIr,
+      csll: valorCsll,
+      outrasRetencoes: outrasRetencoes
     },
 
     intermediario: null,
