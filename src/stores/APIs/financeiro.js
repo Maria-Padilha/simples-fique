@@ -1778,7 +1778,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
 
     // ========== DRE (DEMONSTRATIVO DE RESULTADO) ==========
 
-    // Salvar modelo de DRE (POST /api/v1/financeiro/dres)
+    // Salvar modelo de DRE (POST /api/v1/financeiro/DRE)
     async salvarModeloDRE(payload) {
       this.loading = true
       this.error = null
@@ -1793,7 +1793,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Atualizar modelo de DRE (PUT /api/v1/financeiro/dres/:id)
+    // Atualizar modelo de DRE (PUT /api/v1/financeiro/DRE/:id)
     async atualizarModeloDRE(id, payload) {
       this.loading = true
       this.error = null
@@ -1808,7 +1808,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Buscar modelos de DRE (GET /api/v1/financeiro/dres)
+    // Buscar modelos de DRE (GET /api/v1/financeiro/DRE)
     async buscarModelosDRE() {
       this.loading = true
       this.error = null
@@ -1840,39 +1840,27 @@ export const useFinanceiroStore = defineStore('financeiro', {
         
         const modelo = response.data?.data ?? response.data
         
-        // Converter de volta para o formato da tela
         if (modelo) {
-          // O ID pode vir de diferentes lugares na resposta
-          const idModelo = modelo.id || modelo.id_dre || id
+          const idModelo = modelo.id || id
+          const nomeDre = modelo.descdre || modelo.nome || 'Modelo DRE'
           
-          // Criar mapa de ID para nome de grupo (para converter fórmulas)
+          const detalhes = modelo.detalhes || modelo.dredetalhe || []
+          
           const gruposMap = new Map()
-          ;(modelo.dredetalhe || []).forEach(detalhe => {
+          detalhes.forEach(detalhe => {
             gruposMap.set(detalhe.id, detalhe.descdredetalhe)
           })
-          
-          // O nome pode vir em diferentes locais dependendo da estrutura da resposta
-          const nomeDre = modelo.descdre || modelo.nome || 'Modelo DRE'
           
           return {
             id: idModelo,
             nome: nomeDre,
-            grupos: (modelo.dredetalhe || []).map(detalhe => {
-              // Converter natureza para tipo: '+'=>RECEITA, '-'=>DESPESA, '='=>TOTALIZADOR
+            grupos: detalhes.map(detalhe => {
               let tipo = 'RECEITA'
               switch (detalhe.natureza) {
-                case '+':
-                  tipo = 'RECEITA'
-                  break
-                case '-':
-                  tipo = 'DESPESA'
-                  break
-                case '=':
-                  tipo = 'TOTALIZADOR'
-                  break
+                case '-': tipo = 'DESPESA'; break
+                case '=': tipo = 'TOTALIZADOR'; break
               }
               
-              // Converter fórmula de IDs para nomes (ex: "1 - 2" -> "RECEITA - DESPESA")
               let formulaConvertida = detalhe.natureza_formula || ''
               if (formulaConvertida) {
                 gruposMap.forEach((nome, idGrupo) => {
@@ -1881,31 +1869,34 @@ export const useFinanceiroStore = defineStore('financeiro', {
                 })
               }
               
+              const contas = detalhe.contas || []
+              
               return {
                 id: Date.now() + Math.random(),
-                id_detalhe: detalhe.id, // Guardar ID do backend
+                id_detalhe: detalhe.id,
                 nome: detalhe.descdredetalhe,
-                tipo: tipo,
+                tipo,
                 formula: formulaConvertida,
-                descricao: '',
-                categorias: (modelo.dredetalheconta || [])
-                  .filter(conta => conta.id_dre_detalhe === detalhe.id)
-                  .map(conta => {
-                    // Usar dados que já vêm na resposta da API
-                    const classificador = conta.id_classificador || ''
-                    const nomeConta = conta.descconta || ''
-                    const contaDisplay = classificador && nomeConta ? `${classificador} - ${nomeConta}` : nomeConta
-                    
-                    return {
-                      id: Date.now() + Math.random(),
-                      id_conta: conta.id, // Guardar ID do backend
-                      id_planoconta: conta.id_reduzido_ctb,
-                      nome: nomeConta,
-                      classificador: classificador,
-                      conta: contaDisplay,
-                      descricao: ''
-                    }
-                  })
+                descricao: detalhe.descricao || '',
+                categorias: contas.map(conta => {
+                  const classificador = conta.id_classificador || ''
+                  const idConta = conta.id_reduzido_ctb || ''
+                  let nomeConta = conta.descconta || ''
+                  if (!nomeConta && idConta) {
+                    nomeConta = `Conta ${idConta}`
+                  }
+                  const contaDisplay = classificador && nomeConta ? `${classificador} - ${nomeConta}` : (nomeConta || `Conta ${idConta}`)
+                  
+                  return {
+                    id: Date.now() + Math.random(),
+                    id_conta: conta.id,
+                    id_planoconta: idConta,
+                    nome: nomeConta,
+                    classificador,
+                    conta: contaDisplay,
+                    descricao: ''
+                  }
+                })
               }
             })
           }
@@ -1920,7 +1911,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Deletar modelo de DRE (DELETE /api/v1/financeiro/dres/:id)
+    // Deletar modelo de DRE (DELETE /api/v1/financeiro/DRE/:id)
     async deletarModeloDRE(id) {
       this.loading = true
       this.error = null
