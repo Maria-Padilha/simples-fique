@@ -223,6 +223,8 @@
         >
           <template #item>{{ itemSelecionado?.descricao }}</template>
         </excluir-modal>
+
+
       </v-card>
     </template>
   </top-all-pages>
@@ -237,7 +239,6 @@ import FormsExpandTransition from "@/components/base/padrao-paginas/FormsExpandT
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import {useThemeStore} from "@/stores/config-temas/theme";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
-import {toast} from "vue3-toastify";
 
 const estoqueStore = useEstoqueStore();
 const themeStore = useThemeStore();
@@ -482,8 +483,6 @@ const compilarFormula = async (local, id) => {
   await estoqueStore.compilarFormula(payload, idEmpresa?.id, formulaId);
 
   if (estoqueStore.errorMessage) return;
-
-  toast.success(estoqueStore.successMessage || 'Fórmula compilada com sucesso!');
 
   if (local !== 'acao') {
     cancelarFormulario();

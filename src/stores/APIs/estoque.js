@@ -34,6 +34,7 @@ export const useEstoqueStore = defineStore('estoque', {
 
         formulas: [],
         formula: null,
+        compilarResult: null,
 
         almoxarifados: [],
         almoxarifado: null,
@@ -796,12 +797,16 @@ export const useEstoqueStore = defineStore('estoque', {
 
         async compilarFormula(formulaData, emp, id) { // eslint-disable-line no-unused-vars
             this.loading = true;
+            this.compilarResult = null;
 
             try {
-                await apiPhp.post(`/manutencao/formulas/${id}/compilar`, formulaData);
+                const response = await apiPhp.post(`/manutencao/formulas/${id}/compilar`, formulaData);
 
                 this.errorMessage = '';
                 this.successMessage = 'Fórmula compilada com sucesso!';
+                this.compilarResult = response.data?.data ?? response.data;
+
+                toast.success(`Fórmula compilada com sucesso! Resultado: ${this.compilarResult?.resultado ?? '—'}`);
 
                 await this.buscarTodasFormulas();
 
