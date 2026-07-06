@@ -14,29 +14,40 @@ export const useGrupoUsuarioStore = defineStore('grupousuario', {
         gruposUsuario: [],
         grupoUsuario: null,
 
-        records: 0,
+        currentPage: 1,
+        lastPage: 1,
+        total: 0,
+        perPage: 15,
     }),
 
     actions: {
-        async buscarTodosGruposUsuario() {
+        async buscarTodosGruposUsuario(page = 1) {
             this.loading = true;
 
             try {
-                const response = await apiPhp.get('/manutencao/grupo-usuarios');
+                const response = await apiPhp.get('/manutencao/grupo-usuarios', {
+                    params: { page }
+                });
 
-                // Mapear os dados da API para o formato esperado
-                const data = response.data?.data ?? response.data ?? [];
+                const pag = response.pagination;
+                if (pag) {
+                    this.currentPage = pag.current_page;
+                    this.lastPage = pag.last_page;
+                    this.total = pag.total;
+                    this.perPage = pag.per_page;
+                }
+
+                const data = Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
                 this.gruposUsuario = data.map(item => ({
                     id: item.id,
                     nome: item.nome || item.descgrupousuario,
-                    descricao: item.descricao || item.descgrupousuario,
+                    descricao: item.descricao || item.observacao || '',
                     usuario: item.usuario,
                     data_criacao: item.created_at || item.dhinc,
                     dhinc: item.dhinc || item.created_at
                 }));
 
                 this.errorMessage = '';
-                this.records = response.data?.total || 0;
 
             } catch (error) {
                 this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -63,57 +74,57 @@ export const useGrupoUsuarioStore = defineStore('grupousuario', {
             }
         },
 
-        async cadastrarGrupoUsuario(id, nome, descricao) {
+        async cadastrarGrupoUsuario(id, observacao, descgrupousuario) {
             this.loading = true;
+            this.successMessage = '';
+            this.errorMessage = '';
             try {
-                await apiPhp.post('/manutencao/grupo-usuarios', { nome, descricao });
+                await apiPhp.post('/manutencao/grupo-usuarios', { observacao, descgrupousuario });
 
                 await this.buscarTodosGruposUsuario();
-                this.errorMessage = '';
                 this.successMessage = 'Grupo de usuário cadastrado com sucesso!';
 
             } catch (error) {
-                if (error.response && error.response.data && error.response.data.errors) {
+                const data = error?.response?.data;
+                if (data?.errors) {
                     this.fieldErrors = {};
-
-                    Object.keys(error.response.data.errors).forEach(field => {
-                        this.fieldErrors[field] = error.response.data.errors[field].map(errorMsg => {
+                    Object.keys(data.errors).forEach(field => {
+                        this.fieldErrors[field] = data.errors[field].map(errorMsg => {
                             this.errorMessage = errorMessages[errorMsg] || errorMsg;
                             return errorMessages[errorMsg] || errorMsg;
                         });
                     });
                 } else {
-                    this.errorMessage = 'Desculpe, ocorreu um erro ao cadastrar o Grupo de usuário. Entre em contato com nosso suporte.';
+                    this.errorMessage = data?.erro || data?.message || error?.message || 'Desculpe, ocorreu um erro ao cadastrar o Grupo de usuário. Entre em contato com nosso suporte.';
                 }
-
             } finally {
                 this.loading = false;
             }
         },
 
-        async alterarGrupoUsuario(id, nome, descricao) {
+        async alterarGrupoUsuario(id, observacao, descgrupousuario) {
             this.loading = true;
+            this.successMessage = '';
+            this.errorMessage = '';
             try {
-                await apiPhp.put(`/manutencao/grupo-usuarios/${id}`, { nome, descricao });
+                await apiPhp.put(`/manutencao/grupo-usuarios/${id}`, { observacao, descgrupousuario });
 
                 await this.buscarTodosGruposUsuario();
-                this.errorMessage = '';
                 this.successMessage = 'Grupo de usuário atualizado com sucesso!';
 
             } catch (error) {
-                if (error.response && error.response.data && error.response.data.errors) {
+                const data = error?.response?.data;
+                if (data?.errors) {
                     this.fieldErrors = {};
-
-                    Object.keys(error.response.data.errors).forEach(field => {
-                        this.fieldErrors[field] = error.response.data.errors[field].map(errorMsg => {
+                    Object.keys(data.errors).forEach(field => {
+                        this.fieldErrors[field] = data.errors[field].map(errorMsg => {
                             this.errorMessage = errorMessages[errorMsg] || errorMsg;
                             return errorMessages[errorMsg] || errorMsg;
                         });
                     });
                 } else {
-                    this.errorMessage = 'Desculpe, ocorreu um erro ao atualizar o Grupo de usuário. Entre em contato com nosso suporte.';
+                    this.errorMessage = data?.erro || data?.message || error?.message || 'Desculpe, ocorreu um erro ao atualizar o Grupo de usuário. Entre em contato com nosso suporte.';
                 }
-
             } finally {
                 this.loading = false;
             }
@@ -121,14 +132,16 @@ export const useGrupoUsuarioStore = defineStore('grupousuario', {
 
         async deleteGrupoUsuario(id) {
             this.loading = true;
+            this.successMessage = '';
+            this.errorMessage = '';
             try {
                 await apiPhp.delete(`/manutencao/grupo-usuarios/${id}`);
 
                 await this.buscarTodosGruposUsuario();
-                this.errorMessage = '';
                 this.successMessage = 'Grupo de usuário deletado com sucesso!';
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                const data = error?.response?.data;
+                this.errorMessage = data?.erro || data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }

@@ -19,13 +19,15 @@
         </div>
 
         <v-data-table
-          :items-per-page="itemPorPag"
+          :items-per-page="totalItems ? itemsPerPage : itemPorPag"
           :headers="headers"
           :items="items"
           :loading="loading"
           :item-key="itemKey"
           :item-value="itemKey"
-          :search="searchModel"
+          :search="totalItems ? undefined : searchModel"
+          :items-length="totalItems || undefined"
+          :page="currentPage"
           class="background-secondary minha-tabela"
           :hide-default-footer="esconderFooter"
           :show-expand="expandable"
@@ -34,6 +36,7 @@
           :show-select="showSelect"
           v-model:selected="localSelected"
           :item-selectable="itemSelectable || undefined"
+          @update:options="onUpdateOptions"
         >
           <!-- Slots dinâmicos para formatação customizada -->
           <template
@@ -164,6 +167,20 @@ const props = defineProps({
   itemPorPag: {
     type: Number,
     default: 10
+  },
+
+  // Paginação server-side
+  totalItems: {
+    type: Number,
+    default: 0
+  },
+  currentPage: {
+    type: Number,
+    default: 1
+  },
+  itemsPerPage: {
+    type: Number,
+    default: 15
   },
 
   // Controle de formulário
@@ -309,7 +326,8 @@ const emit = defineEmits([
   'confirm-delete',
   'update:search',
   'update:expanded',
-  'update:selected'
+  'update:selected',
+  'update:options'
 ])
 
 // Reactive data
@@ -331,6 +349,13 @@ watch(localSelected, (val) => {
 
 const clearSelection = () => {
   localSelected.value = []
+}
+
+// Paginação server-side
+const onUpdateOptions = (options) => {
+  if (props.totalItems) {
+    emit('update:options', options)
+  }
 }
 
 // Methods

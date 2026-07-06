@@ -75,9 +75,7 @@
               :headers="headers"
               :items="itemsFiltrados"
               :loading="loading"
-              :search="search"
-              @update:search="(value) => search = value"
-              search-label="Pesquisar Grupo de Usuário"
+              :show-search="false"
               item-key="id"
               no-data-icon="mdi-account-group-outline"
               no-data-text="Nenhum grupo de usuário cadastrado"
@@ -87,11 +85,24 @@
               show-custom-action
               custom-action-icon="mdi-lock"
               @custom-action="abrirModalPermissoes"
+              :total-items="store.total"
+              :current-page="store.currentPage"
+              :items-per-page="store.perPage"
+              esconder-footer
           >
             <template v-slot:[`item.data_criacao`]="{ item }">
               {{ formatarData(item.data_criacao) }}
             </template>
           </TabelaPadrao>
+
+          <div v-if="store.lastPage > 1" class="d-flex justify-center mt-4">
+            <v-pagination
+                v-model="paginaAtual"
+                :length="store.lastPage"
+                :total-visible="5"
+                color="var(--text-color-laranja)"
+            />
+          </div>
         </v-card-text>
       </v-card>
 
@@ -347,7 +358,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
 import { useGrupoUsuarioStore } from '@/stores/APIs/grupousuario'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
@@ -363,8 +374,18 @@ const formularioAberto = ref(false)
 const editando = ref(false)
 const formValido = ref(false)
 const formRef = ref(null)
-const search = ref('')
 const loading = computed(() => store.loading)
+const paginaAtual = ref(1)
+
+watch(paginaAtual, (page) => {
+  if (page !== store.currentPage) {
+    store.buscarTodosGruposUsuario(page)
+  }
+})
+
+watch(() => store.currentPage, (page) => {
+  paginaAtual.value = page
+})
 
 // Modal de Permissões
 const modalPermissoes = ref(false)
@@ -404,15 +425,7 @@ const headers = [
 
 const itemsFiltrados = computed(() => {
   const dados = store.gruposUsuario || []
-  if (!Array.isArray(dados)) return []
-
-  if (!search.value) return dados
-
-  const termo = search.value.toLowerCase()
-  return dados.filter(item =>
-    item.nome?.toLowerCase().includes(termo) ||
-    item.usuario?.toLowerCase().includes(termo)
-  )
+  return Array.isArray(dados) ? dados : []
 })
 
 const toggleFormulario = () => {
@@ -441,34 +454,30 @@ const salvarGrupoUsuario = async () => {
     return
   }
 
-  try {
-    if (editando.value) {
-      await store.alterarGrupoUsuario(
-        formData.id,
-        formData.descgrupousuario,
-        formData.descricao
-      )
-    } else {
-      await store.cadastrarGrupoUsuario(
-        null,
-        formData.descgrupousuario,
-        formData.descricao
-      )
-    }
+  if (editando.value) {
+    await store.alterarGrupoUsuario(
+      formData.id,
+      formData.descricao,
+      formData.descgrupousuario
+    )
+  } else {
+    await store.cadastrarGrupoUsuario(
+      null,
+      formData.descricao,
+      formData.descgrupousuario
+    )
+  }
 
-    if (store.successMessage) {
-      toast.success(store.successMessage)
-    }
+  if (store.successMessage) {
+    toast.success(store.successMessage)
+  }
 
+  if (store.errorMessage) {
+    toast.error(store.errorMessage)
+  }
+
+  if (store.successMessage) {
     cancelarFormulario()
-    await store.buscarTodosGruposUsuario()
-  } catch (error) {
-    if (store.errorMessage) {
-      toast.error(store.errorMessage)
-    } else {
-      toast.error('Erro ao salvar grupo de usuário')
-    }
-    console.error(error)
   }
 }
 
@@ -482,21 +491,14 @@ const editarGrupoUsuario = (item) => {
 }
 
 const excluirGrupoUsuario = async (item) => {
-  try {
-    await store.deleteGrupoUsuario(item.id)
+  await store.deleteGrupoUsuario(item.id)
 
-    if (store.successMessage) {
-      toast.success(store.successMessage)
-    }
+  if (store.successMessage) {
+    toast.success(store.successMessage)
+  }
 
-    await store.buscarTodosGruposUsuario()
-  } catch (error) {
-    if (store.errorMessage) {
-      toast.error(store.errorMessage)
-    } else {
-      toast.error('Erro ao excluir grupo de usuário')
-    }
-    console.error(error)
+  if (store.errorMessage) {
+    toast.error(store.errorMessage)
   }
 }
 

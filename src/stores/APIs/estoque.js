@@ -794,13 +794,14 @@ export const useEstoqueStore = defineStore('estoque', {
             }
         },
 
-        async compilarFormula(formulaData, emp) { // eslint-disable-line no-unused-vars
+        async compilarFormula(formulaData, emp, id) { // eslint-disable-line no-unused-vars
             this.loading = true;
 
             try {
-                await apiPhp.post('/manutencao/formulas/validar', formulaData);
+                await apiPhp.post(`/manutencao/formulas/${id}/compilar`, formulaData);
 
                 this.errorMessage = '';
+                this.successMessage = 'Fórmula compilada com sucesso!';
 
                 await this.buscarTodasFormulas();
 

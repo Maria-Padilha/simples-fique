@@ -43,8 +43,8 @@ apiPhp.interceptors.request.use(config => {
 
 // Normaliza respostas de sucesso — extrai array de respostas paginadas do Laravel
 // Laravel retorna: { current_page: 1, data: [...], total: N, ... }
-// O interceptor substitui response.data pelo array real, eliminando a necessidade
-// de stores fazerem response.data?.data ?? response.data para esse caso.
+// O interceptor substitui response.data pelo array real e preserva
+// os metadados de paginação em response.pagination.
 apiPhp.interceptors.response.use(
     response => {
         if (
@@ -54,6 +54,16 @@ apiPhp.interceptors.response.use(
             Array.isArray(response.data.data) &&
             typeof response.data.current_page === 'number'
         ) {
+            response.pagination = {
+                current_page: response.data.current_page,
+                last_page: response.data.last_page,
+                total: response.data.total,
+                per_page: response.data.per_page,
+                from: response.data.from,
+                to: response.data.to,
+                next_page_url: response.data.next_page_url,
+                prev_page_url: response.data.prev_page_url,
+            };
             response.data = response.data.data;
         }
         return response;

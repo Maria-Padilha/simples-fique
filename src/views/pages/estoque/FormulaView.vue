@@ -56,17 +56,13 @@
                         </v-btn>
                       </div>
 
-                      <MonacoEditor
-                          v-model:value="forms.formula"
-                          language="pascal"
-                          theme="vs-dark"
-                          :options="{
-              fontSize: 14,
-              minimap: { enabled: false },
-              wordWrap: 'on',
-              automaticLayout: true
-            }"
-                          height="420px"
+                      <v-textarea
+                          v-model="forms.formula"
+                          variant="outlined"
+                          hide-details
+                          rows="14"
+                          class="font-mono"
+                          style="font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5;"
                       />
                     </v-col>
 
@@ -241,18 +237,20 @@ import FormsExpandTransition from "@/components/base/padrao-paginas/FormsExpandT
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import {useThemeStore} from "@/stores/config-temas/theme";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
-import MonacoEditor from "@guolao/vue-monaco-editor";
 import {toast} from "vue3-toastify";
 
 const estoqueStore = useEstoqueStore();
 const themeStore = useThemeStore();
 
-const idEmpresa = JSON.parse(localStorage.getItem("empresaSelecionada"));
+const rawEmpresa = localStorage.getItem("empresaSelecionada");
+const idEmpresa = rawEmpresa ? JSON.parse(rawEmpresa) : null;
 const loading = computed(() => estoqueStore.loading);
-const formulas = computed(() => estoqueStore.formulas ?? []); // garanta que exista no store
+const formulas = computed(() => estoqueStore.formulas ?? []);
 
 watchEffect(() => {
-  estoqueStore.buscarTodasFormulas(idEmpresa?.id); // ajuste o nome caso seja diferente
+  if (idEmpresa?.id) {
+    estoqueStore.buscarTodasFormulas(idEmpresa.id);
+  }
 });
 
 const searchVar = ref('');
@@ -426,16 +424,18 @@ const salvarFormulario = async () => {
 const editarItem = async (item) => {
   await estoqueStore.buscarFormulaId(idEmpresa?.id, item.id);
 
+  const data = estoqueStore.formula;
+
   editando.value = true;
-  itemSelecionado.value = item.id;
+  itemSelecionado.value = data.id ?? item.id;
 
   Object.assign(forms, {
-    descformula: item.descformula,
-    formula: item.formula,
+    descformula: data.descformula ?? item.descformula,
+    formula: data.formula ?? item.formula,
     id_empresa: forms.id_empresa
   });
 
-  variaveis.value = (item.variaveis ?? []).map(v => ({
+  variaveis.value = (data.var ?? []).map(v => ({
     varnome: v.varnome,
     vartype: v.vartype,
   }));
@@ -444,34 +444,50 @@ const editarItem = async (item) => {
 };
 
 const compilarFormula = async (local, id) => {
-  if (local === 'acao') await estoqueStore.buscarFormulaId(idEmpresa?.id, id);
+  let payload;
+  const formulaId = local === 'acao' ? id : itemSelecionado.value;
 
-  const item = estoqueStore.formula;
-  const dataFormula = item?.data?.[0];
+  if (local === 'acao') {
+    await estoqueStore.buscarFormulaId(idEmpresa?.id, id);
+    const item = estoqueStore.formula;
 
-  if (!dataFormula?.formula) {
-    console.error('Fórmula não encontrada:', dataFormula);
-    return;
+    if (!item?.formula) {
+      console.error('Fórmula não encontrada:', item);
+      return;
+    }
+
+    payload = {
+      formula: item.formula,
+      id_empresa: forms.id_empresa,
+      descformula: item.descformula,
+      var: (item.var ?? []).map(v => ({
+        varnome: v.varnome,
+        vartype: v.vartype,
+      })),
+    };
+  } else {
+    payload = {
+      formula: forms.formula,
+      id_empresa: forms.id_empresa,
+      descformula: forms.descformula,
+      var: variaveis.value
+          .filter(v => v.varnome && v.vartype)
+          .map(v => ({
+            varnome: v.varnome,
+            vartype: v.vartype,
+          })),
+    };
   }
 
-  const payload = {
-    formula: dataFormula.formula,
-    id_empresa: forms.id_empresa,
-    descformula: dataFormula.descformula,
-    var: item?.var
-        ?.filter(v => v.varnome && v.vartype)
-        ?.map(v => ({
-          varnome: v.varnome,
-          vartype: v.vartype,
-        })) || [],
-  };
-
-  await estoqueStore.compilarFormula(payload, idEmpresa?.id);
-  toast.success(estoqueStore.successMessage || 'Fórmula compilada com sucesso!');
+  await estoqueStore.compilarFormula(payload, idEmpresa?.id, formulaId);
 
   if (estoqueStore.errorMessage) return;
 
-  cancelarFormulario();
+  toast.success(estoqueStore.successMessage || 'Fórmula compilada com sucesso!');
+
+  if (local !== 'acao') {
+    cancelarFormulario();
+  }
 };
 
 // Excluir
