@@ -48,7 +48,8 @@ export const usePessoasStore = defineStore('pessoas', {
 
             const payload = {
                 ...pessoaData,
-                endereco: enderecos
+                // eslint-disable-next-line no-unused-vars
+                endereco: enderecos.map(({ _buscandoCep, ...e }) => e)
             }
 
             this.loading = true

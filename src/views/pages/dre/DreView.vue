@@ -3,13 +3,14 @@
     <template #titulo>Configuração de DRE (Demonstrativo de Resultado)</template>
     <template #acoes>
       <v-btn
-          color="var(--text-color-laranja)"
+          v-if="modeloAtual.id"
+          color="error"
           variant="flat"
           class="text-white mr-2"
-          prepend-icon="mdi-plus"
-          @click="novoModelo"
+          prepend-icon="mdi-delete"
+          @click="abrirExclusaoModelo"
       >
-        Novo Modelo
+        Excluir Modelo
       </v-btn>
       <v-btn
           color="success"
@@ -130,7 +131,7 @@
                           size="small"
                           variant="text"
                           color="error"
-                          @click="excluirGrupo(index)"
+                          @click="abrirExcluirGrupo(grupo, index)"
                       >
                         <v-icon>mdi-delete</v-icon>
                       </v-btn>
@@ -194,7 +195,7 @@
                                   size="x-small"
                                   variant="text"
                                   color="error"
-                                  @click="excluirCategoria(grupo, catIndex)"
+                                  @click="abrirExcluirCategoria(grupo, categoria, catIndex)"
                               >
                                 <v-icon size="small">mdi-delete</v-icon>
                               </v-btn>
@@ -489,6 +490,36 @@
       </div>
     </template>
   </top-all-pages>
+
+  <!-- Modal de Exclusão de Modelo -->
+  <ExcluirModal
+      v-model:modal-excluir="modalExcluirModelo"
+      :cancelar="cancelarExclusaoModelo"
+      :deletar="confirmarExclusaoModelo"
+      :loading="deletandoModelo"
+  >
+    <template #item>{{ modeloAtual.nome }}</template>
+  </ExcluirModal>
+
+  <!-- Modal de Exclusão de Grupo -->
+  <ExcluirModal
+      v-model:modal-excluir="modalExcluirGrupo"
+      :cancelar="cancelarExclusaoGrupo"
+      :deletar="confirmarExclusaoGrupo"
+      :loading="false"
+  >
+    <template #item>{{ grupoExcluir?.nome }}</template>
+  </ExcluirModal>
+
+  <!-- Modal de Exclusão de Categoria -->
+  <ExcluirModal
+      v-model:modal-excluir="modalExcluirCategoria"
+      :cancelar="cancelarExclusaoCategoria"
+      :deletar="confirmarExclusaoCategoria"
+      :loading="false"
+  >
+    <template #item>{{ categoriaExcluir?.nome }}</template>
+  </ExcluirModal>
 </template>
 
 <script setup>
@@ -497,6 +528,7 @@ import { useThemeStore } from '@/stores/config-temas/theme'
 import { useFinanceiroStore } from '@/stores/APIs/financeiro'
 import { toast } from 'vue3-toastify'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
+import ExcluirModal from '@/components/base/modais/ExcluirModal.vue'
 import draggable from 'vuedraggable'
 
 const themeStore = useThemeStore()
@@ -521,6 +553,15 @@ const contasAnaliticas = ref([])
 const contasAnaliticasSelecionadas = ref([])
 const carregandoSinteticas = ref(false)
 const carregandoAnaliticas = ref(false)
+const modalExcluirModelo = ref(false)
+const deletandoModelo = ref(false)
+const modalExcluirGrupo = ref(false)
+const grupoExcluirIndex = ref(null)
+const grupoExcluir = ref(null)
+const modalExcluirCategoria = ref(false)
+const categoriaExcluir = ref(null)
+const categoriaExcluirIndex = ref(null)
+const grupoCategoriaExcluir = ref(null)
 
 // Operadores matemáticos para fórmula
 const operadores = [
@@ -736,14 +777,9 @@ const carregarModelo = async (id) => {
 }
 
 const montarPayload = () => {
-  // Estrutura do payload conforme API
-  const dredetalhe = []
-  const dredetalheconta = []
-  let contadorConta = 1 // Contador para IDs de dredetalheconta
+  let contadorConta = 1
 
-  // Mapear grupos para dredetalhe
-  modeloAtual.grupos.forEach((grupo, index) => {
-    // Converter tipo para natureza: RECEITA='+', DESPESA='-', TOTALIZADOR='='
+  const detalhes = modeloAtual.grupos.map((grupo, index) => {
     let natureza = ''
     switch (grupo.tipo) {
       case 'RECEITA':
@@ -757,49 +793,37 @@ const montarPayload = () => {
         break
     }
 
-    // Converter fórmula de nomes para IDs (ex: "RECEITA - DESPESA" -> "1 - 2")
     let formulaConvertida = null
     if (grupo.tipo === 'TOTALIZADOR' && grupo.formula) {
       formulaConvertida = grupo.formula
-      // Substituir cada nome de grupo pelo seu ID (índice + 1)
       modeloAtual.grupos.forEach((g, i) => {
         if (g.tipo !== 'TOTALIZADOR' && formulaConvertida.includes(g.nome)) {
-          // Usar regex com word boundary para substituir exatamente o nome completo
           const regex = new RegExp(g.nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
           formulaConvertida = formulaConvertida.replace(regex, (i + 1).toString())
         }
       })
     }
 
-    const detalhe = {
-      id: index + 1, // ID sequencial começando de 1
+    const contas = (grupo.categorias || []).map(categoria => ({
+      id: categoria.id_conta || contadorConta++,
+      id_reduzido_ctb: categoria.id_planoconta,
+      valor: 0
+    }))
+
+    return {
+      id: grupo.id_detalhe || (index + 1),
       descdredetalhe: grupo.nome,
-      natureza: natureza,
-      natureza_formula: formulaConvertida
-    }
-
-    dredetalhe.push(detalhe)
-
-    // Mapear categorias para dredetalheconta
-    if (grupo.categorias && grupo.categorias.length > 0) {
-      grupo.categorias.forEach(categoria => {
-        dredetalheconta.push({
-          id: contadorConta++, // ID sequencial começando de 1
-          id_dre_detalhe: index + 1, // Usar ID do grupo (índice + 1)
-          id_reduzido_ctb: categoria.id_planoconta,
-          valor: 0 // Valor padrão, será calculado ao gerar o relatório
-        })
-      })
+      descricao: grupo.descricao || '',
+      natureza,
+      natureza_formula: formulaConvertida,
+      contas
     }
   })
 
-  const payload = {
+  return {
     descdre: modeloAtual.nome,
-    dredetalhe: dredetalhe,
-    dredetalheconta: dredetalheconta
+    detalhes
   }
-
-  return payload
 }
 
 const salvarModelo = async () => {
@@ -834,15 +858,15 @@ const salvarModelo = async () => {
     }
     
     if (resultado) {
-      // Atualizar ID se for criação nova
       if (!modeloAtual.id && resultado.id) {
         modeloAtual.id = resultado.id
         modeloSelecionadoId.value = resultado.id
-        console.log('[DRE] ID do novo modelo criado:', resultado.id)
       }
       
-      // Recarregar lista de modelos
       await carregarModelosDisponiveis()
+      
+      // Recarregar dados completos do modelo salvo (garante que detalhes, descricao e contas estão atualizados)
+      await carregarModelo(modeloAtual.id)
       
       toast.success('Modelo DRE salvo com sucesso!')
     }
@@ -852,6 +876,40 @@ const salvarModelo = async () => {
   } finally {
     salvando.value = false
   }
+}
+
+const abrirExclusaoModelo = () => {
+  if (!modeloAtual.id) {
+    toast.warning('Nenhum modelo carregado para excluir')
+    return
+  }
+  modalExcluirModelo.value = true
+}
+
+const cancelarExclusaoModelo = () => {
+  modalExcluirModelo.value = false
+}
+
+const confirmarExclusaoModelo = async () => {
+  deletandoModelo.value = true
+  try {
+    await financeiroStore.deletarModeloDRE(modeloAtual.id)
+    toast.success('Modelo DRE excluído com sucesso!')
+    modalExcluirModelo.value = false
+    resetarFormulario()
+  } catch (error) {
+    toast.error(error?.response?.data?.error || 'Erro ao excluir modelo DRE')
+  } finally {
+    deletandoModelo.value = false
+  }
+}
+
+const resetarFormulario = () => {
+  modeloAtual.id = null
+  modeloAtual.nome = ''
+  modeloAtual.grupos = []
+  modeloSelecionadoId.value = null
+  carregarModelosDisponiveis()
 }
 
 const adicionarCategoria = async (grupo, index) => {
@@ -901,22 +959,57 @@ const editarCategoria = (grupo, grupoIndex, categoria, catIndex) => {
   dialogNovaCategoria.value = true
 }
 
-const excluirGrupo = (index) => {
-  if (confirm('Deseja realmente excluir este grupo?')) {
-    modeloAtual.grupos.splice(index, 1)
-    toast.success('Grupo excluído')
-  }
+const abrirExcluirGrupo = (grupo, index) => {
+  grupoExcluir.value = grupo
+  grupoExcluirIndex.value = index
+  modalExcluirGrupo.value = true
 }
 
-const excluirCategoria = (grupo, catIndex) => {
-  if (confirm('Deseja realmente excluir esta categoria?')) {
-    grupo.categorias.splice(catIndex, 1)
+const cancelarExclusaoGrupo = () => {
+  modalExcluirGrupo.value = false
+  grupoExcluir.value = null
+  grupoExcluirIndex.value = null
+}
+
+const confirmarExclusaoGrupo = () => {
+  if (grupoExcluirIndex.value !== null) {
+    modeloAtual.grupos.splice(grupoExcluirIndex.value, 1)
+    toast.success('Grupo excluído')
+  }
+  modalExcluirGrupo.value = false
+  grupoExcluir.value = null
+  grupoExcluirIndex.value = null
+}
+
+const abrirExcluirCategoria = (grupo, categoria, catIndex) => {
+  grupoCategoriaExcluir.value = grupo
+  categoriaExcluir.value = categoria
+  categoriaExcluirIndex.value = catIndex
+  modalExcluirCategoria.value = true
+}
+
+const cancelarExclusaoCategoria = () => {
+  modalExcluirCategoria.value = false
+  grupoCategoriaExcluir.value = null
+  categoriaExcluir.value = null
+  categoriaExcluirIndex.value = null
+}
+
+const confirmarExclusaoCategoria = () => {
+  if (grupoCategoriaExcluir.value && categoriaExcluirIndex.value !== null) {
+    grupoCategoriaExcluir.value.categorias.splice(categoriaExcluirIndex.value, 1)
     toast.success('Categoria excluída')
   }
+  modalExcluirCategoria.value = false
+  grupoCategoriaExcluir.value = null
+  categoriaExcluir.value = null
+  categoriaExcluirIndex.value = null
 }
 
 const salvarGrupo = () => {
   if (!formGrupo.value.validate()) return
+
+  const grupoExistente = grupoEditando.value !== null ? modeloAtual.grupos[grupoEditando.value] : null
 
   const novoGrupo = {
     id: Date.now(),
@@ -924,15 +1017,13 @@ const salvarGrupo = () => {
     descricao: grupoForm.descricao,
     tipo: grupoForm.tipo,
     formula: grupoForm.formula,
-    categorias: []
+    categorias: grupoExistente ? grupoExistente.categorias || [] : []
   }
 
-  if (grupoEditando.value !== null) {
-    // Editar grupo existente
-    Object.assign(modeloAtual.grupos[grupoEditando.value], novoGrupo)
+  if (grupoExistente) {
+    Object.assign(grupoExistente, novoGrupo)
     toast.success('Grupo atualizado')
   } else {
-    // Adicionar novo grupo
     modeloAtual.grupos.push(novoGrupo)
     toast.success('Grupo adicionado')
   }

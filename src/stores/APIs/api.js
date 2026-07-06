@@ -15,9 +15,52 @@ export const useApiStore = defineStore('api', {
 
         dataEmpresa: null,
         tokenEmpresa: null,
+
+        dataUsuario: JSON.parse(localStorage.getItem('usuario') || 'null'),
+        dataSaas: JSON.parse(localStorage.getItem('saas') || 'null'),
     }),
 
     actions: {
+        async updateMe(payload) {
+            this.loading = true;
+            try {
+                const response = await apiPhpModule.put('/auth/me', payload);
+                const usuario = response.data?.usuario || response.data;
+                if (usuario) {
+                    this.dataUsuario = usuario;
+                    localStorage.setItem('usuario', JSON.stringify(usuario));
+                }
+                toast.success('Perfil atualizado com sucesso!');
+                return true;
+            } catch (error) {
+                const msg = error.response?.data?.message || 'Erro ao atualizar perfil.';
+                toast.error(msg);
+                return false;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchMe() {
+            try {
+                const response = await apiPhpModule.get('/auth/me');
+                const { usuario, saas, empresas } = response.data;
+                if (usuario) {
+                    this.dataUsuario = usuario;
+                    localStorage.setItem('usuario', JSON.stringify(usuario));
+                }
+                if (saas) {
+                    this.dataSaas = saas;
+                    localStorage.setItem('saas', JSON.stringify(saas));
+                }
+                if (empresas) {
+                    localStorage.setItem('empresas', JSON.stringify(empresas));
+                }
+            } catch {
+                // não bloqueia o fluxo de login
+            }
+        },
+
         // Auth headers injetados pelo interceptor de api.js — sem duplicação aqui
         async executarAcao(entidade, metodo, payload = null, id = null) {
             this.loading = true;

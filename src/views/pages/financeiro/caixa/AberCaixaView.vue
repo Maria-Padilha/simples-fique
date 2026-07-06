@@ -16,26 +16,36 @@
       </v-btn>
     </template>
     <template #section>
-      <!-- Card de Resumo do Caixa Aberto -->
-      <v-card v-if="caixaAberto" class="background-secondary mb-4" elevation="0">
+      <div>
+      <!-- Card de Resumo dos Caixas Abertos -->
+      <v-card v-show="caixasAbertos.length > 0" class="background-secondary mb-4" elevation="0">
         <v-card-text class="pa-4">
-          <div class="d-flex align-center justify-space-between">
-            <div class="d-flex align-center">
-              <v-icon icon="mdi-cash-check" size="32" color="success" class="mr-3"></v-icon>
-              <div>
-                <div class="text-caption text-grey">Caixa Aberto</div>
-                <div class="text-h6 font-weight-bold">
-                  {{ caixaAberto.descricao }}
-                </div>
-                <div class="text-caption">
-                  Aberto em: {{ formatarDataHora(caixaAberto.dtabertura) }}
-                </div>
+          <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+            <!-- Lista de caixas abertos -->
+            <div class="d-flex align-center flex-wrap gap-3">
+              <div class="d-flex align-center mr-2">
+                <v-icon icon="mdi-cash-check" size="28" color="success" class="mr-2"></v-icon>
+                <span class="text-subtitle-2 text-grey">
+                  {{ caixasAbertos.length }} {{ caixasAbertos.length === 1 ? 'Caixa Aberto' : 'Caixas Abertos' }}
+                </span>
               </div>
+              <v-chip
+                  v-for="cx in caixasAbertos"
+                  :key="cx.id"
+                  prepend-icon="mdi-cash-register"
+                  color="success"
+                  variant="tonal"
+                  size="small"
+              >
+                {{ cx.descricao_caixa }}
+                <span class="ml-1 opacity-70 text-caption">{{ formatarHora(cx.hrabertura) }}</span>
+              </v-chip>
             </div>
+            <!-- Total saldo inicial -->
             <div class="text-right">
-              <div class="text-caption text-grey">Saldo Inicial</div>
+              <div class="text-caption text-grey">Total Saldo Inicial</div>
               <div class="text-h5 font-weight-bold" style="color: var(--text-color-laranja)">
-                {{ formatarMoeda(caixaAberto.vlrabertura) }}
+                {{ formatarMoeda(totalSaldoInicial) }}
               </div>
             </div>
           </div>
@@ -183,7 +193,7 @@
               no-data-text="Nenhuma abertura de caixa registrada"
               delete-item-display-field="descricao_caixa"
               @confirm-delete="encerrarCaixa"
-              :show-edit="false"
+              :show-edit-action="false"
               :show-delete="true"
               delete-icon="mdi-cash-lock"
               delete-tooltip="Encerrar Caixa"
@@ -205,7 +215,7 @@
 
             <!-- Coluna Fechado em -->
             <template v-slot:[`item.fechado_em`]="{ item }">
-              <div v-if="item.hrfechamento">
+              <div v-if="item.status !== 'A' && item.hrfechamento">
                 <div class="text-body-2">{{ formatarHora(item.hrfechamento) }}</div>
                 <div class="text-caption text-grey">{{ item.usuario }}</div>
               </div>
@@ -232,9 +242,9 @@
             <!-- Coluna Diferença -->
             <template v-slot:[`item.diferenca`]="{ item }">
               <div class="text-body-2 text-right" :class="{
-              'text-success': item.diferenca === 0,
-              'text-error': item.diferenca !== 0
-            }">
+                'text-success': item.diferenca > 0,
+                'text-error': item.diferenca < 0
+              }">
                 {{ formatarMoeda(item.diferenca) }}
               </div>
             </template>
@@ -272,6 +282,7 @@
           :html-content="previewHTMLContent"
           :nome-relatorio="dadosPDFAtual?.nomeRelatorio || 'Abertura_Caixa'"
       />
+      </div>
     </template>
   </top-all-pages>
 </template>
@@ -302,8 +313,6 @@ const loadingCaixas = ref(false)
 // Dados
 const caixasDisponiveis = ref([])
 const aberturas = ref([])
-const caixaAberto = ref(null)
-const historicoMovimentacao = ref([])
 
 // Modais de exportação
 const modalExportacaoAberto = ref(false)
@@ -337,6 +346,7 @@ const rules = {
 
 // Headers da tabela
 const headers = [
+  { title: 'Caixa', key: 'descricao_caixa', sortable: true, width: '160px' },
   { title: 'Data', key: 'dtabertura', sortable: true, width: '120px' },
   { title: 'Aberto em', key: 'aberto_em', sortable: false, width: '140px' },
   { title: 'Fechado em', key: 'fechado_em', sortable: false, width: '140px' },
@@ -351,6 +361,18 @@ const headers = [
 const aberturasFiltradasComputadas = computed(() => {
   const dados = aberturas.value || []
   return Array.isArray(dados) ? dados : []
+})
+
+const caixasAbertos = computed(() => {
+  const dados = aberturas.value
+  return Array.isArray(dados) ? dados.filter(a => a.status === 'A') : []
+})
+
+const totalSaldoInicial = computed(() => {
+  const lista = caixasAbertos.value
+  return Array.isArray(lista)
+    ? lista.reduce((sum, cx) => sum + (parseFloat(cx.vlrabertura) || 0), 0)
+    : 0
 })
 
 // Métodos de formatação
@@ -388,6 +410,7 @@ const formatarHora = (hora) => {
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 const formatarDataHora = (data) => {
   if (!data) return '--'
   try {
@@ -437,38 +460,30 @@ const carregarDadosAuxiliares = async () => {
       return
     }
 
-    // Carregar histórico de movimentação (aberturas de caixa)
-    const response = await caixaStore.buscarHistoricoMovimentacao()
-    const dadosHistorico = response?.data || []
-    historicoMovimentacao.value = Array.isArray(dadosHistorico) ? dadosHistorico : []
-
-    // Carregar caixas ativos do usuário
+    // Carregar caixas do usuário (ativos e com histórico de abertura)
     const dadosCaixas = await caixaStore.buscarCaixasUsuarioAtivo(idEmpresa)
-    caixasDisponiveis.value = Array.isArray(dadosCaixas) ? dadosCaixas : []
+    const lista = Array.isArray(dadosCaixas) ? dadosCaixas : []
 
+    // Dropdown: todos os caixas disponíveis
+    caixasDisponiveis.value = lista
 
-    // Processar histórico como aberturas de caixa
-    aberturas.value = historicoMovimentacao.value.map(abertura => ({
-      id: abertura.id_caixa,
-      descricao_caixa: abertura.desccaixa || '',
-      status: abertura.situacao === 'Aberto' ? 'A' : 'F',
-      dtabertura: abertura.dt_abertura || null,
-      hrabertura: abertura.h_abertura || null,
-      dtfechamento: abertura.dt_encerramento || null,
-      hrfechamento: abertura.h_encerramento || null,
-      vlrabertura: abertura.valor_sistema || 0,
-      vlrfechamento: abertura.valor_conferido || null,
-      diferenca: abertura.valor_diferenca || 0,
-      usuario: abertura.nome || 'N/A',
-      id_usuario: abertura.id_usuario || null,
-      id_caixa: abertura.id_caixa || null
+    // Tabela de aberturas: mapear campos da API para o formato da tabela
+    aberturas.value = lista.map(c => ({
+      id: c.id,
+      id_caixa: c.id,
+      descricao_caixa: c.desccaixa || '',
+      status: c.situacao === 'A' ? 'A' : 'F',
+      dtabertura: c.dt_abertura || null,
+      hrabertura: c.h_abertura || null,
+      dtfechamento: c.dt_encerramento || null,
+      hrfechamento: c.h_encerramento || null,
+      vlrabertura: parseFloat(c.valor_abertura) || 0,
+      vlrfechamento: c.valor_conferido != null ? parseFloat(c.valor_conferido) : null,
+      diferenca: c.valor_conferido != null ? parseFloat(c.valor_conferido) - (parseFloat(c.valor_abertura) || 0) : 0,
+      usuario: c.id_user_abertura || 'N/A',
+      id_usuario: c.id_user_abertura || null
     }))
-    
-    // Verificar se há caixa aberto
-    const caixasAbertas = aberturas.value.filter(a => a.status === 'A')
-    caixaAberto.value = caixasAbertas.length > 0 ? caixasAbertas[0] : null
-    
-    console.log('Aberturas carregadas:', aberturas.value)
+
   } catch (error) {
     console.error('Erro ao carregar dados auxiliares:', error)
   }

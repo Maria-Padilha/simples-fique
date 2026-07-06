@@ -94,9 +94,9 @@
             <v-list-item
                 class="w-[200px] truncate whitespace-nowrap overflow-hidden"
                 v-bind="mergeProps(menu, tooltip)"
-                append-avatar="https://randomuser.me/api/portraits/women/85.jpg"
-                subtitle="sandra_a88@gmailcom"
-                title="Sandra Adams"
+                :append-avatar="apiStore.dataUsuario?.foto_perfil || require('@/assets/img/profile/profile.jpg')"
+                :subtitle="apiStore.dataUsuario?.email || ''"
+                :title="apiStore.dataUsuario?.nome || 'Usuário'"
             />
           </template>
           <span>Menu</span>
@@ -106,8 +106,8 @@
       <v-card class="mx-auto w-[300px]">
         <v-list class="background-primary py-3" nav density="compact">
           <v-list-subheader>
-            <p class="text-sm font-medium color-btn">Seja bem vindo, <span class="font-normal">Sandra Adams</span></p>
-            <span class="texto-color-primary">Painel de usuário Admin</span>
+            <p class="text-sm font-medium color-btn">Seja bem vindo, <span class="font-normal">{{ apiStore.dataUsuario?.nome || 'Usuário' }}</span></p>
+            <span class="texto-color-primary">{{ apiStore.dataUsuario?.email || '' }}</span>
           </v-list-subheader>
 
           <v-divider thickness="2" class="my-3"/>
@@ -287,6 +287,7 @@
 import {useThemeStore} from "@/stores/config-temas/theme";
 import {useSidebarStore} from "@/stores/Sidebar";
 import {useEmpresaStore} from "@/stores/APIs/empresa";
+import {useApiStore} from "@/stores/APIs/api";
 import {useConfigParfinStore} from "@/stores/APIs/config";
 import {useAcessoStore} from "@/stores/APIs/acesso";
 import {useAcessosRapidosStore} from "@/stores/acessos-rapidos";
@@ -298,6 +299,9 @@ import {useAgendaStore} from "@/stores/APIs/agenda";
 
 // Inicializar o store da sidebar
 const sidebarStore = useSidebarStore();
+
+// Store principal (dados do usuário logado)
+const apiStore = useApiStore();
 
 // Alterando o tema do site
 const themeStore = useThemeStore();

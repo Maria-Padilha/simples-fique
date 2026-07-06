@@ -153,47 +153,31 @@
 
                         <!-- Cliente -->
                         <v-col cols="12" md="4">
-                          <v-text-field
+                          <v-autocomplete
+                              v-model="formData.id_cliente"
+                              v-model:search="clienteSearch"
+                              :items="pessoas"
+                              :loading="clienteLoading"
+                              :item-title="(item) => item.apelido_fantasia || item.nome_razao || item.nome || ''"
+                              item-value="id"
                               label="Cliente *"
-                              v-model="clienteSelecionado"
+                              :rules="[rules.required]"
+                              class="required-left-border"
                               variant="outlined"
                               density="compact"
                               hide-details="auto"
-                              :rules="[rules.required]"
-                              class="required-left-border"
                               prepend-inner-icon="mdi-account-box"
-                              readonly
-                              placeholder="Selecione um cliente"
+                              no-data-text="Digite o nome para buscar (mín. 3 caracteres)"
+                              :no-filter="true"
+                              clearable
+                              @update:model-value="onClienteSelecionado"
                           >
-                            <template #append-inner>
-                              <busca-padrao-menu
-                                  v-model="menuCliente"
-                                  :pesquisar="pesquisarClientes"
-                                  :modelInput="termoCliente"
-                                  :resultados="clienteResultados"
-                                  @update:modelInput="termoCliente = $event"
-                                  @selecionar="selecionarCliente"
-                              >
-                                <template #resultados="{ selecionar }">
-                                  <v-virtual-scroll
-                                      :items="clienteResultados"
-                                      :height="120"
-                                      item-height="42"
-                                      class="mt-3"
-                                  >
-                                    <template #default="{ item }">
-                                      <div
-                                          class="hover:bg-surface-variant rounded-md px-3 py-2 cursor-pointer"
-                                          @click="selecionar(item)"
-                                      >
-                                        <p class="text-body-1">{{ item.apelido_fantasia || item.nome_razao || item.nome || item.apelido }}</p>
-                                      </div>
-                                    </template>
-                                  </v-virtual-scroll>
-                                </template>
-                              </busca-padrao-menu>
+                            <template v-slot:item="{ props, item }">
+                              <v-list-item v-bind="props">
+                                <v-list-item-subtitle>{{ item.raw.cpf_cnpj }}</v-list-item-subtitle>
+                              </v-list-item>
                             </template>
-                          </v-text-field>
+                          </v-autocomplete>
                         </v-col>
 
                         <!-- Plano de Conta -->
@@ -1188,11 +1172,6 @@ const tipoDocumentoSelecionado = ref('')
 const planoContaSelecionado = ref('')
 const clienteSelecionado = ref('')
 
-// Cliente (campo de busca)
-const menuCliente = ref(false)
-const termoCliente = ref('')
-const clienteResultados = ref([])
-
 // Histórico Contábil (campo de busca + modal de cadastro)
 const menuHistContabil = ref(false)
 const termoHistContabil = ref('')
@@ -1381,31 +1360,33 @@ const carregarContasReceber = async (filtrosApi = null) => {
   try {
     loading.value = true
 
-    // Se filtros foram passados, usa eles; senão busca todos
+    // Forçar tpperiodo=1 (Data de Emissão) independente do que vier dos filtros
+    const filtros = { ...(filtrosApi || {}), tpperiodo: 1 }
     const dados = await financeiroStore.buscarContasReceber(
         idEmpresa.value,
-        filtrosApi || {}
+        filtros
     )
 
-    // A API agora retorna dados expandidos de parcelas
+    // API retorna dados planos (cabeçalho da conta a receber)
     contasReceber.value = dados?.map(item => ({
-      id: item.id || null,
-      nrdocumento: item.nrdocumento || '',
-      serie: item.serie || '',
-      especie: item.especie || '',
-      id_parcela: item.id_parcela || 1,
-      qtdparcelas: item.qtdparcelas || 1,
-      dtemissao: item.dtemissao || '',
-      dtvencimento: item.dtvencimento || '',
-      cliente: item.cliente || '',
-      vlrdocumento: parseFloat(item.vlrdocumento || 0),
-      vlrparcela: parseFloat(item.vlrparcela || 0),
-      origem: item.origem || '',
-      user_inc: item.user_inc || '',
-      abreviatura: item.abreviatura || '',
-      desclocalcobranca: item.desclocalcobranca || '',
+      id: item.id ?? null,
+      nrdocumento: item.nrdocumento ?? '',
+      serie: item.serie ?? '',
+      especie: item.especie ?? '',
+      id_tipodocumento: item.id_tipodocumento ?? null,
+      id_cliente: item.id_cliente ?? null,
+      id_parcela: item.id_parcela ?? 1,
+      qtdparcelas: item.qtdparcelas ?? 1,
+      dtemissao: item.dtemissao ?? '',
+      dtvencimento: item.dtvencimento ?? '',
+      cliente: item.cliente ?? item.id_cliente ?? '',
+      vlrdocumento: parseFloat(item.vlroriginal ?? item.vlrdocumento ?? 0),
+      vlrparcela: parseFloat(item.vlrparcela ?? item.vlroriginal ?? 0),
+      origem: item.origem ?? '',
+      abreviatura: item.abreviatura ?? '',
+      desclocalcobranca: item.desclocalcobranca ?? '',
       nosso_numero: item.nosso_numero ?? null,
-      id_media: item.id_media || ''
+      id_media: item.id_media ?? ''
     })) || []
 
   } catch (error) {
@@ -1468,6 +1449,63 @@ const abrirFormulario = () => {
   }, 200)
 }
 
+// Resolve labels de Tipo Documento, Plano de Conta e Local de Cobrança
+// a partir de IDs, buscando na lista local ou via API por ID
+const resolverLabelsPorIds = async (dados, item) => {
+  try {
+    // Tipo de documento
+    const tipoId = dados.id_tipodocumento || dados.id_tipodocumen || dados.id_tipo || item?.id_tipodocumento || null
+    if (tipoId) {
+      formData.id_tipodocumen = tipoId
+      const tipo = (tiposDocumento.value || []).find(t => String(t.id) === String(tipoId))
+      if (tipo) {
+        tipoDocumentoSelecionado.value = tipo.abreviatura || tipo.desctipodocumento || tipo.descricao || `(ID: ${tipoId})`
+        formData.id_tipodocumen = tipo.id
+      } else {
+        // Tentar buscar da API pelo ID
+        try {
+          const tipoDoc = await financeiroStore.buscarTipoDocumentoPorId(tipoId)
+          if (tipoDoc && tipoDoc.id) {
+            tipoDocumentoSelecionado.value = tipoDoc.abreviatura || tipoDoc.desctipodocumento || `(ID: ${tipoId})`
+            formData.id_tipodocumen = tipoDoc.id
+            // Adicionar à lista para evitar nova busca
+            tiposDocumento.value = [...tiposDocumento.value, tipoDoc]
+          } else {
+            tipoDocumentoSelecionado.value = `(ID: ${tipoId})`
+          }
+        } catch {
+          tipoDocumentoSelecionado.value = dados.abreviatura || `(ID: ${tipoId})`
+        }
+      }
+    }
+
+    // Plano de conta
+    const planoId = formData.id_planoconta || dados.id_planoconta || item?.id_planoconta || null
+    const planos = financeiroStore.planosConta || []
+    if (planoId) {
+      formData.id_planoconta = planoId
+      const plano = (planos || []).find(p => String(p.id) === String(planoId))
+      if (plano) {
+        planoContaSelecionado.value = plano.descconta || plano.descricao || plano.abreviatura || `(ID: ${planoId})`
+      } else {
+        // Tentar buscar da API pelo ID
+        try {
+          const planoConta = await financeiroStore.buscarPlanoContaPorId(planoId)
+          if (planoConta && planoConta.id) {
+            planoContaSelecionado.value = planoConta.descconta || planoConta.descricao || `(ID: ${planoId})`
+          } else {
+            planoContaSelecionado.value = dados.descconta || dados.descplanoconta || `(ID: ${planoId})`
+          }
+        } catch {
+          planoContaSelecionado.value = dados.descconta || dados.descplanoconta || `(ID: ${planoId})`
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao resolver labels a partir dos ids:', e)
+  }
+}
+
 const editarContaReceber = async (item) => {
 
   editando.value = true
@@ -1480,23 +1518,46 @@ const editarContaReceber = async (item) => {
     // Suprimir o watcher que limpa parcelas enquanto fazemos o mapeamento
     suppressParcelWatcher.value = true
 
-    const documento = await financeiroStore.buscarContaReceberPorId(idEmpresa.value, item.id)
+    const documento = await financeiroStore.buscarContaReceberPorId(item.id)
 
-    // documento pode ter a forma { data: [...], parcela: [...], ccusto: [...], media: [...] }
-    const dados = (documento && documento.data && documento.data[0]) ? documento.data[0] : documento
+    // documento pode vir em varios formatos:
+    // 1. { conta: {...}, parcelas: [...] } — Laravel custom (formato atual)
+    // 2. { data: {...}, parcela: [...] } — THorse
+    // 3. { id: 70, ... } — objeto direto
+    // 4. [{...}] — array paginado desempacotado
+    const documentoRaw = Array.isArray(documento) ? documento[0] : documento
+
+    // Se API retornou { conta: {...} }, extrair a conta como dados principais
+    const recordData = documentoRaw?.conta || documentoRaw
+
+    const dadosBrutos = (recordData && recordData.data && Array.isArray(recordData.data))
+      ? recordData.data[0]
+      : (recordData?.data && !Array.isArray(recordData.data))
+        ? recordData.data
+        : recordData
+
+    // Fallback: mesclar com item da tabela caso API nao retorne todos os campos
+    const dados = { ...item, ...(dadosBrutos || {}) }
+
+    // Preencher campos vazios a partir dos dados brutos da API
+    Object.keys(recordData || {}).forEach(k => {
+      if (!Array.isArray(recordData[k]) && typeof recordData[k] !== 'object') {
+        if (dados[k] == null || dados[k] === '') dados[k] = recordData[k]
+      }
+    })
 
     // Preencher formData com os campos retornados
     if (dados) {
       formData.id = dados.id || item.id || null
-      formData.nrdocumento = dados.nrdocumento || dados.nrdocumento || formData.nrdocumento
-      formData.serie = dados.serie || formData.serie
-      formData.especie = dados.especie || formData.especie
+      formData.nrdocumento = dados.nrdocumento || ''
+      formData.serie = dados.serie || ''
+      formData.especie = dados.especie || ''
       formData.id_tipodocumen = dados.id_tipodocumento || dados.id_tipodocumen || null
       formData.observacao = dados.observacao || ''
-      formData.vlroriginal = dados.vlroriginal || parseFloat(dados.vlrdocumento || 0) || formData.vlroriginal
-      formData.qtdparcelas = parseInt(dados.qtdparcelas || formData.qtdparcelas || 1)
-      formData.dtemissao = dados.dtemissao || formData.dtemissao
-      formData.id_media = (dados.id_media || (documento && documento.media && documento.media[0] && documento.media[0].id_media)) || formData.id_media
+      formData.vlroriginal = dados.vlroriginal || parseFloat(dados.vlrdocumento || 0) || 0
+      formData.qtdparcelas = parseInt(dados.qtdparcelas || 1)
+      formData.dtemissao = dados.dtemissao || ''
+      formData.id_media = (dados.id_media || (documento && documento.media && documento.media[0] && documento.media[0].id_media)) || ''
 
       // Buscar campos contábeis no array contabil (documento.contabil ou dados.contabil)
       const contabil = documento?.contabil || dados?.contabil || []
@@ -1516,22 +1577,15 @@ const editarContaReceber = async (item) => {
         formData.id_red_ctb_cli = dados.id_red_ctb_cli || dados.id_red_ctb || null
         formData.id_planoconta = dados.id_planoconta || null
         formData.id_historicocontabil = dados.id_historico_ctb || dados.id_historicocontabil || dados.id_historico || null
+        // Se a API não retornar planoconta, tentar usar fallback do item
+        if (!formData.id_planoconta && item.id_planoconta) {
+          formData.id_planoconta = item.id_planoconta
+        }
       }
 
       // Cliente
       if (dados.id_cliente) {
         formData.id_cliente = dados.id_cliente
-        // garantir que o cliente esteja na lista de pessoas para exibição
-        const exists = (pessoas.value || []).some(p => p.id === dados.id_cliente)
-        if (!exists) {
-          pessoas.value = [...(pessoas.value || []), {
-            id: dados.id_cliente,
-            apelido_fantasia: dados.cliente || dados.apelido_fantasia || dados.nome_razao || '' ,
-            nome_razao: dados.nome_razao || dados.cliente || ''
-          }]
-        }
-        // ensure formData.cliente text is set
-        formData.cliente = dados.cliente || dados.apelido_fantasia || dados.nome_razao || clienteLabel.value || ''
       }
       // Histórico contábil: set id and label when available (já foi carregado do array contabil acima)
       const histId = formData.id_historicocontabil
@@ -1549,60 +1603,21 @@ const editarContaReceber = async (item) => {
         histContabilLabel.value = found ? (found.deschistorico || found.descricao || `(${histId})`) : (dados.deschistorico || dados.descricao || `(${histId})`)
       }
 
-      // Resolver labels de Tipo de Documento, Plano de Conta e Cliente quando API retornar apenas ids
-      try {
-        // Tipo de documento
-        const tipoId = dados.id_tipodocumento || dados.id_tipodocumen || dados.id_tipo || null
-        if (tipoId) {
-          const tipo = (tiposDocumento.value || []).find(t => String(t.id) === String(tipoId))
-          if (tipo) {
-            tipoDocumentoSelecionado.value = tipo.abreviatura || tipo.desctipodocumento || tipo.descricao || ''
-            formData.id_tipodocumen = tipo.id
-          } else if (dados.abreviatura) {
-            tipoDocumentoSelecionado.value = dados.abreviatura
-          }
+      // Resolver labels (tipo documento, plano de conta, cliente) a partir dos IDs
+      // Tenta: 1) lista local carregada, 2) API por ID, 3) fallback inline do response
+      await resolverLabelsPorIds(dados, item)
+
+      // Cliente: garantir que o autocomplete tenha o item
+      if (formData.id_cliente) {
+        let found = (pessoas.value || []).find(p => String(p.id) === String(formData.id_cliente))
+        if (!found) {
+          await buscarClientePorId(formData.id_cliente)
+          found = (pessoas.value || []).find(p => String(p.id) === String(formData.id_cliente))
         }
-
-        // Plano de conta (já foi carregado do array contabil acima)
-        const planoId = formData.id_planoconta
-        const planos = financeiroStore.planosConta || []
-        if (planoId) {
-          const plano = (planos || []).find(p => String(p.id) === String(planoId))
-          if (plano) {
-            planoContaSelecionado.value = plano.descconta || plano.descricao || plano.abreviatura || ''
-          } else if (dados.abreviatura_planoconta || dados.descplanoconta) {
-            planoContaSelecionado.value = dados.abreviatura_planoconta || dados.descplanoconta
-          }
+        // Fallback: se API retornou nome do cliente, usar direto
+        if (!found && dados.cliente) {
+          pessoas.value = [{ id: formData.id_cliente, apelido_fantasia: dados.cliente, nome_razao: dados.cliente }]
         }
-
-        // Cliente: buscar por ID quando disponível
-        if (formData.id_cliente) {
-          // Primeiro tenta encontrar na lista já carregada
-          const foundPessoa = (pessoas.value || []).find(p => String(p.id) === String(formData.id_cliente))
-
-          if (foundPessoa) {
-            clienteLabel.value = foundPessoa.apelido_fantasia || foundPessoa.nome_razao || foundPessoa.nome || ''
-            clienteSelecionado.value = clienteLabel.value
-          } else {
-            // Se não encontrar, busca na API pelo ID
-            await buscarClientePorId(formData.id_cliente)
-
-            // Se ainda assim não encontrou mas tem o nome no dados, usar como fallback
-            if (!clienteLabel.value && dados.cliente) {
-              const novo = {
-                id: formData.id_cliente,
-                apelido_fantasia: dados.cliente || '',
-                nome_razao: dados.nome_razao || dados.cliente || ''
-              }
-              pessoas.value = [...(pessoas.value || []), novo]
-              clienteLabel.value = novo.apelido_fantasia || novo.nome_razao || ''
-              clienteSelecionado.value = clienteLabel.value
-            }
-          }
-        }
-      } catch (e) {
-        // não bloquear o fluxo por erro na resolução de labels
-        console.warn('Erro ao resolver labels a partir dos ids:', e)
       }
     }
 
@@ -1625,7 +1640,7 @@ const editarContaReceber = async (item) => {
           dtvencimento: p.dtvencimento || p.data_vencimento || p.dtvencimento_parcela || '',
           vlrparcela: vlr.toFixed(2),
           id_localcobranca: p.id_localcobranca || null,
-          localCobrancaTexto: '',
+          localCobrancaTexto: p.desclocalcobranca || '',
           _localcobrancaEdited: false,
           observacao: p.observacao || ''
         }
@@ -1676,7 +1691,7 @@ const editarContaReceber = async (item) => {
       parcelas.value = parcelas.value.map(p => {
         if (p.id_localcobranca) {
           const l = locaisCobranca.value.find(lc => String(lc.id) === String(p.id_localcobranca))
-          p.localCobrancaTexto = l ? (l.desclocalcobranca || l.descricao || '') : p.localCobrancaTexto
+          p.localCobrancaTexto = l ? (l.desclocalcobranca || l.descricao || '') : (p.localCobrancaTexto || `(ID: ${p.id_localcobranca})`)
         }
         return p
       })
@@ -1816,7 +1831,7 @@ const salvarContaReceber = async () => {
 
     if (editando.value) {
       // Atualização usa rota com id por enquanto
-      await financeiroStore.atualizarContaReceber(idEmpresa.value, formData.id, payloadCompleto)
+      await financeiroStore.atualizarContaReceber(formData.id, payloadCompleto)
       mostrarMensagem('Conta a Receber atualizada com sucesso!', 'success')
     } else {
       // Enviar apenas o payload para criar (id_empresa já está dentro de data[0])
@@ -1840,7 +1855,7 @@ const salvarContaReceber = async () => {
 const excluirContaReceber = async (item) => {
   try {
     loading.value = true
-    await financeiroStore.deletarContaReceber(idEmpresa.value, item.id)
+    await financeiroStore.deletarContaReceber(item.id)
     await carregarContasReceber(filtrosAvancados.value)
     mostrarMensagem('Conta a Receber excluída com sucesso!', 'success')
   } catch (error) {
@@ -1959,34 +1974,21 @@ const selecionarCliente = (cliente) => {
   formData.id_cliente = cliente.id
   formData.id_red_ctb_cli = cliente.id_red_ctb_cli || cliente.id_red_ctb || null
   clienteSelecionado.value = cliente.apelido_fantasia || cliente.nome_razao || cliente.nome || cliente.apelido || ''
+  clienteLabel.value = clienteSelecionado.value
+}
+
+const onClienteSelecionado = (id) => {
+  if (!id) {
+    clienteSelecionado.value = ''
+    clienteLabel.value = ''
+    formData.id_red_ctb_cli = null
+    return
+  }
+  const c = pessoas.value.find(p => p.id === id)
+  if (c) selecionarCliente(c)
 }
 
 // Cliente: pesquisar e selecionar
-const pesquisarClientes = async () => {
-  try {
-    // usar lista já carregada ou buscar clientes via financeiroStore
-    let dados = pessoas.value && pessoas.value.length > 0 ? pessoas.value : null
-
-    if (!dados) {
-      // Buscar clientes usando o mesmo método que já funciona no código
-      dados = await financeiroStore.buscarPessoasClientes('', idEmpresa.value)
-    }
-
-    if (!termoCliente.value || termoCliente.value.length < 2) {
-      clienteResultados.value = dados || []
-      return
-    }
-    const termo = termoCliente.value.toLowerCase()
-    clienteResultados.value = (dados || []).filter(d => {
-      const nome = d.apelido_fantasia || d.nome_razao || d.nome || d.apelido || ''
-      return nome.toLowerCase().includes(termo) || String(d.id).includes(termo)
-    })
-  } catch (error) {
-    console.error('Erro ao buscar clientes:', error)
-    mostrarMensagem('Erro ao buscar clientes', 'error')
-  }
-}
-
 // Histórico Contábil: pesquisar, selecionar e cadastrar
 const pesquisarHistoricosContabil = async () => {
   try {

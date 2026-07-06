@@ -465,12 +465,11 @@ const confirmarBaixa = () => {
   text-align: right;
 }
 
-.campo-valor {
+.campo-valor .v-field__overlay {
   background-color: #faf2e5 !important;
 }
 
-.campo-valor-dark {
+.campo-valor-dark .v-field__overlay {
   background-color: rgba(255, 255, 255, 0.05) !important;
-  color: white !important;
 }
 </style>

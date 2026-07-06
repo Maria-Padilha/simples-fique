@@ -138,8 +138,18 @@ export const TEMPLATE_DRE = `<!DOCTYPE html>
         }
 
         .table-dre th.valor-col {
+            width: 15%;
+        }
+
+        .table-dre th.debito-col,
+        .table-dre th.credito-col {
+            width: 15%;
             text-align: right;
-            width: 35%;
+        }
+
+        .table-dre th.saldo-col {
+            text-align: right;
+            width: 25%;
         }
 
         .table-dre tbody tr {
@@ -201,6 +211,17 @@ export const TEMPLATE_DRE = `<!DOCTYPE html>
         .valor {
             text-align: right;
             font-weight: 500;
+        }
+
+        .td-valor {
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .td-debito,
+        .td-credito,
+        .td-saldo {
+            text-align: right;
         }
 
         .valor-positivo {
@@ -314,7 +335,9 @@ export const TEMPLATE_DRE = `<!DOCTYPE html>
         <thead>
             <tr>
                 <th>Descrição</th>
-                <th class="valor-col">Valor (R$)</th>
+                <th class="debito-col">Débito</th>
+                <th class="credito-col">Crédito</th>
+                <th class="saldo-col">Saldo</th>
             </tr>
         </thead>
         <tbody>
@@ -414,8 +437,15 @@ function gerarLinhasDRE(dadosRelatorio) {
         <td>
           <span class="icone-grupo">${icone}</span>
           ${escapeHtml(grupo.nome)}
+          ${grupo.descricao ? `<span class="classificador" style="font-size:10px">${escapeHtml(grupo.descricao)}</span>` : ''}
         </td>
-        <td class="valor ${classeValorGrupo}">
+        <td class="td-debito">
+          ${formatarValor(grupo.valorDebito || 0)}
+        </td>
+        <td class="td-credito">
+          ${formatarValor(grupo.valorCredito || 0)}
+        </td>
+        <td class="td-saldo ${classeValorGrupo}">
           ${formatarValor(grupo.valor)}
         </td>
       </tr>
@@ -424,17 +454,15 @@ function gerarLinhasDRE(dadosRelatorio) {
     // Linhas das categorias
     if (grupo.categorias && grupo.categorias.length > 0) {
       grupo.categorias.forEach((categoria) => {
-        const classeValorCategoria = getClasseValor(categoria.valor)
-        
         html += `
           <tr class="linha-categoria">
             <td>
               ${escapeHtml(categoria.nome)}
               ${categoria.classificador ? `<span class="classificador">${escapeHtml(categoria.classificador)}</span>` : ''}
             </td>
-            <td class="valor ${classeValorCategoria}">
-              ${formatarValor(categoria.valor)}
-            </td>
+            <td class="td-debito">${formatarValor(categoria.debito)}</td>
+            <td class="td-credito">${formatarValor(categoria.credito)}</td>
+            <td class="td-saldo">${formatarValor(categoria.saldo)}</td>
           </tr>
         `
       })

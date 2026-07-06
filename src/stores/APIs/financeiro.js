@@ -176,7 +176,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       this.error = null;
       try {
         await apiPhp.delete(`/financeiro/conta-correntes/${id}`);
-        this.contas = this.contas.filter(conta => conta.id_ccorrente !== id);
+        this.contas = this.contas.filter(conta => (conta.id ?? conta.id_ccorrente) !== id);
         return true;
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -679,7 +679,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
         // Construir array de objetos com { id_usuario, ativo }
         const dataArray = users.map(u => ({ id_usuario: u.id, ativo: u.acesso ? 'S' : 'N' }))
 
-        const res = await apiPhp.post(`/financeiro/caixas/${caixaId}/usuarios`, dataArray)
+        const res = await apiPhp.put(`/financeiro/caixas/${caixaId}/usuarios`, dataArray)
         return res.data?.data ?? res.data
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -691,12 +691,12 @@ export const useFinanceiroStore = defineStore('financeiro', {
 
     // ========== CONTAS A PAGAR ==========
 
-    // Buscar baixas de contas a pagar por período
+    // Buscar lotes de baixas de contas a pagar por período
     async buscarBaixasPagar({ data_inicio, data_fim }) {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get('/financeiro/baixa-pagars', {
+        const res = await apiPhp.get('/financeiro/lote-baixa-pagars', {
           params: { data_inicio, data_fim }
         })
         return res.data?.data ?? res.data ?? []
@@ -708,12 +708,12 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Buscar baixa de conta a pagar por ID
+    // Buscar lote de baixa de conta a pagar por ID
     async buscarBaixaPagarPorId(id) {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get(`/financeiro/baixa-pagars/${id}`)
+        const res = await apiPhp.get(`/financeiro/lote-baixa-pagars/${id}`)
         return res.data?.data ?? res.data
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -743,8 +743,8 @@ export const useFinanceiroStore = defineStore('financeiro', {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get('/financeiro/baixa-recebers', {
-          params: { data_inicio, data_fim }
+        const res = await apiPhp.get('/financeiro/lote-baixa-recebers', {
+          params: { dtini: data_inicio, dtfim: data_fim }
         })
         return res.data?.data ?? res.data ?? []
       } catch (error) {
@@ -832,7 +832,38 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
+    // Buscar contas a pagar pendentes de autorização
+    // GET /api/v1/financeiro/conta-pagars/pendentes-autorizacao
+    async buscarContasPagarPendentesAutorizacao(filtros = {}) {
+      this.loading = true
+      this.error = null
+      try {
+        const params = {}
+        const dtini = filtros.dtini || filtros.dt_inicio
+        const dtfim = filtros.dtfim || filtros.dt_fim
+
+        if (!dtini || !dtfim) throw new Error('As datas de início e fim são obrigatórias')
+
+        params.data_inicio = dtini
+        params.data_fim = dtfim
+        if (filtros.idfornecedor) params.fornecedor = filtros.idfornecedor
+        if (filtros.cnpj_cpf) params.cnpj_cpf = filtros.cnpj_cpf
+        if (filtros.nrdocumento) params.nrdocumento = filtros.nrdocumento
+        if (filtros.idtpdocumento) params.idtpdocumento = filtros.idtpdocumento
+        if (filtros.idlocalcobranca) params.idlocalcobranca = filtros.idlocalcobranca
+
+        const res = await apiPhp.get('/financeiro/conta-pagars/pendentes-autorizacao', { params })
+        return res.data?.data ?? res.data ?? []
+      } catch (error) {
+        this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     // Buscar contas a pagar para baixa
+    // GET /api/v1/financeiro/conta-pagars/para-baixa
     async buscarContasPagarBaixa(idEmpresa, filtros = {}) {
       this.loading = true
       this.error = null
@@ -843,10 +874,10 @@ export const useFinanceiroStore = defineStore('financeiro', {
 
         if (!dtini || !dtfim) throw new Error('As datas de início (dtini) e fim (dtfim) são obrigatórias')
 
-        params.dtini = dtini
-        params.dtfim = dtfim
+        params.data_inicio = dtini
+        params.data_fim = dtfim
         if (filtros.tpperiodo !== undefined) params.tpperiodo = filtros.tpperiodo
-        if (filtros.idfornecedor) params.idfornecedor = filtros.idfornecedor
+        if (filtros.idfornecedor) params.fornecedor = filtros.idfornecedor
         if (filtros.cnpj_cpf) params.cnpj_cpf = filtros.cnpj_cpf
         if (filtros.nrdocumento) params.nrdocumento = filtros.nrdocumento
         if (filtros.idtpdocumento) params.idtpdocumento = filtros.idtpdocumento
@@ -854,7 +885,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
         if (filtros.baixado) params.baixado = filtros.baixado
         if (filtros.liberadopagto) params.liberadopagto = filtros.liberadopagto
 
-        const res = await apiPhp.get('/financeiro/conta-pagars', { params })
+        const res = await apiPhp.get('/financeiro/conta-pagars/para-baixa', { params })
         return res.data?.data ?? res.data ?? []
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -1053,7 +1084,8 @@ export const useFinanceiroStore = defineStore('financeiro', {
       this.error = null
       try {
         const res = await apiPhp.get(`/financeiro/plano-contas/${id}`)
-        return res.data?.data ?? res.data ?? []
+        const dados = res.data?.data ?? res.data ?? null
+        return Array.isArray(dados) ? dados[0] : dados
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
         throw error
@@ -1124,6 +1156,23 @@ export const useFinanceiroStore = defineStore('financeiro', {
         const dados = res.data?.data ?? res.data ?? []
         this.tiposDocumento = dados
         return dados
+      } catch (error) {
+        this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Buscar tipo de documento por ID (GET /financeiro/tipo-documentos/:id)
+    async buscarTipoDocumentoPorId(id) {
+      this.loading = true
+      this.error = null
+      try {
+        const res = await apiPhp.get(`/financeiro/tipo-documentos/${id}`)
+        const dados = res.data?.data ?? res.data ?? null
+        // Se veio como array (ex: paginação com 1 elemento), extrair primeiro
+        return Array.isArray(dados) ? dados[0] : dados
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
         throw error
@@ -1317,12 +1366,14 @@ export const useFinanceiroStore = defineStore('financeiro', {
     },
 
     // Buscar conta a receber por ID
-    async buscarContaReceberPorId(idEmpresa, id) {
+    async buscarContaReceberPorId(id) {
       this.loading = true
       this.error = null
       try {
-        const res = await apiPhp.get(`/financeiro/conta-recebers/${idEmpresa}/${id}`)
-        return res.data?.data ?? res.data
+        const res = await apiPhp.get(`/financeiro/conta-recebers/${id}`)
+        const dados = res.data?.data ?? res.data
+        // Se veio como array (ex: paginação com 1 elemento), extrair primeiro
+        return Array.isArray(dados) ? dados[0] : dados
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
         throw error
@@ -1355,7 +1406,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
     },
 
     // Atualizar conta a receber
-    async atualizarContaReceber(idEmpresa, id, payload) {
+    async atualizarContaReceber(id, payload) {
       this.loading = true
       this.error = null
       try {
@@ -1366,7 +1417,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
           ...(payload.media && { media: payload.media }),
           ...(payload.ccusto && { ccusto: payload.ccusto })
         }
-        const res = await apiPhp.put(`/financeiro/conta-recebers/${idEmpresa}/${id}`, phpPayload)
+        const res = await apiPhp.put(`/financeiro/conta-recebers/${id}`, phpPayload)
         return res.data?.data ?? res.data
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -1377,11 +1428,11 @@ export const useFinanceiroStore = defineStore('financeiro', {
     },
 
     // Deletar conta a receber
-    async deletarContaReceber(idEmpresa, id) {
+    async deletarContaReceber(id) {
       this.loading = true
       this.error = null
       try {
-        await apiPhp.delete(`/financeiro/conta-recebers/${idEmpresa}/${id}`)
+        await apiPhp.delete(`/financeiro/conta-recebers/${id}`)
         return true
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -1456,7 +1507,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
             params[key] = value
           }
         })
-        const res = await apiPhp.get('/financeiro/conta-recebers', { params })
+        const res = await apiPhp.get('/financeiro/conta-recebers/para-baixa', { params })
         return res.data?.data ?? res.data ?? []
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido'
@@ -1727,7 +1778,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
 
     // ========== DRE (DEMONSTRATIVO DE RESULTADO) ==========
 
-    // Salvar modelo de DRE (POST /api/v1/financeiro/dres)
+    // Salvar modelo de DRE (POST /api/v1/financeiro/DRE)
     async salvarModeloDRE(payload) {
       this.loading = true
       this.error = null
@@ -1742,7 +1793,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Atualizar modelo de DRE (PUT /api/v1/financeiro/dres/:id)
+    // Atualizar modelo de DRE (PUT /api/v1/financeiro/DRE/:id)
     async atualizarModeloDRE(id, payload) {
       this.loading = true
       this.error = null
@@ -1757,7 +1808,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Buscar modelos de DRE (GET /api/v1/financeiro/dres)
+    // Buscar modelos de DRE (GET /api/v1/financeiro/DRE)
     async buscarModelosDRE() {
       this.loading = true
       this.error = null
@@ -1789,39 +1840,27 @@ export const useFinanceiroStore = defineStore('financeiro', {
         
         const modelo = response.data?.data ?? response.data
         
-        // Converter de volta para o formato da tela
         if (modelo) {
-          // O ID pode vir de diferentes lugares na resposta
-          const idModelo = modelo.id || modelo.id_dre || id
+          const idModelo = modelo.id || id
+          const nomeDre = modelo.descdre || modelo.nome || 'Modelo DRE'
           
-          // Criar mapa de ID para nome de grupo (para converter fórmulas)
+          const detalhes = modelo.detalhes || modelo.dredetalhe || []
+          
           const gruposMap = new Map()
-          ;(modelo.dredetalhe || []).forEach(detalhe => {
+          detalhes.forEach(detalhe => {
             gruposMap.set(detalhe.id, detalhe.descdredetalhe)
           })
-          
-          // O nome pode vir em diferentes locais dependendo da estrutura da resposta
-          const nomeDre = modelo.descdre || modelo.nome || 'Modelo DRE'
           
           return {
             id: idModelo,
             nome: nomeDre,
-            grupos: (modelo.dredetalhe || []).map(detalhe => {
-              // Converter natureza para tipo: '+'=>RECEITA, '-'=>DESPESA, '='=>TOTALIZADOR
+            grupos: detalhes.map(detalhe => {
               let tipo = 'RECEITA'
               switch (detalhe.natureza) {
-                case '+':
-                  tipo = 'RECEITA'
-                  break
-                case '-':
-                  tipo = 'DESPESA'
-                  break
-                case '=':
-                  tipo = 'TOTALIZADOR'
-                  break
+                case '-': tipo = 'DESPESA'; break
+                case '=': tipo = 'TOTALIZADOR'; break
               }
               
-              // Converter fórmula de IDs para nomes (ex: "1 - 2" -> "RECEITA - DESPESA")
               let formulaConvertida = detalhe.natureza_formula || ''
               if (formulaConvertida) {
                 gruposMap.forEach((nome, idGrupo) => {
@@ -1830,31 +1869,34 @@ export const useFinanceiroStore = defineStore('financeiro', {
                 })
               }
               
+              const contas = detalhe.contas || []
+              
               return {
                 id: Date.now() + Math.random(),
-                id_detalhe: detalhe.id, // Guardar ID do backend
+                id_detalhe: detalhe.id,
                 nome: detalhe.descdredetalhe,
-                tipo: tipo,
+                tipo,
                 formula: formulaConvertida,
-                descricao: '',
-                categorias: (modelo.dredetalheconta || [])
-                  .filter(conta => conta.id_dre_detalhe === detalhe.id)
-                  .map(conta => {
-                    // Usar dados que já vêm na resposta da API
-                    const classificador = conta.id_classificador || ''
-                    const nomeConta = conta.descconta || ''
-                    const contaDisplay = classificador && nomeConta ? `${classificador} - ${nomeConta}` : nomeConta
-                    
-                    return {
-                      id: Date.now() + Math.random(),
-                      id_conta: conta.id, // Guardar ID do backend
-                      id_planoconta: conta.id_reduzido_ctb,
-                      nome: nomeConta,
-                      classificador: classificador,
-                      conta: contaDisplay,
-                      descricao: ''
-                    }
-                  })
+                descricao: detalhe.descricao || '',
+                categorias: contas.map(conta => {
+                  const classificador = conta.id_classificador || ''
+                  const idConta = conta.id_reduzido_ctb || ''
+                  let nomeConta = conta.descconta || ''
+                  if (!nomeConta && idConta) {
+                    nomeConta = `Conta ${idConta}`
+                  }
+                  const contaDisplay = classificador && nomeConta ? `${classificador} - ${nomeConta}` : (nomeConta || `Conta ${idConta}`)
+                  
+                  return {
+                    id: Date.now() + Math.random(),
+                    id_conta: conta.id,
+                    id_planoconta: idConta,
+                    nome: nomeConta,
+                    classificador,
+                    conta: contaDisplay,
+                    descricao: ''
+                  }
+                })
               }
             })
           }
@@ -1869,7 +1911,7 @@ export const useFinanceiroStore = defineStore('financeiro', {
       }
     },
 
-    // Deletar modelo de DRE (DELETE /api/v1/financeiro/dres/:id)
+    // Deletar modelo de DRE (DELETE /api/v1/financeiro/DRE/:id)
     async deletarModeloDRE(id) {
       this.loading = true
       this.error = null

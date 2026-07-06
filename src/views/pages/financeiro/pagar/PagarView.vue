@@ -149,47 +149,31 @@
 
                         <!-- Fornecedor -->
                         <v-col cols="12" md="4">
-                          <v-text-field
+                          <v-autocomplete
+                              v-model="formData.id_fornecedor"
+                              v-model:search="fornecedorSearch"
+                              :items="pessoas"
+                              :loading="fornecedorLoading"
+                              :item-title="(item) => item.apelido_fantasia || item.nome_razao || item.nome || ''"
+                              item-value="id"
                               label="Fornecedor *"
-                              v-model="fornecedorSelecionado"
+                              :rules="[rules.required]"
+                              class="required-left-border"
                               variant="outlined"
                               density="compact"
                               hide-details="auto"
-                              :rules="[rules.required]"
-                              class="required-left-border"
                               prepend-inner-icon="mdi-account-box"
-                              readonly
-                              placeholder="Selecione um fornecedor"
+                              no-data-text="Digite o nome para buscar (mín. 3 caracteres)"
+                              :no-filter="true"
+                              clearable
+                              @update:model-value="onFornecedorSelecionado"
                           >
-                            <template #append-inner>
-                              <busca-padrao-menu
-                                  v-model="menuFornecedor"
-                                  :pesquisar="pesquisarFornecedores"
-                                  :modelInput="termoFornecedor"
-                                  :resultados="fornecedorResultados"
-                                  @update:modelInput="termoFornecedor = $event"
-                                  @selecionar="selecionarFornecedor"
-                              >
-                                <template #resultados="{ selecionar }">
-                                  <v-virtual-scroll
-                                      :items="fornecedorResultados"
-                                      :height="120"
-                                      item-height="42"
-                                      class="mt-3"
-                                  >
-                                    <template #default="{ item }">
-                                      <div
-                                          class="hover:bg-surface-variant rounded-md px-3 py-2 cursor-pointer"
-                                          @click="selecionar(item)"
-                                      >
-                                        <p class="text-body-1">{{ item.apelido_fantasia || item.nome_razao || item.nome || item.apelido }}</p>
-                                      </div>
-                                    </template>
-                                  </v-virtual-scroll>
-                                </template>
-                              </busca-padrao-menu>
+                            <template v-slot:item="{ props, item }">
+                              <v-list-item v-bind="props">
+                                <v-list-item-subtitle>{{ item.raw.cpf_cnpj }}</v-list-item-subtitle>
+                              </v-list-item>
                             </template>
-                          </v-text-field>
+                          </v-autocomplete>
                         </v-col>
 
                         <!-- Plano de Conta -->
@@ -1499,8 +1483,8 @@ const parcelasCalculadas = ref(false)
 // Flag para suprimir o watcher que limpa parcelas enquanto carregamos um documento existente
 const suppressParcelWatcher = ref(false)
 
-// Rateio por centro de custo
-const centrosCusto = ref([])
+// Rateio por centro de custo — computed garante reatividade ao store
+const centrosCusto = computed(() => ccustoStore.centrosCusto || [])
 
 // Parâmetro de centro de custo (obrigatoriedade)
 const ccustoParametro = ref({
@@ -1667,11 +1651,6 @@ const cadastrarHistoricoModal = ref(false)
 const historicoContabilResultados = ref([])
 const histContabilLabel = ref('')
 const descricaoHistorico = ref('')
-
-// Fornecedor (campo de busca)
-const menuFornecedor = ref(false)
-const termoFornecedor = ref('')
-const fornecedorResultados = ref([])
 
 // Fornecedor autocomplete
 const fornecedorSearch = ref('')
@@ -1901,7 +1880,6 @@ watch(() => parcelasCalculadas.value, (val) => {
     if ((centrosCusto.value || []).length === 0) {
       // tentar carregar novamente
       ccustoStore.listarCCusto().then(() => {
-        centrosCusto.value = ccustoStore.centrosCusto || []
         inicializarRateio()
       }).catch(() => {
         inicializarRateio()
@@ -1977,43 +1955,41 @@ const carregarCCustoParametro = async () => {
 
 // Carregar dados auxiliares dos dropdowns
 const carregarDadosAuxiliares = async () => {
-  try {
-    // Carregar parâmetro de centro de custo
-    await carregarCCustoParametro()
+  await carregarCCustoParametro()
 
-    // Carregar tipos de documento
+  try {
     const tiposDoc = await financeiroStore.buscarTiposDocumento()
     tiposDocumento.value = tiposDoc
+  } catch (err) {
+    console.warn('Não foi possível carregar tipos de documento:', err)
+  }
 
-    // Carregar locais de cobrança
+  try {
     const locaisCobrancaData = await financeiroStore.buscarLocaisCobranca()
     locaisCobranca.value = locaisCobrancaData
+  } catch (err) {
+    console.warn('Não foi possível carregar locais de cobrança:', err)
+  }
 
-    // Não carregar fornecedores por padrão — busca remota só ao digitar (>=3 chars)
-    pessoas.value = []
+  pessoas.value = []
 
-    // Carregar planos de conta
+  try {
     await financeiroStore.buscarPlanosConta()
+  } catch (err) {
+    console.warn('Não foi possível carregar planos de conta:', err)
+  }
 
-    // Carregar históricos contábeis
-    try {
-      const historicosRes = await financeiroStore.buscarHistoricosContabil()
-      historicoContabilResultados.value = historicosRes || []
-    } catch (err) {
-      console.warn('Não foi possível carregar históricos contábeis:', err)
-    }
+  try {
+    const historicosRes = await financeiroStore.buscarHistoricosContabil()
+    historicoContabilResultados.value = historicosRes || []
+  } catch (err) {
+    console.warn('Não foi possível carregar históricos contábeis:', err)
+  }
 
-    // Carregar centros de custo
-    try {
-      await ccustoStore.listarCCusto()
-      centrosCusto.value = ccustoStore.centrosCusto || []
-    } catch (err) {
-      console.warn('Não foi possível carregar centros de custo:', err)
-    }
-
-  } catch (error) {
-    console.error('Erro ao carregar dados auxiliares:', error)
-    mostrarMensagem('Erro ao carregar dados auxiliares', 'error')
+  try {
+    await ccustoStore.listarCCusto()
+  } catch (err) {
+    console.warn('Não foi possível carregar centros de custo:', err)
   }
 }
 
@@ -2339,7 +2315,6 @@ const editarContaPagar = async (item) => {
       if ((centrosCusto.value || []).length === 0) {
         try {
           await ccustoStore.listarCCusto()
-          centrosCusto.value = ccustoStore.centrosCusto || []
         } catch (e) {
           console.warn('Não foi possível carregar centros de custo ao editar documento', e)
         }
@@ -3292,7 +3267,19 @@ const selecionarTipoDocumento = (tipoDoc) => {
 const selecionarFornecedor = (fornecedor) => {
   formData.id_fornecedor = fornecedor.id
   fornecedorSelecionado.value = fornecedor.apelido_fantasia || fornecedor.nome_razao || fornecedor.nome || fornecedor.apelido || ''
+  fornecedorLabel.value = fornecedorSelecionado.value
   formData.id_red_ctb_for = fornecedor.id_red_ctb_for || fornecedor.id_red_ctb || null
+}
+
+const onFornecedorSelecionado = (id) => {
+  if (!id) {
+    fornecedorSelecionado.value = ''
+    fornecedorLabel.value = ''
+    formData.id_red_ctb_for = null
+    return
+  }
+  const f = pessoas.value.find(p => p.id === id)
+  if (f) selecionarFornecedor(f)
 }
 
 // Histórico Contábil: pesquisar, selecionar e cadastrar
@@ -3310,32 +3297,6 @@ const pesquisarHistoricosContabil = async () => {
     })
   } catch (error) {
     mostrarMensagem('Erro ao buscar históricos contábeis', 'error')
-  }
-}
-
-// Fornecedor: pesquisar e selecionar
-const pesquisarFornecedores = async () => {
-  try {
-    // usar lista já carregada ou buscar fornecedores via financeiroStore
-    let dados = pessoas.value && pessoas.value.length > 0 ? pessoas.value : null
-
-    if (!dados) {
-      // Buscar fornecedores usando o mesmo método que já funciona no código
-      dados = await financeiroStore.buscarPessoasFornecedores('', idEmpresa.value)
-    }
-
-    if (!termoFornecedor.value || termoFornecedor.value.length < 2) {
-      fornecedorResultados.value = dados || []
-      return
-    }
-    const termo = termoFornecedor.value.toLowerCase()
-    fornecedorResultados.value = (dados || []).filter(d => {
-      const nome = d.apelido_fantasia || d.nome_razao || d.nome || d.apelido || ''
-      return nome.toLowerCase().includes(termo) || String(d.id).includes(termo)
-    })
-  } catch (error) {
-    console.error('Erro ao buscar fornecedores:', error)
-    mostrarMensagem('Erro ao buscar fornecedores', 'error')
   }
 }
 
