@@ -524,11 +524,21 @@
                     {{ item.tipo_pessoa === 'F' ? 'Física' : 'Jurídica' }}
                   </template>
 
+                  <template v-slot:[`item.ativo`]='{ item }'>
+                    <v-chip
+                        :color="item.ativo === 'S' ? 'success' : 'error'"
+                        size="x-small"
+                        variant="tonal"
+                    >
+                      {{ item.ativo === 'S' ? 'Ativo' : 'Inativo' }}
+                    </v-chip>
+                  </template>
+
                   <template v-slot:[`item.acoes`]='{ item }'>
                     <v-btn icon="mdi-pencil" size="small" color="primary" variant="text"
                            @click="editarPessoa(item)"></v-btn>
-                    <v-btn icon="mdi-delete" size="small" color="error" variant="text"
-                           @click="confirmarExclusao(item)"></v-btn>
+                    <v-btn icon="mdi-account-off" size="small" color="warning" variant="text"
+                           @click="confirmarInativacao(item)"></v-btn>
                   </template>
 
                   <template v-slot:no-data>
@@ -543,6 +553,36 @@
           </v-card-text>
         </v-card>
 
+
+        <!-- Dialog de confirmação de inativação -->
+        <v-dialog v-model="inativacaoDialog.aberto" max-width="420px" persistent>
+          <v-card class="background-card">
+            <v-card-title class="text-h6 pa-4 d-flex align-center">
+              <v-icon icon="mdi-account-off" color="warning" class="mr-2"></v-icon>
+              Inativar Cliente
+            </v-card-title>
+            <v-card-text class="pa-4">
+              Deseja realmente inativar o cliente <strong>{{ inativacaoDialog.nomePessoa }}</strong>?
+              <br><br>
+              <span class="text-caption text-medium-emphasis">O cliente ficará inativo e não aparecerá em listagens ativas.</span>
+            </v-card-text>
+            <v-card-actions class="pa-4">
+              <v-spacer></v-spacer>
+              <v-btn color="grey" variant="text" size="small" @click="inativacaoDialog.aberto = false">
+                Cancelar
+              </v-btn>
+              <v-btn
+                color="warning"
+                variant="flat"
+                size="small"
+                :loading="loading"
+                @click="confirmarInativacaoExecutar"
+              >
+                Inativar
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
 
         <!-- Snackbar -->
         <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
@@ -572,6 +612,9 @@ const formularioAberto = ref(false)
 const formValido = ref(false)
 const formRef = ref(null)
 const editando = ref(false)
+
+// Inativação
+const inativacaoDialog = reactive({ aberto: false, idPessoa: null, nomePessoa: '' })
 
 // Importação CSV
 const importacaoAberta = ref(false)
@@ -741,13 +784,15 @@ const salvarPessoa = async () => {
   if (!pessoasStore.errorMessage) cancelarFormulario();
 }
 
-const confirmarExclusao = (p) => {
-  if (!confirm('Confirmar exclusão?')) return
-  deletarPessoa(p.id)
+const confirmarInativacao = (p) => {
+  inativacaoDialog.idPessoa = p.id
+  inativacaoDialog.nomePessoa = p.nome_razao || p.apelido_fantasia || `#${p.id}`
+  inativacaoDialog.aberto = true
 }
 
-const deletarPessoa = async (id) => {
-  await pessoasStore.deletarPessoa(id, snackbar)
+const confirmarInativacaoExecutar = async () => {
+  await pessoasStore.deletarPessoa(inativacaoDialog.idPessoa, snackbar)
+  inativacaoDialog.aberto = false
 }
 
 // Importação CSV
