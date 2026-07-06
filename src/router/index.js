@@ -22,6 +22,7 @@ import LancamentoColabView from '@/views/pages/financeiro/pagar/LancamentoColabV
 import PlanoContaView from '@/views/pages/fiscal/PlanoContaView.vue';
 import DebitoRealView from '@/views/pages/financeiro/pagar/DebitoRealView.vue';
 import UsuariosView from '@/views/pages/manutencao/UsuariosView.vue';
+import FuncionarioView from '@/views/pages/manutencao/FuncionarioView.vue';
 import OperacaoView from '@/views/pages/pdv/OperacaoView.vue';
 import AmbienteView from '@/views/pages/vendas/AmbienteView.vue';
 import PosicaoEstoqueView from '@/views/pages/estoque/PosicaoEstoqueView.vue';
@@ -103,6 +104,11 @@ const routes = [
         path: '/paginas/manutencao/usuarios',
         name: 'manutencao_usuarios',
         component: UsuariosView
+    },
+    {
+        path: '/paginas/manutencao/funcionarios',
+        name: 'manutencao_funcionarios',
+        component: FuncionarioView
     },
     {
         path: '/paginas/manutencao/grupousuario',

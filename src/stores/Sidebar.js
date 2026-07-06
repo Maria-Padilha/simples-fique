@@ -135,6 +135,11 @@ export const useSidebarStore = defineStore('sidebar', () => {
                     route: '/paginas/manutencao/usuarios'
                 },
                 {
+                    text: 'Funcionários',
+                    icon: 'mdi-account-hard-hat',
+                    route: '/paginas/manutencao/funcionarios'
+                },
+                {
                     text: 'Grupos de Usuários',
                     icon: 'mdi-account-multiple',
                     route: '/paginas/manutencao/grupousuario'
