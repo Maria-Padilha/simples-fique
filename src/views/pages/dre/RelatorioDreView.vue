@@ -223,8 +223,10 @@
               <v-table class="dre-table" density="comfortable">
                 <thead>
                   <tr>
-                    <th class="text-left font-weight-bold" style="width: 60%">Descrição</th>
-                    <th class="text-right font-weight-bold" style="width: 40%">Valor (R$)</th>
+                    <th class="text-left font-weight-bold" style="width: 40%">Descrição</th>
+                    <th class="text-right font-weight-bold" style="width: 20%">Débito</th>
+                    <th class="text-right font-weight-bold" style="width: 20%">Crédito</th>
+                    <th class="text-right font-weight-bold" style="width: 20%">Saldo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,6 +244,15 @@
                             class="mr-2"
                         ></v-icon>
                         {{ grupo.nome }}
+                        <v-chip v-if="grupo.descricao" size="x-small" variant="outlined" class="ml-2 text-grey">
+                          {{ grupo.descricao }}
+                        </v-chip>
+                      </td>
+                      <td class="text-right font-weight-bold" :class="getValorClass(grupo.valorDebito, grupo.natureza)">
+                        {{ formatarValor(grupo.valorDebito || 0) }}
+                      </td>
+                      <td class="text-right font-weight-bold" :class="getValorClass(grupo.valorCredito, grupo.natureza)">
+                        {{ formatarValor(grupo.valorCredito || 0) }}
                       </td>
                       <td class="text-right font-weight-bold" :class="getValorClass(grupo.valor, grupo.natureza)">
                         {{ formatarValor(aplicarSinalVisual(grupo.valor, grupo.natureza)) }}
@@ -260,9 +271,9 @@
                           {{ categoria.classificador }}
                         </v-chip>
                       </td>
-                      <td class="text-right text-body-2" :class="getValorClass(categoria.valor, grupo.natureza)">
-                        {{ formatarValor(aplicarSinalVisual(categoria.valor, grupo.natureza)) }}
-                      </td>
+                      <td class="text-right text-body-2">{{ formatarValor(categoria.debito) }}</td>
+                      <td class="text-right text-body-2">{{ formatarValor(categoria.credito) }}</td>
+                      <td class="text-right text-body-2" :class="getValorClass(categoria.valor, grupo.natureza)">{{ formatarValor(categoria.saldo) }}</td>
                     </tr>
                   </template>
                 </tbody>
@@ -302,6 +313,13 @@
       </div>
     </template>
   </top-all-pages>
+
+  <!-- Modal de Preview do PDF -->
+  <PdfPreviewModal
+    v-model="pdfDialog"
+    :html-content="conteudoPDF"
+    nome-relatorio="DRE_Relatorio"
+  />
 </template>
 
 <script setup>
@@ -311,7 +329,8 @@ import { useFinanceiroStore } from '@/stores/APIs/financeiro'
 import { useDreStore } from '@/stores/APIs/dre'
 import { toast } from 'vue3-toastify'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
-import { imprimirRelatorioDRE } from '@/components/impressos/dre.js'
+import PdfPreviewModal from '@/components/base/modais/PdfPreviewModal.vue'
+import { imprimirRelatorioDRE, gerarRelatorioDRE } from '@/components/impressos/dre.js'
 
 const themeStore = useThemeStore()
 const financeiroStore = useFinanceiroStore()
@@ -325,6 +344,8 @@ const formRef = ref(null)
 const relatorioGerado = ref(false)
 const dadosRelatorio = ref([])
 const dataGeracao = ref('')
+const pdfDialog = ref(false)
+const conteudoPDF = ref('')
 
 // Filtros
 const filtros = reactive({
@@ -641,26 +662,36 @@ const processarDadosDRE = (movimentacoes) => {
       gruposMap[grupoId] = {
         id: grupoId,
         nome: nomeGrupo,
+        descricao: mov.descricao || '',
         tipo: getTipoGrupo(mov.natureza),
         natureza: mov.natureza,
         natureza_formula: mov.natureza_formula,
         categorias: [],
-        valor: 0
+        valor: 0,
+        valorDebito: 0,
+        valorCredito: 0
       }
     }
 
     // Adicionar categoria apenas se houver classificador (não é totalizador)
     if (mov.id_classificador && mov.descconta) {
       const valor = calcularValorMovimentacao(mov)
+      const credito = parseFloat(mov.credito) || 0
+      const debito = parseFloat(mov.debito) || 0
       
       gruposMap[grupoId].categorias.push({
         nome: mov.descconta,
         classificador: mov.id_classificador,
-        valor: valor
+        valor: valor,
+        credito: credito,
+        debito: debito,
+        saldo: parseFloat(mov.saldo) || 0
       })
       
       // Somar ao valor do grupo
       gruposMap[grupoId].valor += valor
+      gruposMap[grupoId].valorDebito += debito
+      gruposMap[grupoId].valorCredito += credito
     }
   })
 
@@ -784,11 +815,108 @@ const imprimirRelatorio = () => {
 }
 
 const exportarExcel = () => {
-  toast.info('Exportação para Excel em desenvolvimento')
+  if (!relatorioGerado.value || !dadosRelatorio.value.length) {
+    toast.warning('Gere o relatório antes de exportar')
+    return
+  }
+
+  const nomeEmpresa = localStorage.getItem('nomeEmpresa') || 'Nome da Empresa'
+
+  let linhas = ''
+  dadosRelatorio.value.forEach(grupo => {
+    const corGrupo = grupo.tipo === 'RECEITA' ? '#f1f8f4' : grupo.tipo === 'DESPESA' ? '#fff3f3' : '#fff5f0'
+    const corBorda = grupo.tipo === 'RECEITA' ? '#4caf50' : grupo.tipo === 'DESPESA' ? '#f44336' : '#F57C00'
+    linhas += `<tr style="background:${corGrupo};font-weight:bold;border-left:4px solid ${corBorda};">
+      <td style="padding:8px">${grupo.nome}${grupo.descricao ? ' - ' + grupo.descricao : ''}</td>
+      <td style="padding:8px;text-align:right">${formatarValor(grupo.valorDebito || 0)}</td>
+      <td style="padding:8px;text-align:right">${formatarValor(grupo.valorCredito || 0)}</td>
+      <td style="padding:8px;text-align:right">${formatarValor(aplicarSinalVisual(grupo.valor, grupo.natureza))}</td>
+    </tr>`
+    ;(grupo.categorias || []).forEach(cat => {
+      linhas += `<tr>
+        <td style="padding:6px 10px 6px 30px">${cat.nome} <span style="color:#888;font-size:10px">${cat.classificador}</span></td>
+        <td style="padding:6px 10px;text-align:right">${formatarValor(cat.debito)}</td>
+        <td style="padding:6px 10px;text-align:right">${formatarValor(cat.credito)}</td>
+        <td style="padding:6px 10px;text-align:right">${formatarValor(cat.saldo)}</td>
+      </tr>`
+    })
+  })
+
+  const regimeTexto = filtros.regime === 1 ? 'Competência' : 'Caixa'
+  const dataGeracaoStr = new Date().toLocaleString('pt-BR')
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <head>
+      <meta charset="UTF-8">
+      <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>DRE</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+    </head>
+    <body>
+      <table border="0" style="font-family:Roboto,Arial,sans-serif;font-size:11px;width:100%">
+        <tr><td style="font-size:22px;font-weight:bold;color:#F57C00;padding:10px 0">SimplesFique</td></tr>
+        <tr><td style="font-size:14px;font-weight:bold;color:#333;padding:5px 0">${modeloSelecionadoNome.value}</td></tr>
+        <tr><td style="color:#555;padding:2px 0">${nomeEmpresa}</td></tr>
+        <tr><td style="color:#555;padding:2px 0">Período: ${getPeriodoFormatado()} | Regime: ${regimeTexto}</td></tr>
+        <tr><td style="color:#999;font-size:10px;padding:2px 0">Gerado em: ${dataGeracaoStr}</td></tr>
+        <tr><td style="height:10px"></td></tr>
+        <tr>
+          <td>
+            <table border="1" style="border-collapse:collapse;width:100%;border:1px solid #ddd">
+              <thead>
+                <tr style="background:linear-gradient(135deg,#F57C00,#de7e3e);color:white;font-weight:bold">
+                  <th style="padding:10px;text-align:left;border:1px solid #e67e22">Descrição</th>
+                  <th style="padding:10px;text-align:right;border:1px solid #e67e22">Débito</th>
+                  <th style="padding:10px;text-align:right;border:1px solid #e67e22">Crédito</th>
+                  <th style="padding:10px;text-align:right;border:1px solid #e67e22">Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${linhas}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+        <tr><td style="height:20px"></td></tr>
+        <tr><td style="font-size:9px;color:#999;border-top:2px solid #F57C00;padding-top:10px">
+          <b>SimplesFique</b> - Sistema de Gestão Empresarial<br>
+          Gerado em: ${dataGeracaoStr}
+        </td></tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `dre-${filtros.ano}-${filtros.mes}.xls`
+  link.click()
+  URL.revokeObjectURL(link.href)
+  toast.success('Arquivo Excel exportado com sucesso!')
 }
 
 const exportarPDF = () => {
-  toast.info('Exportação para PDF em desenvolvimento')
+  if (!relatorioGerado.value || !dadosRelatorio.value.length) {
+    toast.warning('Gere o relatório antes de exportar')
+    return
+  }
+
+  const nomeEmpresa = localStorage.getItem('nomeEmpresa') || 'Nome da Empresa'
+  const cnpjEmpresa = localStorage.getItem('cnpjEmpresa') || '00.000.000/0000-00'
+
+  conteudoPDF.value = gerarRelatorioDRE({
+    nomeEmpresa,
+    cnpjEmpresa,
+    tituloDre: modeloSelecionadoNome.value,
+    nomeModelo: modeloSelecionadoNome.value,
+    dataInicial: filtros.dataInicial,
+    dataFinal: filtros.dataFinal,
+    tipoPeriodo: filtros.tipoPeriodo,
+    regime: filtros.regime,
+    dadosRelatorio: dadosRelatorio.value
+  })
+
+  pdfDialog.value = true
 }
 
 // Lifecycle

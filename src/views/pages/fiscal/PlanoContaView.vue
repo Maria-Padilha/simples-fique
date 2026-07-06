@@ -197,7 +197,7 @@
           :nome-relatorio="dadosPDFAtual?.nomeRelatorio || 'Planos_de_Conta'"
       />
     </template>
-  </top-all-pages>>
+  </top-all-pages>
 </template>
 
 <script setup>
