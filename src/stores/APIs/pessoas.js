@@ -109,12 +109,12 @@ export const usePessoasStore = defineStore('pessoas', {
             this.loading = true
             try {
                 await apiPhp.delete(`/manutencao/pessoas/${id}`)
-                snackbar.message = 'Pessoa excluída'
+                snackbar.message = 'Cliente inativado com sucesso'
                 snackbar.color = 'success'
                 snackbar.show = true
                 await this.buscarTodasPessoas();
             } catch (e) {
-                snackbar.message = 'Erro ao excluir pessoa'
+                snackbar.message = 'Erro ao inativar cliente'
                 snackbar.color = 'error'
                 snackbar.show = true
             } finally {

@@ -81,6 +81,33 @@
 
                     <v-row>
                       <v-col cols="12" md="3">
+                        <v-text-field
+                            v-model.number="formData.valor_couvert_padrao"
+                            label="Couvert padrão (R$)"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Ex: 10.00"
+                            variant="outlined"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="3">
+                        <v-text-field
+                            v-model.number="formData.percentual_taxa_servico_padrao"
+                            label="Taxa de serviço padrão (%)"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="Ex: 10"
+                            variant="outlined"
+                        />
+                      </v-col>
+                    </v-row>
+
+                    <v-row>
+                      <v-col cols="12" md="3">
                         <v-switch
                             v-model="formData.ativo"
                             label="Terminal ativo"
@@ -409,6 +436,8 @@
                   <v-tab value="ambientes">Ambientes Operacionais</v-tab>
                   <v-tab value="menus">Menus Laterais</v-tab>
                   <v-tab value="produtos">Produtos Vinculados ao menu</v-tab>
+                  <v-tab value="mesas">Mesas</v-tab>
+                  <v-tab value="funcionarios">Funcionários</v-tab>
                 </v-tabs>
 
                 <v-tabs-window v-model="aba">
@@ -756,6 +785,187 @@
                       </template>
                     </v-card>
                   </v-tabs-window-item>
+
+                  <v-tabs-window-item value="mesas">
+                    <!-- MESAS -->
+                    <v-card class="config-section" elevation="0">
+                      <div class="d-flex justify-space-between align-start flex-wrap ga-3 mb-3">
+                        <div>
+                          <h2>4. Mesas do salão</h2>
+                          <p class="section-subtitle">
+                            Cadastre as mesas do salão — elas aparecem no mapa de mesas do painel de comandas.
+                          </p>
+                        </div>
+                      </div>
+
+                      <v-row class="align-end">
+                        <v-col cols="12" md="3">
+                          <label>Número</label>
+                          <v-text-field
+                              v-model="mesaForm.numero"
+                              placeholder="Ex: 12"
+                              variant="outlined"
+                              density="comfortable"
+                              hide-details
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="3">
+                          <label>Nome (opcional)</label>
+                          <v-text-field
+                              v-model="mesaForm.nome"
+                              placeholder="Ex: Varanda 3"
+                              variant="outlined"
+                              density="comfortable"
+                              hide-details
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="2">
+                          <label>Capacidade</label>
+                          <v-text-field
+                              v-model.number="mesaForm.capacidade"
+                              type="number"
+                              min="1"
+                              variant="outlined"
+                              density="comfortable"
+                              hide-details
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="2">
+                          <label>Ambiente</label>
+                          <v-select
+                              v-model="mesaForm.ambiente_id"
+                              :items="ambientesTerminalConfig"
+                              item-title="nome"
+                              item-value="id"
+                              clearable
+                              placeholder="Nenhum"
+                              variant="outlined"
+                              density="comfortable"
+                              hide-details
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="2">
+                          <v-btn
+                              block
+                              color="var(--text-color-laranja)"
+                              variant="flat"
+                              class="text-white action-btn"
+                              @click="salvarMesa"
+                          >
+                            Adicionar mesa
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+
+                      <v-divider class="my-4" />
+
+                      <div v-if="!mesasTerminalConfig.length" class="empty-box">
+                        Nenhuma mesa cadastrada.
+                      </div>
+
+                      <div
+                          v-for="mesa in mesasTerminalConfig"
+                          :key="mesa.id"
+                          class="config-list-row"
+                      >
+                        <div>
+                          <strong>Mesa {{ mesa.numero }}{{ mesa.nome ? ' — ' + mesa.nome : '' }}</strong>
+                          <span>Capacidade {{ mesa.capacidade }} • {{ statusMesaLabel(mesa.status) }}</span>
+                        </div>
+
+                        <v-btn
+                            color="red"
+                            variant="tonal"
+                            @click="removerMesa(mesa)"
+                        >
+                          Remover
+                        </v-btn>
+                      </div>
+                    </v-card>
+                  </v-tabs-window-item>
+
+                  <v-tabs-window-item value="funcionarios">
+                    <!-- FUNCIONÁRIOS -->
+                    <v-card class="config-section" elevation="0">
+                      <div class="d-flex justify-space-between align-start flex-wrap ga-3 mb-3">
+                        <div>
+                          <h2>5. Funcionários vinculados</h2>
+                          <p class="section-subtitle">
+                            Só funcionários vinculados e com acesso ao terminal conseguem validar a senha operacional
+                            aqui — assim que o primeiro vínculo é criado, essa checagem passa a valer para este terminal.
+                          </p>
+                        </div>
+                      </div>
+
+                      <v-row class="align-end">
+                        <v-col cols="12" md="5">
+                          <label>Funcionário</label>
+                          <v-select
+                              v-model="funcionarioVincularForm.funcionario_id"
+                              :items="funcionariosDisponiveisParaVinculo"
+                              item-title="nome"
+                              item-value="id"
+                              placeholder="Selecione"
+                              variant="outlined"
+                              density="comfortable"
+                              hide-details
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="4">
+                          <label>Papel (opcional)</label>
+                          <v-text-field
+                              v-model="funcionarioVincularForm.papel"
+                              placeholder="Ex: garcom, caixa, cozinha"
+                              variant="outlined"
+                              density="comfortable"
+                              hide-details
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="3">
+                          <v-btn
+                              block
+                              color="var(--text-color-laranja)"
+                              variant="flat"
+                              class="text-white action-btn"
+                              @click="vincularFuncionario"
+                          >
+                            Vincular
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+
+                      <v-divider class="my-4" />
+
+                      <div v-if="!funcionariosVinculadosTerminal.length" class="empty-box">
+                        Nenhum funcionário vinculado a este terminal — qualquer usuário do sistema ainda pode operá-lo.
+                      </div>
+
+                      <div
+                          v-for="vinculo in funcionariosVinculadosTerminal"
+                          :key="vinculo.id"
+                          class="config-list-row"
+                      >
+                        <div>
+                          <strong>{{ vinculo.funcionario?.nome || ('Funcionário #' + vinculo.funcionario_id) }}</strong>
+                          <span>{{ vinculo.papel || 'sem papel definido' }} • {{ vinculo.ativo ? 'ativo' : 'inativo' }}</span>
+                        </div>
+
+                        <v-btn
+                            color="red"
+                            variant="tonal"
+                            @click="removerVinculoFuncionario(vinculo)"
+                        >
+                          Desvincular
+                        </v-btn>
+                      </div>
+                    </v-card>
+                  </v-tabs-window-item>
                 </v-tabs-window>
               </main>
             </section>
@@ -802,6 +1012,9 @@ const menus = ref([])
 const menuProdutos = ref([])
 const produtos = ref([])
 const grupos = ref([])
+const mesas = ref([])
+const funcionariosVinculados = ref([])
+const funcionariosDisponiveis = ref([])
 
 const formData = reactive({
   id: null,
@@ -813,7 +1026,9 @@ const formData = reactive({
   emite_ticket: true,
   modo_ticket: 'agrupado',
   observacao: '',
-  senha_terminal: ''
+  senha_terminal: '',
+  valor_couvert_padrao: 0,
+  percentual_taxa_servico_padrao: 10
 })
 
 const ambienteForm = reactive({
@@ -837,6 +1052,21 @@ const produtoForm = reactive({
   produto_id: [],
   emite_ticket: false
 })
+
+const mesaForm = reactive({
+  numero: '',
+  nome: '',
+  capacidade: 4,
+  ambiente_id: null
+})
+
+const funcionarioVincularForm = reactive({
+  funcionario_id: null,
+  papel: ''
+})
+
+const statusMesaLabels = { livre: 'Livre', ocupada: 'Ocupada', reservada: 'Reservada', bloqueada: 'Bloqueada' }
+const statusMesaLabel = status => statusMesaLabels[status] || status
 
 const rules = {
   required: value => !!value || 'Campo obrigatório'
@@ -919,6 +1149,19 @@ const produtosVinculadosPorMenu = computed(() => {
         }
       })
       .filter(grupo => grupo.produtos.length > 0)
+})
+
+const mesasTerminalConfig = computed(() => {
+  return mesas.value.filter(m => m.terminal_id === terminalConfigurandoId.value)
+})
+
+const funcionariosVinculadosTerminal = computed(() => {
+  return funcionariosVinculados.value.filter(v => v.terminal_id === terminalConfigurandoId.value)
+})
+
+const funcionariosDisponiveisParaVinculo = computed(() => {
+  const vinculadosIds = new Set(funcionariosVinculadosTerminal.value.map(v => v.funcionario_id))
+  return funcionariosDisponiveis.value.filter(f => !vinculadosIds.has(f.id))
 })
 
 const terminalPronto = computed(() => {
@@ -1013,13 +1256,23 @@ const carregarConfigTerminal = async terminalId => {
 
   const safe = promise => promise.catch(() => ({ data: [] }))
 
-  const [respAmbientes, respMenus, respProdutos, respVinculados, respGrupos] = await Promise.all([
+  const [respAmbientes, respMenus, respProdutos, respVinculados, respGrupos, respMesas, respFuncVinculados, respFuncDisponiveis] = await Promise.all([
     safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/ambientes`, h)),
     safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/menus`, h)),
     safe(api.get('/api/v1/admin/produtos-catalogo', h)),
     safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/produtos-vinculados`, h)),
-    safe(api.get('/api/v1/estoque/grupos', h))
+    safe(api.get('/api/v1/estoque/grupos', h)),
+    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/mesas`, h)),
+    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/funcionarios`, h)),
+    safe(api.get('/api/v1/manutencao/funcionarios', h))
   ])
+
+  mesas.value = respMesas.data?.data ?? respMesas.data ?? []
+  funcionariosVinculados.value = respFuncVinculados.data?.data ?? respFuncVinculados.data ?? []
+
+  const todosFuncionarios = respFuncDisponiveis.data?.data ?? respFuncDisponiveis.data ?? []
+  funcionariosDisponiveis.value = (Array.isArray(todosFuncionarios) ? todosFuncionarios : [])
+      .filter(f => f.acessa_sistema_terminal && f.ativo)
 
   ambientes.value = respAmbientes.data?.data ?? respAmbientes.data ?? []
   menus.value = respMenus.data?.data ?? respMenus.data ?? []
@@ -1072,6 +1325,8 @@ const resetFormData = () => {
   formData.modo_ticket = 'agrupado'
   formData.observacao = ''
   formData.senha_terminal = ''
+  formData.valor_couvert_padrao = 0
+  formData.percentual_taxa_servico_padrao = 10
 }
 
 const editarTotem = item => {
@@ -1087,6 +1342,8 @@ const editarTotem = item => {
   formData.modo_ticket = item.modo_ticket
   formData.observacao = item.observacao || ''
   formData.senha_terminal = ''
+  formData.valor_couvert_padrao = Number(item.valor_couvert_padrao) || 0
+  formData.percentual_taxa_servico_padrao = Number(item.percentual_taxa_servico_padrao) || 0
 
   formularioAberto.value = true
   formRef.value?.resetValidation()
@@ -1107,6 +1364,8 @@ const salvarTotem = async () => {
       emite_cupom_fiscal: formData.emite_cupom_fiscal,
       emite_ticket: formData.emite_ticket,
       modo_ticket: formData.modo_ticket,
+      valor_couvert_padrao: formData.valor_couvert_padrao || 0,
+      percentual_taxa_servico_padrao: formData.percentual_taxa_servico_padrao || 0,
     }
 
     if (formData.senha_terminal) {
@@ -1173,6 +1432,8 @@ const abrirConfiguracaoTotem = async item => {
   resetAmbienteForm()
   resetMenuForm()
   resetProdutoForm()
+  resetMesaForm()
+  resetFuncionarioVincularForm()
   await carregarConfigTerminal(item.id)
 }
 
@@ -1182,6 +1443,8 @@ const fecharConfiguracaoTotem = () => {
   resetAmbienteForm()
   resetMenuForm()
   resetProdutoForm()
+  resetMesaForm()
+  resetFuncionarioVincularForm()
 }
 
 const resetAmbienteForm = () => {
@@ -1390,6 +1653,100 @@ const sincronizarProdutosTerminal = async () => {
   if (!terminalConfigurandoId.value) return
   await carregarConfigTerminal(terminalConfigurandoId.value)
   mostrarMensagem('Catálogo atualizado.', 'success')
+}
+
+const resetMesaForm = () => {
+  mesaForm.numero = ''
+  mesaForm.nome = ''
+  mesaForm.capacidade = 4
+  mesaForm.ambiente_id = null
+}
+
+const salvarMesa = async () => {
+  if (!terminalConfigurandoId.value) {
+    mostrarMensagem('Selecione um terminal para configurar.', 'error')
+    return
+  }
+
+  if (!mesaForm.numero) {
+    mostrarMensagem('Informe o número da mesa.', 'error')
+    return
+  }
+
+  try {
+    await api.post(
+      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/mesas`,
+      {
+        numero: mesaForm.numero,
+        nome: mesaForm.nome || null,
+        capacidade: mesaForm.capacidade || 1,
+        ambiente_id: mesaForm.ambiente_id
+      },
+      { headers: headers_auth() }
+    )
+    resetMesaForm()
+    await carregarConfigTerminal(terminalConfigurandoId.value)
+    mostrarMensagem('Mesa cadastrada.', 'success')
+  } catch (error) {
+    const msg = error.response?.data?.erro || 'Erro ao salvar mesa.'
+    mostrarMensagem(msg, 'error')
+  }
+}
+
+const removerMesa = async mesa => {
+  try {
+    await api.delete(`/api/v1/admin/terminais-venda-mesas/${mesa.id}`, { headers: headers_auth() })
+    await carregarConfigTerminal(terminalConfigurandoId.value)
+    mostrarMensagem('Mesa removida.', 'success')
+  } catch (error) {
+    const msg = error.response?.data?.erro || 'Erro ao remover mesa. Verifique se ela não está em uso.'
+    mostrarMensagem(msg, 'error')
+  }
+}
+
+const resetFuncionarioVincularForm = () => {
+  funcionarioVincularForm.funcionario_id = null
+  funcionarioVincularForm.papel = ''
+}
+
+const vincularFuncionario = async () => {
+  if (!terminalConfigurandoId.value) {
+    mostrarMensagem('Selecione um terminal para configurar.', 'error')
+    return
+  }
+
+  if (!funcionarioVincularForm.funcionario_id) {
+    mostrarMensagem('Selecione um funcionário para vincular.', 'error')
+    return
+  }
+
+  try {
+    await api.post(
+      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/funcionarios`,
+      {
+        funcionario_id: funcionarioVincularForm.funcionario_id,
+        papel: funcionarioVincularForm.papel || null
+      },
+      { headers: headers_auth() }
+    )
+    resetFuncionarioVincularForm()
+    await carregarConfigTerminal(terminalConfigurandoId.value)
+    mostrarMensagem('Funcionário vinculado ao terminal.', 'success')
+  } catch (error) {
+    const msg = error.response?.data?.erro || 'Erro ao vincular funcionário.'
+    mostrarMensagem(msg, 'error')
+  }
+}
+
+const removerVinculoFuncionario = async vinculo => {
+  try {
+    await api.delete(`/api/v1/admin/terminais-venda-funcionarios/${vinculo.id}`, { headers: headers_auth() })
+    await carregarConfigTerminal(terminalConfigurandoId.value)
+    mostrarMensagem('Funcionário desvinculado do terminal.', 'success')
+  } catch (error) {
+    const msg = error.response?.data?.erro || 'Erro ao desvincular funcionário.'
+    mostrarMensagem(msg, 'error')
+  }
 }
 
 const nomeAmbiente = ambienteId => {

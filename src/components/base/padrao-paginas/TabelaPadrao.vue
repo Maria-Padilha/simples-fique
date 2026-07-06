@@ -76,7 +76,7 @@
                 v-if="showDeleteAction"
                 :icon="deleteIcon"
                 size="small"
-                color="error"
+                :color="deleteColor"
                 variant="text"
                 :title="deleteTooltip"
                 @click="handleDeleteItem(item)"
@@ -126,11 +126,11 @@
             Cancelar
           </v-btn>
           <v-btn
-            color="error"
+            :color="deleteColor"
             :loading="loading"
             @click="confirmDelete"
           >
-            Excluir
+            {{ deleteConfirmText }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -246,11 +246,19 @@ const props = defineProps({
     type: String,
     default: 'mdi-delete'
   },
+  deleteColor: {
+    type: String,
+    default: 'error'
+  },
   deleteTooltip: {
     type: String,
     default: 'Excluir'
   },
   deleteTitle: {
+    type: String,
+    default: 'Excluir'
+  },
+  deleteConfirmText: {
     type: String,
     default: 'Excluir'
   },

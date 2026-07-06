@@ -97,6 +97,16 @@
             <template v-slot:[`item.consolidar`]="{ item }">
               {{ item.consolidar === 'S' ? 'Sim' : 'Não' }}
             </template>
+
+            <template v-slot:[`item.ativo`]="{ item }">
+              <v-chip
+                  :color="item.ativo === 'S' ? 'success' : 'error'"
+                  size="x-small"
+                  variant="tonal"
+              >
+                {{ item.ativo === 'S' ? 'Ativo' : 'Inativo' }}
+              </v-chip>
+            </template>
           </TabelaPadrao>
         </v-card-text>
       </v-card>
@@ -234,6 +244,7 @@ const headers = [
   { title: 'Nome', key: 'nome', sortable: true },
   { title: 'E-mail', key: 'email', sortable: true },
   { title: 'Consolidar', key: 'consolidar', sortable: false },
+  { title: 'Ativo', key: 'ativo', align: 'center', width: 90, sortable: true },
   { title: 'Ações', key: 'actions', sortable: false }
 ]
 

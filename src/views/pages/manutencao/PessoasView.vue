@@ -556,8 +556,15 @@
                     :formulario-aberto="formularioAberto"
                     no-data-text="Nenhuma pessoa encontrada"
                     no-data-icon="mdi-account-off"
+                    delete-icon="mdi-account-off"
+                    delete-color="warning"
+                    delete-tooltip="Inativar"
+                    delete-dialog-title="Inativar Pessoa"
+                    delete-dialog-text="Deseja realmente inativar esta pessoa?"
+                    delete-dialog-message="O cadastro ficará inativo e não aparecerá em listagens ativas."
+                    delete-confirm-text="Inativar"
                     @edit-item="editarPessoa"
-                    @confirm-delete="confirmarExclusao"
+                    @confirm-delete="confirmarInativacao"
                 >
                   <template v-slot:[`item.tipo_pessoa`]="{ item }">
                     <v-chip
@@ -566,6 +573,16 @@
                         variant="tonal"
                     >
                       {{ item.tipo_pessoa === 'F' ? 'Física' : 'Jurídica' }}
+                    </v-chip>
+                  </template>
+
+                  <template v-slot:[`item.ativo`]="{ item }">
+                    <v-chip
+                        :color="item.ativo === 'S' ? 'success' : 'error'"
+                        size="x-small"
+                        variant="tonal"
+                    >
+                      {{ item.ativo === 'S' ? 'Ativo' : 'Inativo' }}
                     </v-chip>
                   </template>
 
@@ -741,6 +758,7 @@ const headers = [
   { title: 'CPF/CNPJ', key: 'cpf_cnpj', align: 'start', width: 160 },
   { title: 'Telefone', key: 'telefone', align: 'start', width: 140 },
   { title: 'Classificação', key: '_classificacao', align: 'start', width: 220, sortable: false },
+  { title: 'Ativo', key: 'ativo', align: 'center', width: 90, sortable: true },
   { title: 'Ações', key: 'actions', align: 'center', sortable: false, width: 90 },
 ]
 
@@ -832,7 +850,7 @@ async function editarPessoa(p) {
   form.enderecos = Array.isArray(enderecoData) ? enderecoData.map(e => ({ ...e, _buscandoCep: false })) : []
 }
 
-async function confirmarExclusao(p) {
+async function confirmarInativacao(p) {
   if (!podeExcluir(ID_PROGRAMA)) {
     tipoAcessoNegado.value = 'excluir'
     modalAcessoNegado.value = true
