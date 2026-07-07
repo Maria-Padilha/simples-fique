@@ -513,18 +513,26 @@
     <!-- Diálogo de Produtos Temporários -->
     <!-- REMOVIDO - Tabela agora exibida na tela principal -->
 
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
-import apiPhp from '@/services/apiPhp'
+import { useEstoqueStore } from '@/stores/APIs/estoque'
+import { useProdutosStore } from '@/stores/APIs/produtos'
 import api from '@/services/api' // @blocked: mantido para /medida (sem endpoint PHP)
 import apiLocal from '@/services/apiLocal'
-import { toast } from 'vue3-toastify'
 
 const themeStore = useThemeStore()
+const estoqueStore = useEstoqueStore()
+const produtosStore = useProdutosStore()
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+const mostrarMensagem = (msg, color = 'success') => {
+  snackbar.message = msg; snackbar.color = color; snackbar.show = true
+}
 const gtinInput = ref(null)
 const loadingBusca = ref(false)
 const loadingImportacao = ref(false)
@@ -685,12 +693,12 @@ const carregarDadosSelects = async () => {
     const token = localStorage.getItem('token')
 
     // Carregar Grupos
-    const resGrupos = await apiPhp.get('/estoque/grupos')
-    grupos.value = Array.isArray(resGrupos.data) ? resGrupos.data : []
+    await estoqueStore.buscarTodos()
+    grupos.value = estoqueStore.grupos
 
     // Carregar Marcas
-    const resMarcas = await apiPhp.get('/estoque/marcas')
-    marcas.value = Array.isArray(resMarcas.data) ? resMarcas.data : []
+    await produtosStore.buscarMarcas()
+    marcas.value = produtosStore.marcas
 
     // Carregar Medidas — @blocked: sem endpoint PHP
     const resMedidas = await api.get('/medida', {
@@ -699,14 +707,14 @@ const carregarDadosSelects = async () => {
     medidas.value = resMedidas.data.data || []
 
     // Carregar Localizações
-    const resLocalizacoes = await apiPhp.get('/estoque/localizacoes')
-    localizacoes.value = Array.isArray(resLocalizacoes.data) ? resLocalizacoes.data : []
+    await produtosStore.buscarLocalizacoes()
+    localizacoes.value = produtosStore.localizacoes
 
     // Carregar Classes
-    const resClasses = await apiPhp.get('/estoque/classes')
-    classes.value = Array.isArray(resClasses.data) ? resClasses.data : []
+    await estoqueStore.buscarTodasClasses()
+    classes.value = estoqueStore.classes
   } catch (error) {
-    toast.error('Erro ao carregar opções de filtro')
+    mostrarMensagem('Erro ao carregar opções de filtro', 'error')
   } finally {
     loadingSelects.value = false
   }
@@ -719,8 +727,8 @@ const carregarSubgrupos = async (idGrupo) => {
     return
   }
   try {
-    const response = await apiPhp.get(`/estoque/subgrupos/${idGrupo}`)
-    subgrupos.value = Array.isArray(response.data) ? response.data : []
+    await estoqueStore.buscarTodosSubgrupos(idGrupo)
+    subgrupos.value = estoqueStore.subgrupos
   } catch (error) {
     subgrupos.value = []
   }
@@ -728,7 +736,7 @@ const carregarSubgrupos = async (idGrupo) => {
 
 const buscarPorGtin = async () => {
   if (!filtros.gtin || filtros.gtin.trim() === '') {
-    toast.warning('Escaneie um código de barras válido')
+    mostrarMensagem('Escaneie um código de barras válido', 'warning')
     return
   }
 
@@ -767,19 +775,19 @@ const buscarPorGtin = async () => {
       totalProdutos.value = response.data.records || produtos.value.length
       modalAberto.value = true
       await carregarDadosSelects()
-      toast.success(`${response.data.data.length} produto(s) encontrado(s)`)
+      mostrarMensagem(`${response.data.data.length} produto(s) encontrado(s)`, 'success')
 
       // Limpar o campo de GTIN após a busca bem-sucedida
       filtros.gtin = ''
     } else {
       produtos.value = []
       totalProdutos.value = 0
-      toast.warning('Nenhum produto encontrado com este código de barras')
+      mostrarMensagem('Nenhum produto encontrado com este código de barras', 'warning')
       // Limpar campo de GTIN para nova entrada
       filtros.gtin = ''
     }
   } catch (error) {
-    toast.error('Erro ao buscar produto. Tente novamente.')
+    mostrarMensagem('Erro ao buscar produto. Tente novamente.', 'error')
     produtos.value = []
     totalProdutos.value = 0
   } finally {
@@ -837,7 +845,7 @@ const carregarMaisProdutos = async () => {
       totalProdutos.value = response.data.records || totalProdutos.value
     }
   } catch (error) {
-    toast.error('Erro ao carregar mais produtos')
+    mostrarMensagem('Erro ao carregar mais produtos', 'error')
   }
 }
 
@@ -860,7 +868,7 @@ const limparSelecaoModal = () => {
 
 const importarProdutos = async () => {
   if (produtosSelecionados.value.length === 0) {
-    toast.warning('Selecione ao menos um produto para importar')
+    mostrarMensagem('Selecione ao menos um produto para importar', 'warning')
     return
   }
 
@@ -925,7 +933,7 @@ const importarProdutos = async () => {
 
     resultadoImportacao.value = resultado
     resultadoVisivel.value = true
-    toast.success(`${resultado.inseridos} produtos importados com sucesso`)
+    mostrarMensagem(`${resultado.inseridos} produtos importados com sucesso`, 'success')
     modalAberto.value = false
   } catch (error) {
     resultadoImportacao.value = {
@@ -938,7 +946,7 @@ const importarProdutos = async () => {
       }]
     }
     resultadoVisivel.value = true
-    toast.error(`Erro ao importar produtos: ${error.response?.data?.mensagem || error.message || 'Erro desconhecido'}`)
+    mostrarMensagem(`Erro ao importar produtos: ${error.response?.data?.mensagem || error.message || 'Erro desconhecido'}`, 'error')
   } finally {
     loadingImportacao.value = false
   }
@@ -977,7 +985,7 @@ const verificarProdutosTemporarios = async () => {
 
 const continuarImportacao = async (idEspecifico) => {
   if (produtosTempEncontrados.value.length === 0) {
-    toast.warning('Nenhum produto temporário encontrado')
+    mostrarMensagem('Nenhum produto temporário encontrado', 'warning')
     return
   }
 
@@ -1016,12 +1024,12 @@ const continuarImportacao = async (idEspecifico) => {
       // Abrir modal
       modalAberto.value = true
 
-      toast.success(`${produtos.value.length} produto(s) carregado(s) para continuar a importação`)
+      mostrarMensagem(`${produtos.value.length} produto(s) carregado(s) para continuar a importação`, 'success')
     } else {
-      toast.error('Nenhum produto encontrado para esta importação')
+      mostrarMensagem('Nenhum produto encontrado para esta importação', 'error')
     }
   } catch (error) {
-    toast.error('Erro ao carregar produtos temporários: ' + (error.response?.data?.mensagem || error.message))
+    mostrarMensagem('Erro ao carregar produtos temporários: ' + (error.response?.data?.mensagem || error.message), 'error')
   }
 }
 
@@ -1035,9 +1043,9 @@ const descartarProdutosTemp = async () => {
       }
     })
     produtosTempEncontrados.value = []
-    toast.success('Produtos temporários descartados. Você pode iniciar uma nova importação.')
+    mostrarMensagem('Produtos temporários descartados. Você pode iniciar uma nova importação.', 'success')
   } catch (error) {
-    toast.warning('Não foi possível descartar os produtos temporários, mas você pode continuar com uma nova importação.')
+    mostrarMensagem('Não foi possível descartar os produtos temporários, mas você pode continuar com uma nova importação.', 'warning')
   }
 }
 </script>

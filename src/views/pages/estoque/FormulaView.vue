@@ -79,7 +79,7 @@
 
                 <!-- 🔹 SIDEBAR DE VARIÁVEIS -->
                 <v-col cols="12" md="4">
-                  <v-card elevation="2" class="pa-4 h-100">
+                  <v-card elevation="0" class="pa-4 h-100">
                     <p class="font-weight-medium mb-3">Variáveis</p>
 
                     <v-divider class="mb-3"/>

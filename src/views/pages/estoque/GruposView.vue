@@ -376,6 +376,10 @@
           }}
         </template>
       </excluir-modal>
+
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000" location="bottom right">
+        {{ snackbar.message }}
+      </v-snackbar>
     </template>
   </top-all-pages>
 </template>
@@ -386,12 +390,18 @@ import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 import {useThemeStore} from "@/stores/config-temas/theme";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
 import {ref, computed, watchEffect, reactive} from "vue";
-import {toast} from "vue3-toastify";
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import ExibirImagemModal from "@/components/base/modais/ExibirImagemModal.vue";
 
 const themeStore = useThemeStore();
 const estoqueStore = useEstoqueStore();
+
+const snackbar = reactive({ show: false, message: '', color: 'success' });
+const mostrarMensagem = (message, color = 'success') => {
+  snackbar.message = message;
+  snackbar.color = color;
+  snackbar.show = true;
+};
 
 const grupos = computed(() => estoqueStore.grupos);
 const subgrupos = computed(() => estoqueStore.subgrupos);
@@ -472,7 +482,7 @@ function converterBase64(event) {
   if (!arquivo) return
 
   if (arquivo.size > 150 * 1024) {
-    toast.error('O arquivo excede o tamanho máximo de 150KB.');
+    mostrarMensagem('O arquivo excede o tamanho máximo de 150KB.', 'error');
     erro.value = true;
     validacaoFile.push(() => false || "O arquivo excede o tamanho máximo de 30KB.");
     return
@@ -540,7 +550,7 @@ const salvarGrupo = () => {
   form.foto = base64.value;
 
   if (erro.value) {
-    toast.error('Corrija os erros antes de salvar.');
+    mostrarMensagem('Corrija os erros antes de salvar.', 'error');
     return;
   }
 
