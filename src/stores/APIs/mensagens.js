@@ -26,8 +26,6 @@ export const useMensagensStore = defineStore('mensagens', () => {
     try {
       const response = await apiPhp.post('/manutencao/mensagens', payload)
       return response.data
-    } catch (error) {
-      throw error
     } finally {
       loading.value = false
     }
@@ -39,8 +37,6 @@ export const useMensagensStore = defineStore('mensagens', () => {
     try {
       const response = await apiPhp.put(`/manutencao/mensagens/${idEmpresa}/${id}`, payload)
       return response.data
-    } catch (error) {
-      throw error
     } finally {
       loading.value = false
     }
@@ -51,8 +47,6 @@ export const useMensagensStore = defineStore('mensagens', () => {
     loading.value = true
     try {
       await apiPhp.delete(`/manutencao/mensagens/${idEmpresa}/${id}`)
-    } catch (error) {
-      throw error
     } finally {
       loading.value = false
     }
