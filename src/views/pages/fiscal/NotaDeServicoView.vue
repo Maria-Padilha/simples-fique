@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
+import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue';
 
 const themeStore = useThemeStore()
 
@@ -13,6 +14,13 @@ const notaFiscal = ref(null)
 const notasImportadas = ref([])
 const fileInputRef = ref(null)
 const notaParaImpressao = ref(null)
+
+const snackbar = reactive({ show: false, message: '', color: 'info' })
+const mostrarMensagem = (msg, color = 'info') => {
+  snackbar.message = msg
+  snackbar.color = color
+  snackbar.show = true
+}
 
 // Headers da tabela de notas
 const headersNotas = [
@@ -626,7 +634,7 @@ const imprimirNota = () => {
 
   const printWindow = window.open('', '_blank')
   if (!printWindow) {
-    alert('Por favor, permita pop-ups para imprimir.')
+    mostrarMensagem('Por favor, permita pop-ups para imprimir.', 'warning')
     return
   }
 
@@ -1357,7 +1365,7 @@ const imprimirNota = () => {
                         <td>Base de Cálculo</td>
                         <td class="text-right">{{ formatarMoeda(notaFiscal.valores?.baseCalculo) }}</td>
                       </tr>
-                      <tr class="font-weight-bold" style="background-color: rgba(76, 175, 80, 0.1);">
+                      <tr class="font-weight-bold row-success">
                         <td>Valor Líquido</td>
                         <td class="text-right text-success">{{ formatarMoeda(notaFiscal.valores?.valorLiquido) }}</td>
                       </tr>
@@ -1464,7 +1472,7 @@ const imprimirNota = () => {
                     </div>
                   </v-col>
                   <v-col cols="12" md="4">
-                    <div class="text-center pa-3 rounded-lg" style="background-color: rgba(76, 175, 80, 0.15);">
+                    <div class="text-center pa-3 rounded-lg bg-success-tonal">
                       <div class="text-body-2 opacity-70">Valor Líquido</div>
                       <div class="text-h4 text-success font-weight-bold">{{ formatarMoeda(notaFiscal.valores?.valorLiquido) }}</div>
                     </div>
@@ -1483,34 +1491,34 @@ const imprimirNota = () => {
           Notas Importadas na Sessão
         </v-card-title>
         <v-card-text class="pa-4 pt-0">
-          <v-data-table
+          <TabelaPadrao
+              :formulario-aberto="false"
               :headers="headersNotas"
               :items="notasImportadas"
-              density="compact"
-              class="elevation-1 background-card"
+              :loading="false"
+              :search="''"
+              item-key="id"
+              no-data-icon="mdi-file-document-outline"
+              no-data-text="Nenhuma nota importada nesta sessão."
+              :show-edit-action="false"
+              :show-delete-action="false"
+              :show-custom-action="true"
+              custom-action-icon="mdi-eye"
+              custom-action-title="Visualizar"
+              @custom-action="visualizarNota"
           >
-            <!-- eslint-disable-next-line vue/valid-v-slot -->
             <template #[`item.dataEmissao`]="{ item }">
               {{ formatarData(item.dataEmissao) }}
             </template>
-            <!-- eslint-disable-next-line vue/valid-v-slot -->
             <template #[`item.valores.valorLiquido`]="{ item }">
               {{ formatarMoeda(item.valores?.valorLiquido) }}
             </template>
-            <!-- eslint-disable-next-line vue/valid-v-slot -->
-            <template #[`item.actions`]="{ item }">
-              <v-btn
-                  icon="mdi-eye"
-                  size="small"
-                  color="primary"
-                  variant="text"
-                  title="Visualizar"
-                  @click="visualizarNota(item)"
-              ></v-btn>
-            </template>
-          </v-data-table>
+          </TabelaPadrao>
         </v-card-text>
       </v-card>
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000">
+        {{ snackbar.message }}
+      </v-snackbar>
     </template>
   </top-all-pages>
 </template>
@@ -1558,6 +1566,14 @@ const imprimirNota = () => {
 
 .gap-2 {
   gap: 8px;
+}
+
+.row-success {
+  background-color: rgba(var(--v-theme-success), 0.1);
+}
+
+.bg-success-tonal {
+  background-color: rgba(var(--v-theme-success), 0.12);
 }
 
 @media print {

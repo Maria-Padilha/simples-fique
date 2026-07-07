@@ -31,7 +31,7 @@
           <!-- Formulário Expansível -->
           <v-expand-transition>
             <div v-if="formularioAberto">
-              <v-card class="background-card mb-7" elevation="2">
+              <v-card class="background-card mb-7" elevation="0">
                 <v-card-title class="text-h6 pa-4">
                   <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2"></v-icon>
                   {{ editando ? 'Editar Plano de Conta' : 'Novo Plano de Conta' }}
@@ -49,9 +49,10 @@
                             maxlength="20"
                             variant="outlined"
                             density="compact"
-                            class="custom-text-field"
+                            class="custom-text-field required-left-border"
                             prepend-inner-icon="mdi-barcode"
                             hint="Código único do plano de conta"
+                            persistent-hint
                         ></v-text-field>
                       </v-col>
 
@@ -64,7 +65,7 @@
                             maxlength="60"
                             variant="outlined"
                             density="compact"
-                            class="custom-text-field"
+                            class="custom-text-field required-left-border"
                             prepend-inner-icon="mdi-text"
                         ></v-text-field>
                       </v-col>
@@ -106,6 +107,7 @@
                             class="custom-text-field"
                             prepend-inner-icon="mdi-format-list-numbered"
                             hint="Nível hierárquico do plano de conta"
+                            persistent-hint
                         ></v-text-field>
                       </v-col>
 
