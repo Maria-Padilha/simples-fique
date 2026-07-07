@@ -257,7 +257,7 @@
                                   <v-text-field
                                       label="Descrição do Histórico"
                                       variant="outlined"
-                                      density="comfortable"
+                                      density="compact"
                                       hide-details="auto"
                                       v-model="descricaoHistorico"
                                   />
@@ -278,7 +278,7 @@
                               step="0.01"
                               variant="outlined"
                               density="compact"
-                              class=""
+                              class="required-left-border"
                               prepend-inner-icon="mdi-currency-usd"
                               prefix="R$"
                               :hint="formData.vlroriginal ? formatarMoeda(formData.vlroriginal) : ''"
@@ -375,7 +375,7 @@
                         <v-col cols="12" v-if="formData.qtdparcelas > 1 && !parcelasCalculadas">
                           <v-card variant="outlined" class="mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-calculator-variant" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-calculator-variant" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Configurações das Parcelas
                             </v-card-title>
 
@@ -426,7 +426,7 @@
                                 <!-- Botão Calcular -->
                                 <v-col cols="12" class="d-flex justify-center">
                                   <v-btn
-                                      color="orange"
+                                      color="var(--text-color-laranja)"
                                       variant="elevated"
                                       @click="calcularParcelas"
                                       :disabled="!formData.vlroriginal || !formData.qtdparcelas"
@@ -450,11 +450,11 @@
                             <div v-if="parcelas.length > 0 || (formData.qtdparcelas === 1 && formData.vlroriginal)">
                               <v-divider class="mb-4"></v-divider>
                               <div class="d-flex align-center mb-4">
-                                <v-icon icon="mdi-format-list-numbered" class="mr-3" color="orange"></v-icon>
+                                <v-icon icon="mdi-format-list-numbered" class="mr-3" color="var(--text-color-laranja)"></v-icon>
                                 <h4 class="text-h6 mb-0">Detalhamento das Parcelas</h4>
                                 <v-spacer></v-spacer>
                                 <v-chip
-                                    :color="(parcelas.length === 1 || formData.qtdparcelas === 1) ? 'success' : 'orange'"
+                                    :color="(parcelas.length === 1 || formData.qtdparcelas === 1) ? 'success' : 'var(--text-color-laranja)'"
                                     variant="elevated"
                                     size="small"
                                 >
@@ -495,7 +495,7 @@
                                     <template v-slot:[`item.nrparcela`]="{ item }">
                                       <div class="d-flex align-center">
                                         <v-avatar
-                                            :color="item.nrparcela === 1 && valorEntrada > 0 ? 'orange' : 'orange lighten-2'"
+                                            color="var(--text-color-laranja)"
                                             size="28"
                                             class="mr-2"
                                         >
@@ -578,7 +578,7 @@
                                       <v-card
                                           variant="tonal"
                                           class="pa-3"
-                                          color="orange"
+                                          color="var(--text-color-laranja)"
                                       >
                                         <div class="d-flex align-center justify-space-between">
                                           <div class="d-flex align-center">
@@ -586,7 +586,7 @@
                                                 icon="mdi-chart-pie"
                                                 class="mr-2"
                                                 size="small"
-                                                color="orange"
+                                                color="var(--text-color-laranja)"
                                             ></v-icon>
                                             <h5 class="text-subtitle-1 mb-0 font-weight-medium">
                                               Resumo das Parcelas
@@ -614,7 +614,7 @@
                         <v-col cols="12">
                           <v-card variant="outlined" class="mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-file-image" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-file-image" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Anexar um Documento
                             </v-card-title>
 
@@ -744,7 +744,7 @@
               <!-- Formatação para Valor da Parcela -->
               <template v-slot:[`item.vlrparcela`]="{ item }">
                 <v-chip
-                    :color="parseFloat(item.vlrparcela) > 1000 ? 'orange' : 'primary'"
+                    :color="parseFloat(item.vlrparcela) > 1000 ? 'var(--text-color-laranja)' : 'primary'"
                     variant="tonal"
                     size="small"
                 >
@@ -902,7 +902,7 @@
                   item-value="_carteira_key"
                   label="Carteira de Cobrança *"
                   variant="outlined"
-                  density="comfortable"
+                  density="compact"
                   class="custom-text-field mt-2"
                   prepend-inner-icon="mdi-wallet"
                   :loading="loadingCarteiras"
