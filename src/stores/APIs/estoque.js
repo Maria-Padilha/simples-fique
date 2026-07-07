@@ -61,7 +61,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 });
 
                 this.grupos = response.data?.data ?? response.data ?? [];
-                this.recordsGrupo = response.data?.total ?? 0;
+                this.recordsGrupo = response.pagination?.total ?? response.data?.total ?? 0;
                 this.errorMessage = '';
 
             } catch (error) {
@@ -218,7 +218,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 });
 
                 this.classes = response.data?.data ?? response.data ?? [];
-                this.recordsClasse = response.data?.total ?? 0;
+                this.recordsClasse = response.pagination?.total ?? response.data?.total ?? 0;
                 this.errorMessage = '';
 
             } catch (error) {
@@ -293,12 +293,12 @@ export const useEstoqueStore = defineStore('estoque', {
             this.loading = true;
 
             try {
-                const res = await apiPhp.get(`/manutencao/ncms`, {
+                const res = await apiPhp.get(`/estoque/ncms`, {
                     params: { find, per_page: limit }
                 });
 
                 this.ncms = res.data?.data ?? res.data;
-                this.recordsNcm = res.data?.total ?? 0;
+                this.recordsNcm = res.pagination?.total ?? res.data?.total ?? 0;
                 this.errorMessage = '';
 
             } catch (error) {
@@ -454,7 +454,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 });
 
                 this.almoxarifados = response.data?.data ?? response.data ?? [];
-                this.recordsAlmoxarifados = response.data?.total ?? 0;
+                this.recordsAlmoxarifados = response.pagination?.total ?? response.data?.total ?? 0;
                 this.errorMessage = '';
 
             } catch (error) {
@@ -561,7 +561,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 });
 
                 this.cfops = res.data?.data ?? res.data;
-                this.recordsCfop = res.data?.total ?? 0;
+                this.recordsCfop = res.pagination?.total ?? res.data?.total ?? 0;
                 this.errorMessage = '';
 
             } catch (error) {

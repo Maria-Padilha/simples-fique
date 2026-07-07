@@ -57,7 +57,7 @@
 <script setup>
 import BuscaPadraoMenu from "@/components/base/menu/BuscaPadraoMenu.vue";
 import CadastrarModal from "@/components/base/modais/CadastrarModal.vue";
-import {ref, computed, defineEmits, watch, watchEffect} from "vue";
+import {ref, computed, defineEmits, watch, onMounted} from "vue";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
 import { toast } from "vue3-toastify";
 
@@ -75,7 +75,7 @@ const almoxarifados = computed(() => almoxStore.almoxarifados);
 // Obtém ID da empresa do localStorage
 const idEmpresa = JSON.parse(localStorage.getItem('empresaSelecionada'))?.id;
 
-watchEffect(() => {
+onMounted(() => {
   if (almoxarifados.value.length === 0 && idEmpresa) {
     almoxStore.buscarAlmoxarifados(idEmpresa, "", 15);
   }

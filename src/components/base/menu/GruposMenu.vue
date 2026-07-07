@@ -48,7 +48,7 @@
 
 <script setup>
 import BuscaPadraoMenu from "@/components/base/menu/BuscaPadraoMenu.vue";
-import {ref, computed, defineEmits, watch, watchEffect} from "vue";
+import {ref, computed, defineEmits, watch, onMounted} from "vue";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
 import RedirectModal from "@/components/base/modais/RedirectModal.vue";
 import {useRouter} from "vue-router";
@@ -63,7 +63,7 @@ const termoPesquisa = ref("");
 const estoqueStore = useEstoqueStore();
 const grupos = computed(() => estoqueStore.grupos);
 
-watchEffect(() => {
+onMounted(() => {
   if (grupos.value.length === 0) {
     estoqueStore.buscarTodos("", 15);
   }

@@ -609,6 +609,7 @@ import MarcasMenu from "@/components/base/menu/MarcasMenu.vue";
 import GarantiaMenu from "@/components/base/menu/GarantiaMenu.vue";
 import MedidasMenu from "@/components/base/menu/MedidasMenu.vue";
 import CadastrarModal from "@/components/base/modais/CadastrarModal.vue";
+import { toast } from "vue3-toastify";
 
 const produtosStore = useProdutosStore();
 const estoqueStore = useEstoqueStore();
@@ -823,6 +824,12 @@ const salvarFormulario = async () => {
     "em_promocao": forms.em_promocao,
     "observacao": forms.observacao,
   });
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
   cancelarFormulario();
   formularioAberto.value = false;
 }

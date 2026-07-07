@@ -2,6 +2,33 @@ import {defineStore} from "pinia"
 import apiPhp from "@/services/apiPhp";
 import {useApiStore} from "@/stores/APIs/api";
 
+const CAMPOS_PRODUTO = {
+    descproduto: 'Descrição do Produto',
+    aplicacao: 'Aplicação',
+    tipo: 'Tipo',
+    codigo_gtin: 'Código GTIN',
+    codigo_sku: 'Código SKU',
+    codigo_fab: 'Código Fabricação',
+    codigo_ref: 'Código Referência',
+    id_grupo: 'Grupo',
+    id_subgrupo: 'Subgrupo',
+    id_marca: 'Marca',
+    id_medida: 'Medida',
+    id_classe: 'Classe',
+    id_garantia: 'Garantia',
+    id_ncm: 'NCM',
+};
+
+// Traduz "Campo obrigatório não informado: "id_ncm"..." para o nome amigável do campo no formulário.
+function traduzErroCampoObrigatorio(mensagem) {
+    const match = String(mensagem || '').match(/campo obrigat[óo]rio[^:]*:\s*"?([a-z_]+)"?/i);
+    if (!match) return mensagem;
+
+    const campo = match[1];
+    const label = CAMPOS_PRODUTO[campo] || campo;
+    return `Campo obrigatório não preenchido: ${label}`;
+}
+
 export const useProdutosStore = defineStore('produtos', {
     state: () => ({
         loading: false,
@@ -13,12 +40,14 @@ export const useProdutosStore = defineStore('produtos', {
         produto: null,
 
         marcas: [],
+        marca: null,
         recordsMarcas: 0,
 
         medidas: [],
         recordsMedidas: 0,
 
         garantias: [],
+        garantia: null,
         recordsGarantias: 0,
         tiposGarantias: [
             {title: 'Horas', value: 1},
@@ -97,7 +126,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -119,7 +148,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -137,7 +166,8 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/produtos', produtoData);
                 await this.buscarProdutos();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                const mensagem = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = traduzErroCampoObrigatorio(mensagem);
             } finally {
                 this.loading = false;
             }
@@ -157,7 +187,8 @@ export const useProdutosStore = defineStore('produtos', {
                 await this.buscarProdutoPorId(id);
                 await this.buscarProdutos();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                const mensagem = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = traduzErroCampoObrigatorio(mensagem);
             } finally {
                 this.loading = false;
             }
@@ -173,9 +204,10 @@ export const useProdutosStore = defineStore('produtos', {
             this.loading = true;
             try {
                 await apiPhp.delete(`/estoque/produtos/${id}`);
+                await this.buscarProdutoPorId(id);
                 await this.buscarProdutos();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -195,11 +227,33 @@ export const useProdutosStore = defineStore('produtos', {
                 });
 
                 this.marcas = response.data?.data ?? response.data ?? [];
-                this.recordsMarcas = response.data?.total ?? 0;
+                this.recordsMarcas = response.pagination?.total ?? response.data?.total ?? 0;
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR MARCA POR ID
+         * @param {number} id - ID da marca a ser buscada.
+         * @return {Promise<void>}
+         */
+
+        async buscarMarcaPorId(id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/marcas/${id}`);
+
+                this.marca = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -216,7 +270,44 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/marcas', marcaData);
                 await this.buscarMarcas();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * ATUALIZAR MARCA
+         * @param {number} id - ID da marca a ser atualizada.
+         * @param {object} marcaData - Dados da marca a serem atualizados.
+         * @return {Promise<void>}
+         */
+
+        async atualizarMarca(id, marcaData) {
+            this.loading = true;
+            try {
+                await apiPhp.put(`/estoque/marcas/${id}`, marcaData);
+                await this.buscarMarcas();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * DELETAR MARCA
+         * @param {number} id - ID da marca a ser deletada.
+         * @return {Promise<void>}
+         */
+
+        async deletarMarca(id) {
+            this.loading = true;
+            try {
+                await apiPhp.delete(`/estoque/marcas/${id}`);
+                await this.buscarMarcas();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -241,7 +332,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 console.error('Erro ao buscar medidas:', error);
             } finally {
                 this.loading = false;
@@ -280,11 +371,33 @@ export const useProdutosStore = defineStore('produtos', {
                 });
 
                 this.garantias = response.data?.data ?? response.data ?? [];
-                this.recordsGarantias = response.data?.total ?? 0;
+                this.recordsGarantias = response.pagination?.total ?? response.data?.total ?? 0;
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR GARANTIA POR ID
+         * @param {number} id - ID da garantia a ser buscada.
+         * @return {Promise<void>}
+         */
+
+        async buscarGarantiaPorId(id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/garantias/${id}`);
+
+                this.garantia = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -301,7 +414,44 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/garantias', payload);
                 await this.buscarGarantias();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * ATUALIZAR GARANTIA
+         * @param {number} id - ID da garantia a ser atualizada.
+         * @param {object} payload - Dados da garantia a serem atualizados.
+         * @return {Promise<void>}
+         */
+
+        async atualizarGarantia(id, payload) {
+            this.loading = true;
+            try {
+                await apiPhp.put(`/estoque/garantias/${id}`, payload);
+                await this.buscarGarantias();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * DELETAR GARANTIA
+         * @param {number} id - ID da garantia a ser deletada.
+         * @return {Promise<void>}
+         */
+
+        async deletarGarantia(id) {
+            this.loading = true;
+            try {
+                await apiPhp.delete(`/estoque/garantias/${id}`);
+                await this.buscarGarantias();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -325,7 +475,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -343,7 +493,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/produto-embalagens', { ...embalagemData, id_produto: produtoId });
                 await this.buscarEmbalagens(produtoId);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -363,7 +513,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/produto-embalagens/${id}`, { ...embalagemData, id_produto: produtoId });
                 await this.buscarEmbalagens(produtoId);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -382,7 +532,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.delete(`/estoque/produto-embalagens/${id}`);
                 await this.buscarEmbalagens(produtoId);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -406,7 +556,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -424,7 +574,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/produto-fornecedors', { ...fornecedorData, id_produto: idProduto });
                 await this.buscarFornecedores(idProduto);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -443,7 +593,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.delete(`/estoque/produto-fornecedors/${id}`, { params: { id_produto: idProduto } });
                 await this.buscarFornecedores(idProduto);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -463,7 +613,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/produto-fornecedors/${id}`, { ...fornecedorData, id_produto: idProduto });
                 await this.buscarFornecedores(idProduto);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -487,7 +637,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -505,7 +655,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/produto-similars', { ...similarData, id_produto: idProduto });
                 await this.buscarProdutosSimilares(idProduto);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -524,7 +674,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.delete(`/estoque/produto-similars/${id}`, { params: { id_produto: idProduto } });
                 await this.buscarProdutosSimilares(idProduto);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -544,7 +694,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/produto-similars/${id}`, { ...similarData, id_produto: idProduto });
                 await this.buscarProdutosSimilares(idProduto);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -566,7 +716,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -587,7 +737,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.entradadfeItem = response.data?.data ?? response.data;
                 this.errorMessage = '';
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -605,7 +755,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/entradas', entradadfeData);
                 await this.buscarEntradasDfe(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -623,7 +773,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.delete(`/estoque/entradas/${id}`);
                 await this.buscarEntradasDfe(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -644,7 +794,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await this.buscarEntradaDfePorId(idEmpresa, id);
                 await this.buscarEntradasDfe(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -662,7 +812,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.deventrada = response.data?.data ?? response.data ?? [];
                 this.errorMessage = '';
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -678,7 +828,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/devolucao-compras', data);
                 await this.buscarEntradasDfe(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -694,7 +844,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/devolucao-compras/${id}`, data);
                 await this.buscarDevolucoesEntrada(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -716,7 +866,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -734,7 +884,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/localizacoes', localizacaoData);
                 await this.buscarLocalizacoes(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -753,7 +903,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.delete(`/estoque/localizacoes/${id}`);
                 await this.buscarLocalizacoes(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -773,7 +923,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/localizacoes/${id}`, localizacaoData);
                 await this.buscarLocalizacoes(idEmpresa);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -794,7 +944,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -812,7 +962,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/cors', corData);
                 await this.buscarCores();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -831,7 +981,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/cors/${id}`, corData);
                 await this.buscarCores();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -847,7 +997,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/grades', gradeData);
                 await this.buscarGradeProduto(idEmp);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -859,7 +1009,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.delete(`/estoque/grades/${idProduto}/${idCor}/${idTam}`);
                 await this.buscarGradeProduto(idEmp);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -871,7 +1021,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/grades/${idProduto}/${idCor}/${idTam}`, gradeData);
                 await this.buscarGradeProduto(idEmp);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -887,7 +1037,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 return [];
             } finally {
                 this.loading = false;
@@ -906,7 +1056,7 @@ export const useProdutosStore = defineStore('produtos', {
                 return gradeItem;
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 return null;
             } finally {
                 this.loading = false;
@@ -925,7 +1075,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -937,7 +1087,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.post('/estoque/produto-tributos', tributoData);
                 await this.buscarTributoPorId(idEmpresa, id);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -949,7 +1099,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.put(`/estoque/produto-tributos/${id}`, tributoData);
                 await this.buscarTributoPorId(idEmpresa, id);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -961,7 +1111,7 @@ export const useProdutosStore = defineStore('produtos', {
                 await apiPhp.delete(`/estoque/produto-tributos/${id}`);
                 await this.buscarTributoPorId(idEmpresa, id);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -971,13 +1121,15 @@ export const useProdutosStore = defineStore('produtos', {
             this.loading = true;
 
             try {
-                const response = await apiPhp.get(`/estoque/produto-tributos/${id}`);
+                const response = await apiPhp.get('/estoque/produto-tributos', {
+                    params: { id_produto: id }
+                });
 
-                this.tributos = response.data?.data ?? response.data;
+                this.tributos = response.data?.data ?? response.data ?? [];
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 return null;
             } finally {
                 this.loading = false;
@@ -1046,7 +1198,7 @@ export const useProdutosStore = defineStore('produtos', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 console.error('Erro ao buscar fotos do banco:', error);
                 return null;
             } finally {
@@ -1062,7 +1214,7 @@ export const useProdutosStore = defineStore('produtos', {
 
                 this.errorMessage = '';
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 console.error('Erro ao deletar fotos do banco:', error);
                 return null;
             } finally {

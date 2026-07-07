@@ -3,7 +3,7 @@
     "simplesfique-memoria": {
       "command": "node",
       "args": ["mcp-rag/index.js"],
-      "cwd": "/Users/kaioba/Documents/GitHub/simplesfique-dev"
+      "cwd": "/Users/heitoroliveira/Documents/GitHub/simplesfique-dev"
     }
   }
 }

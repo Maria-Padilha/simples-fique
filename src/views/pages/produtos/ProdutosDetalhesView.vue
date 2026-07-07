@@ -929,6 +929,7 @@ import BotaoExpandTransition from "@/components/base/padrao-paginas/BotaoExpandT
 import FormsExpandTransition from "@/components/base/padrao-paginas/FormsExpandTransition.vue";
 import TabelaPadrao from "@/components/base/padrao-paginas/TabelaPadrao.vue";
 import axios from "axios";
+import { toast } from "vue3-toastify";
 
 const route = useRoute();
 const produtosStore = useProdutosStore();
@@ -941,7 +942,7 @@ const idEmpresa = JSON.parse(localStorage.getItem('empresaSelecionada'));
 
 // STATE
 const openModalDelete = ref(false);
-const tab = ref('img');
+const tab = ref('one');
 const validacao = [(v) => !!v || 'Campo obrigatório'];
 const forms = computed(() => produtosStore.produto || {});
 
@@ -1082,7 +1083,16 @@ const excluirProduto = async () => {
  */
 
 const atualizarProduto = async () => {
+  forms.value.ativo = 'S';
+
   await produtosStore.atualizarProduto(id, forms.value);
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  toast.success("Produto atualizado com sucesso!");
 };
 
 /** ================== EMBALAGENS ================== **/
