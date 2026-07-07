@@ -473,7 +473,7 @@
                     <v-row dense>
                       <!-- Participa da consolidação? -->
                       <v-col cols="6" md="3">
-                        <v-card variant="outlined" class="pa-3 h-100">
+                        <v-card elevation="0" class="pa-3 h-100">
                           <div class="text-caption text-medium-emphasis mb-2">Participa da consolidação?</div>
                           <v-radio-group v-model="form.participa_consolidacao" inline hide-details density="compact">
                             <v-radio label="Sim" value="S" />
@@ -484,7 +484,7 @@
 
                       <!-- Substituto Tributário? -->
                       <v-col cols="6" md="3">
-                        <v-card variant="outlined" class="pa-3 h-100">
+                        <v-card elevation="0" class="pa-3 h-100">
                           <div class="text-caption text-medium-emphasis mb-2">Substituto Tributário?</div>
                           <v-radio-group v-model="form.substituto_tributario" inline hide-details density="compact">
                             <v-radio label="Sim" value="S" />
@@ -495,7 +495,7 @@
 
                       <!-- Emite NFe? -->
                       <v-col cols="6" md="3">
-                        <v-card variant="outlined" class="pa-3 h-100">
+                        <v-card elevation="0" class="pa-3 h-100">
                           <div class="text-caption text-medium-emphasis mb-2">Emite NFe?</div>
                           <v-radio-group v-model="form.emite_nfe" inline hide-details density="compact">
                             <v-radio label="Sim" value="S" />
@@ -506,7 +506,7 @@
 
                       <!-- Utiliza RENAVE? -->
                       <v-col cols="6" md="3">
-                        <v-card variant="outlined" class="pa-3 h-100">
+                        <v-card elevation="0" class="pa-3 h-100">
                           <div class="text-caption text-medium-emphasis mb-2">Utiliza RENAVE?</div>
                           <v-radio-group v-model="form.utiliza_renave" inline hide-details density="compact">
                             <v-radio label="Sim" value="S" />
@@ -517,7 +517,7 @@
 
                       <!-- Tabela para Cálculo do ST -->
                       <v-col cols="12" md="5">
-                        <v-card variant="outlined" class="pa-3 h-100">
+                        <v-card elevation="0" class="pa-3 h-100">
                           <div class="text-caption text-medium-emphasis mb-2">Tabela para Cálculo do ST</div>
                           <v-radio-group v-model="form.tabela_calculo_st" inline hide-details density="compact">
                             <v-radio label="Tabela 1" value="1" />
@@ -530,7 +530,7 @@
 
                       <!-- Tipo recolhimento DIFAL -->
                       <v-col cols="12" md="4">
-                        <v-card variant="outlined" class="pa-3 h-100">
+                        <v-card elevation="0" class="pa-3 h-100">
                           <div class="text-caption text-medium-emphasis mb-2">Tipo de recolhimento do DIFAL?</div>
                           <v-radio-group v-model="form.tipo_recolhimento_difal" inline hide-details density="compact">
                             <v-radio label="Por Apuração" value="A" />
@@ -541,7 +541,7 @@
 
                       <!-- Adiantamento ao Cliente -->
                       <v-col cols="12" md="3">
-                        <v-card variant="outlined" class="pa-3 h-100">
+                        <v-card elevation="0" class="pa-3 h-100">
                           <div class="text-caption text-medium-emphasis mb-2">Adiantamento ao Cliente</div>
                           <v-checkbox
                             v-model="form.adiantamento_vista"

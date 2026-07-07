@@ -596,11 +596,13 @@
 import {ref, reactive, computed, watchEffect} from 'vue'
 import {useThemeStore} from '@/stores/config-temas/theme'
 import {usePessoasStore} from "@/stores/APIs/pessoas";
+import {useLocalizacaoStore} from '@/stores/APIs/localizacao'
 import BotaoExpandTransition from "@/components/base/padrao-paginas/BotaoExpandTransition.vue";
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 
 const themeStore = useThemeStore();
 const pessoasStore = usePessoasStore();
+const localizacaoStore = useLocalizacaoStore()
 
 // State
 const pessoas = computed(() => pessoasStore.pessoas);
@@ -701,10 +703,8 @@ const buscarCep = async (end) => {
 
   end._buscandoCep = true
   try {
-    const resp = await import('@/services/api').then(m => m.default.get(`/cep/${cep}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    }))
-    const d = resp.data?.data?.[0] ?? resp.data
+    await localizacaoStore.buscarCep(cep)
+    const d = localizacaoStore.cep
     if (d) {
       if (d.logradouro)  end.logradouro = d.logradouro
       if (d.bairro)      end.bairro     = d.bairro

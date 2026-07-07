@@ -64,7 +64,7 @@
                   <v-btn color="grey" variant="text" @click="cancelarFormulario">Cancelar</v-btn>
                   <v-btn
                     color="var(--text-color-laranja)"
-                    :loading="loading"
+                    :loading="mensagensStore.loading"
                     :disabled="!formValido"
                     variant="flat"
                     class="text-white"
@@ -82,7 +82,7 @@
             :formulario-aberto="formularioAberto"
             :headers="headers"
             :items="itensFiltrados"
-            :loading="loading"
+            :loading="mensagensStore.loading"
             :search="search"
             @update:search="(value) => search = value"
             search-label="Pesquisar mensagem"
@@ -95,6 +95,8 @@
           />
         </v-card-text>
       </v-card>
+
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
     </template>
   </top-all-pages>
 </template>
@@ -102,12 +104,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
-import apiPhp from '@/services/apiPhp'
+import { useMensagensStore } from '@/stores/APIs/mensagens'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 
 const themeStore = useThemeStore()
+const mensagensStore = useMensagensStore()
 
 const empresaSelecionada = JSON.parse(localStorage.getItem('empresaSelecionada'))
 const idEmp = empresaSelecionada?.id ?? null
@@ -117,8 +120,13 @@ const editando = ref(false)
 const formValido = ref(false)
 const formRef = ref(null)
 const search = ref('')
-const loading = ref(false)
-const mensagens = ref([])
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+const mostrarMensagem = (msg, color = 'success') => {
+  snackbar.message = msg
+  snackbar.color = color
+  snackbar.show = true
+}
 
 const form = reactive({
   id: null,
@@ -136,7 +144,7 @@ const headers = [
 ]
 
 const itensFiltrados = computed(() => {
-  const dados = mensagens.value || []
+  const dados = mensagensStore.mensagens || []
   return Array.isArray(dados) ? dados : []
 })
 
@@ -172,46 +180,39 @@ function editarMensagem(item) {
 }
 
 async function carregarMensagens() {
-  loading.value = true
   try {
-    const response = await apiPhp.get(`/manutencao/mensagens/${idEmp}`)
-    mensagens.value = Array.isArray(response.data) ? response.data : response.data?.data || []
+    await mensagensStore.buscarMensagens(idEmp)
   } catch (error) {
-    console.error('Erro ao carregar mensagens:', error)
-  } finally {
-    loading.value = false
+    mostrarMensagem('Erro ao carregar mensagens.', 'error')
   }
 }
 
 async function salvarMensagem() {
-  loading.value = true
   try {
     const { id, ...payload } = form
 
     if (editando.value) {
-      await apiPhp.put(`/manutencao/mensagens/${idEmp}/${id}`, payload)
+      await mensagensStore.atualizarMensagem(idEmp, id, payload)
+      mostrarMensagem('Mensagem atualizada com sucesso!')
     } else {
-      await apiPhp.post('/manutencao/mensagens', payload)
+      await mensagensStore.criarMensagem(payload)
+      mostrarMensagem('Mensagem criada com sucesso!')
     }
 
     cancelarFormulario()
     await carregarMensagens()
   } catch (error) {
-    console.error('Erro ao salvar mensagem:', error)
-  } finally {
-    loading.value = false
+    mostrarMensagem('Erro ao salvar mensagem.', 'error')
   }
 }
 
 async function excluirMensagem(item) {
-  loading.value = true
   try {
-    await apiPhp.delete(`/manutencao/mensagens/${idEmp}/${item.id}`)
+    await mensagensStore.deletarMensagem(idEmp, item.id)
+    mostrarMensagem('Mensagem excluída com sucesso!')
     await carregarMensagens()
   } catch (error) {
-    console.error('Erro ao excluir mensagem:', error)
-  } finally {
-    loading.value = false
+    mostrarMensagem('Erro ao excluir mensagem.', 'error')
   }
 }
 

@@ -29,7 +29,6 @@
                             maxlength="120"
                             variant="outlined"
                             density="compact"
-                            :theme="themeStore.darkMode ? 'dark' : 'light'"
                             class="custom-text-field"
                             prepend-inner-icon="mdi-account"
                         ></v-text-field>
@@ -43,7 +42,6 @@
                             maxlength="120"
                             variant="outlined"
                             density="compact"
-                            :theme="themeStore.darkMode ? 'dark' : 'light'"
                             class="custom-text-field"
                             prepend-inner-icon="mdi-email"
                         ></v-text-field>
@@ -200,18 +198,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import apiPhp from '@/services/apiPhp'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
+import { useUsuariosStore } from '@/stores/APIs/usuarios'
+import { useEmpresaStore } from '@/stores/APIs/empresa'
+import { useGrupoUsuarioStore } from '@/stores/APIs/grupousuario'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 
 const themeStore = useThemeStore();
+const usuariosStore = useUsuariosStore()
+const empresaStore = useEmpresaStore()
+const grupoUsuarioStore = useGrupoUsuarioStore()
 
 // State
-const usuarios = ref([])
-const loading = ref(false)
+const usuarios = computed(() => usuariosStore.usuarios)
+const loading = computed(() => usuariosStore.loading)
 const search = ref('')
 
 // Formulário expansível
@@ -255,16 +258,7 @@ const rules = {
 
 // CRUD
 const buscarUsuarios = async () => {
-  loading.value = true
-  try {
-    const resp = await apiPhp.get('/manutencao/usuarios')
-    usuarios.value = Array.isArray(resp.data) ? resp.data : resp.data?.data || []
-  } catch (e) {
-    console.error(e)
-    usuarios.value = []
-  } finally {
-    loading.value = false
-  }
+  await usuariosStore.buscarUsuarios()
 }
 
 const toggleFormulario = () => {
@@ -301,14 +295,13 @@ const resetarForm = () => {
 
 const salvarUsuario = async () => {
   if (!formRef.value?.validate()) return
-  loading.value = true
   try {
     const payload = { ...form }
     if (editando.value) {
-      await apiPhp.put(`/manutencao/usuarios/${form.id}`, payload)
+      await usuariosStore.atualizarUsuario(form.id, payload)
       snackbar.message = 'Usuário atualizado com sucesso!'
     } else {
-      await apiPhp.post('/manutencao/usuarios', payload)
+      await usuariosStore.criarUsuario(payload)
       snackbar.message = 'Usuário criado com sucesso!'
     }
     snackbar.color = 'success'
@@ -316,31 +309,24 @@ const salvarUsuario = async () => {
     buscarUsuarios()
     cancelarFormulario()
   } catch (e) {
-    console.error(e)
     snackbar.message = 'Erro ao salvar usuário'
     snackbar.color = 'error'
     snackbar.show = true
-  } finally {
-    loading.value = false
   }
 }
 
 const deletarUsuario = async (usuario) => {
-  loading.value = true
   try {
     const id = usuario?.id || usuario
-    await apiPhp.delete(`/manutencao/usuarios/${id}`)
+    await usuariosStore.deletarUsuario(id)
     snackbar.message = 'Usuário excluído com sucesso!'
     snackbar.color = 'success'
     snackbar.show = true
     buscarUsuarios()
   } catch (e) {
-    console.error(e)
     snackbar.message = 'Erro ao excluir usuário'
     snackbar.color = 'error'
     snackbar.show = true
-  } finally {
-    loading.value = false
   }
 }
 
@@ -352,39 +338,30 @@ const abrirModalEmpresaGrupo = async (usuario) => {
 
   try {
     // Buscar empresas disponíveis e grupos do usuário
-    const [empresasResp, gruposResp, usuarioEmpresaResp] = await Promise.all([
-      apiPhp.get('/manutencao/empresas'),
-      apiPhp.get('/manutencao/grupo-usuarios'),
-      apiPhp.get('/manutencao/usuario-empresa')
+    const [usuarioEmpresaData] = await Promise.all([
+      usuariosStore.buscarUsuarioEmpresas(),
+      empresaStore.buscarTodasEmpresas(),
+      grupoUsuarioStore.buscarTodosGruposUsuario(),
     ])
 
     // Mapear empresas com razao_social
-    const dataEmpresas = empresasResp.data?.data || empresasResp.data || []
-    empresas.value = Array.isArray(dataEmpresas) ? dataEmpresas.map(e => ({
+    empresas.value = Array.isArray(empresaStore.empresas) ? empresaStore.empresas.map(e => ({
       id: e.id,
       nome: e.razao_social || e.fantasia || `Empresa ${e.id}`
     })) : []
 
     // Mapear grupos
-    const dataGrupos = gruposResp.data?.data || gruposResp.data || []
-    gruposUsuario.value = Array.isArray(dataGrupos) ? dataGrupos.map(g => ({
+    gruposUsuario.value = grupoUsuarioStore.gruposUsuario.map(g => ({
       id: g.id,
       nome: g.nome || g.descgrupousuario
-    })) : []
+    }))
 
     // Mapear grupos por empresa do usuário
-    const dataUsuarioEmpresa = usuarioEmpresaResp.data?.data || usuarioEmpresaResp.data || []
-    const usuarioEmpresas = Array.isArray(dataUsuarioEmpresa) ? dataUsuarioEmpresa : []
-
+    const usuarioEmpresas = Array.isArray(usuarioEmpresaData) ? usuarioEmpresaData : []
     usuarioEmpresas.forEach(ue => {
       empresasGrupos.value[ue.id_empresa] = ue.id_grupo
     })
-
-    console.log('Empresas carregadas:', empresas.value)
-    console.log('Grupos carregados:', gruposUsuario.value)
-    console.log('Grupos do usuário por empresa:', empresasGrupos.value)
   } catch (e) {
-    console.error('Erro ao carregar empresas e grupos:', e)
     snackbar.message = 'Erro ao carregar empresas e grupos'
     snackbar.color = 'error'
     snackbar.show = true
@@ -408,9 +385,7 @@ const atualizarGrupoEmpresa = async (empresa, idGrupo) => {
       id_grupousuario: idGrupo
     }
 
-    console.log('Enviando payload:', payload)
-
-    await apiPhp.post('/manutencao/usuario-empresa', payload)
+    await usuariosStore.salvarUsuarioEmpresa(payload)
 
     // Atualizar o mapa local após sucesso
     empresasGrupos.value[empresa.id] = idGrupo
@@ -419,7 +394,6 @@ const atualizarGrupoEmpresa = async (empresa, idGrupo) => {
     snackbar.color = 'success'
     snackbar.show = true
   } catch (e) {
-    console.error('Erro ao atualizar grupo:', e)
     snackbar.message = 'Erro ao atualizar grupo de usuário'
     snackbar.color = 'error'
     snackbar.show = true

@@ -30,6 +30,7 @@
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-account"
+                            class="required-left-border"
                         ></v-text-field>
                       </v-col>
 
@@ -43,6 +44,8 @@
                             :rules="[rules.required]"
                             variant="outlined"
                             density="compact"
+                            prepend-inner-icon="mdi-office-building"
+                            class="required-left-border"
                         ></v-select>
                       </v-col>
 
@@ -53,6 +56,7 @@
                             maxlength="14"
                             variant="outlined"
                             density="compact"
+                            prepend-inner-icon="mdi-card-account-details-outline"
                         ></v-text-field>
                       </v-col>
 
@@ -63,6 +67,7 @@
                             maxlength="20"
                             variant="outlined"
                             density="compact"
+                            prepend-inner-icon="mdi-phone"
                         ></v-text-field>
                       </v-col>
 
@@ -74,6 +79,7 @@
                             maxlength="80"
                             variant="outlined"
                             density="compact"
+                            prepend-inner-icon="mdi-briefcase-outline"
                         ></v-text-field>
                       </v-col>
 
@@ -84,6 +90,7 @@
                             type="date"
                             variant="outlined"
                             density="compact"
+                            prepend-inner-icon="mdi-calendar"
                         ></v-text-field>
                       </v-col>
                     </v-row>
@@ -172,13 +179,13 @@
             </template>
 
             <template v-slot:[`item.acessa_sistema_terminal`]="{ item }">
-              <v-chip :color="item.acessa_sistema_terminal ? 'blue' : 'grey'" size="small" variant="tonal">
+              <v-chip :color="item.acessa_sistema_terminal ? 'info' : 'grey'" size="small" variant="tonal">
                 {{ item.acessa_sistema_terminal ? 'Acessa terminal' : 'Sem acesso' }}
               </v-chip>
             </template>
 
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip :color="item.ativo ? 'green' : 'red'" size="small">
+              <v-chip :color="item.ativo ? 'success' : 'error'" size="small">
                 {{ item.ativo ? 'Ativo' : 'Inativo' }}
               </v-chip>
             </template>
@@ -192,15 +199,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import apiPhp from '@/services/apiPhp'
+import { ref, reactive, onMounted, computed } from 'vue'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
+import { useFuncionariosStore } from '@/stores/APIs/funcionarios'
+import { useEmpresaStore } from '@/stores/APIs/empresa'
 
-const funcionarios = ref([])
-const empresas = ref([])
-const loading = ref(false)
+const funcionariosStore = useFuncionariosStore()
+const empresaStore = useEmpresaStore()
+
+const funcionarios = computed(() => funcionariosStore.funcionarios)
+const empresas = computed(() => empresaStore.empresas.map((e) => ({ id: e.id, nome: e.razao_social || e.fantasia || `Empresa ${e.id}` })))
+const loading = computed(() => funcionariosStore.loading)
 const search = ref('')
 
 const formularioAberto = ref(false)
@@ -239,27 +250,11 @@ const rules = {
 }
 
 const buscarFuncionarios = async () => {
-  loading.value = true
-  try {
-    const resp = await apiPhp.get('/manutencao/funcionarios')
-    funcionarios.value = Array.isArray(resp.data) ? resp.data : resp.data?.data || []
-  } catch (e) {
-    console.error(e)
-    funcionarios.value = []
-  } finally {
-    loading.value = false
-  }
+  await funcionariosStore.buscarFuncionarios()
 }
 
 const buscarEmpresas = async () => {
-  try {
-    const resp = await apiPhp.get('/manutencao/empresas')
-    const dados = Array.isArray(resp.data) ? resp.data : resp.data?.data || []
-    empresas.value = dados.map((e) => ({ id: e.id, nome: e.razao_social || e.fantasia || `Empresa ${e.id}` }))
-  } catch (e) {
-    console.error(e)
-    empresas.value = []
-  }
+  await empresaStore.buscarTodasEmpresas()
 }
 
 const toggleFormulario = () => {
@@ -318,7 +313,6 @@ const mostrarMensagem = (message, color = 'success') => {
 
 const salvarFuncionario = async () => {
   if (!formRef.value?.validate()) return
-  loading.value = true
   try {
     const payload = {
       id_empresa: form.id_empresa,
@@ -336,10 +330,10 @@ const salvarFuncionario = async () => {
     }
 
     if (editando.value) {
-      await apiPhp.put(`/manutencao/funcionarios/${form.id}`, payload)
+      await funcionariosStore.atualizarFuncionario(form.id, payload)
       mostrarMensagem('Funcionário atualizado com sucesso!')
     } else {
-      await apiPhp.post('/manutencao/funcionarios', payload)
+      await funcionariosStore.criarFuncionario(payload)
       mostrarMensagem('Funcionário cadastrado com sucesso!')
     }
 
@@ -348,23 +342,18 @@ const salvarFuncionario = async () => {
   } catch (e) {
     console.error(e)
     mostrarMensagem(e.validationMessage || e.response?.data?.erro || 'Erro ao salvar funcionário.', 'error')
-  } finally {
-    loading.value = false
   }
 }
 
 const inativarFuncionario = async (item) => {
-  loading.value = true
   try {
     const id = item?.id || item
-    await apiPhp.delete(`/manutencao/funcionarios/${id}`)
+    await funcionariosStore.inativarFuncionario(id)
     mostrarMensagem('Funcionário inativado com sucesso!')
     buscarFuncionarios()
   } catch (e) {
     console.error(e)
     mostrarMensagem(e.response?.data?.erro || 'Erro ao inativar funcionário.', 'error')
-  } finally {
-    loading.value = false
   }
 }
 
