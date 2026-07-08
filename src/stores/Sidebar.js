@@ -21,97 +21,70 @@ export const useSidebarStore = defineStore('sidebar', () => {
             submenus: [
                 {
                     text: 'Banco',
-                    icon: 'mdi-bank-outline',
                     submenus: [
-                        {text: 'Conta Corrente', icon: 'mdi-bank', route: '/paginas/financeiro/contacorrente'},
-                        {text: 'Lançamentos', icon: 'mdi-bank-transfer', route: '/paginas/banco/movimentacao'},
-                        {
-                            text: 'Transf. Financeira',
-                            icon: 'mdi-swap-horizontal',
-                            route: '/paginas/financeiro/transferencia'
-                        },
-                        {
-                            text: 'Carteira de Cobrança',
-                            icon: 'mdi-wallet-giftcard',
-                            route: '/paginas/financeiro/carteiracobranca'
-                        }
+                        {text: 'Conta Corrente', route: '/paginas/financeiro/contacorrente'},
+                        {text: 'Lançamentos', route: '/paginas/banco/movimentacao'},
+                        {text: 'Transf. Financeira', route: '/paginas/financeiro/transferencia'},
+                        {text: 'Carteira de Cobrança', route: '/paginas/financeiro/carteiracobranca'}
                     ]
                 },
                 {
                     text: 'Caixa',
-                    icon: 'mdi-cash-register',
                     submenus: [
-                        {text: 'Cadastro', icon: 'mdi-cash-register', route: '/paginas/financeiro/caixa'},
-                        {text: 'Abertura', icon: 'mdi-cash-multiple', route: '/paginas/financeiro/caixa/abertura'},
-                        {text: 'Lançamentos', icon: 'mdi-cash-plus', route: '/paginas/financeiro/caixa/lancamento'}
+                        {text: 'Caixa', route: '/paginas/financeiro/caixa'},
+                        {text: 'Lançamentos', route: '/paginas/financeiro/caixa/lancamento'},
+                        {text: 'Abertura', route: '/paginas/financeiro/caixa/abertura'},
+                        {text: 'Encerramento', route: '/paginas/financeiro/caixa/encerramento'}
                     ]
                 },
                 {
                     text: 'Pagar',
-                    icon: 'mdi-credit-card-outline',
                     submenus: [
-                        {text: 'Lancamentos', icon: 'mdi-file-document-outline', route: '/paginas/financeiro/pagar'},
-                        {text: 'Autorização', icon: 'mdi-shield-check', route: '/paginas/financeiro/autorizacao'},
-                        {text: 'Baixa', icon: 'mdi-cash-minus', route: '/paginas/financeiro/baixa'},
-                        {text: 'Estorno Baixa', icon: 'mdi-undo-variant', route: '/paginas/estorno/pagar'},
-                        {text: 'Adt Fornecedores', icon: 'mdi-account-tie', route: '/paginas/adiantamento/fornecedor'},
-                        {
-                            text: 'Centro de Custo',
-                            icon: 'mdi-file-tree',
-                            route: '/paginas/financeiro/centrodecusto/cadastro'
-                        },
-                        {
-                            text: 'Previsão C. Custo',
-                            icon: 'mdi-chart-timeline-variant',
-                            route: '/paginas/financeiro/centrodecusto/previsao'
-                        },
-                        {
-                            text: 'Realizado C. Custo',
-                            icon: 'mdi-chart-bar',
-                            route: '/paginas/financeiro/centrodecusto/debitoreal'
-                        }
+                        {text: 'Lançamentos', route: '/paginas/financeiro/pagar'},
+                        {text: 'Autorização', route: '/paginas/financeiro/autorizacao'},
+                        {text: 'Baixa', route: '/paginas/financeiro/baixa'},
+                        {text: 'Estorno de Baixa', route: '/paginas/estorno/pagar'},
+                        {text: 'Adt. Fornecedores', route: '/paginas/adiantamento/fornecedor'}
                     ]
                 },
                 {
                     text: 'Receber',
-                    icon: 'mdi-cash-plus',
                     submenus: [
-                        {text: 'Lancamentos', icon: 'mdi-file-document-outline', route: '/paginas/financeiro/receber'},
-                        {text: 'Baixa', icon: 'mdi-cash-check', route: '/paginas/financeiro/baixareceb'},
-                        {text: 'Estorno Baixa', icon: 'mdi-undo-variant', route: '/paginas/estorno/receber'},
-                        {text: 'Adt Cliente', icon: 'mdi-account-multiple', route: '/paginas/adiantamento/cliente'}
+                        {text: 'Lançamentos', route: '/paginas/financeiro/receber'},
+                        {text: 'Baixa', route: '/paginas/financeiro/baixareceb'},
+                        {text: 'Estorno de Baixa', route: '/paginas/estorno/receber'},
+                        {text: 'Adt. Clientes', route: '/paginas/adiantamento/cliente'}
                     ]
                 },
                 {
-                    text: 'DRE',
-                    icon: 'mdi-chart-pie',
+                    text: 'Centro de Custo',
                     submenus: [
-                        {text: 'Modelos DRE', icon: 'mdi-file-chart', route: '/paginas/financeiro/dre'},
-                        {text: 'Relatório DRE', icon: 'mdi-chart-box', route: '/paginas/financeiro/relatorio/dre'}
+                        {text: 'Centro de Custo', route: '/paginas/financeiro/centrodecusto/cadastro'},
+                        {text: 'Previsto', route: '/paginas/financeiro/centrodecusto/previsao'},
+                        {text: 'Realizado', route: '/paginas/financeiro/centrodecusto/debitoreal'}
                     ]
-                },
-                {
-                    text: 'Plano de Contas',
-                    icon: 'mdi-file-tree',
-                    route: '/paginas/financeiro/planoconta'
                 }
+            ]
+        },
+
+        {
+            id: 'contabil',
+            titulo: 'Contábil',
+            icon: 'mdi-book-open-variant',
+            submenus: [
+                {text: 'Plano de Contas', route: '/paginas/financeiro/planoconta'},
+                {text: 'Modelos D.R.E', route: '/paginas/financeiro/dre'},
+                {text: 'Relatório', route: '/paginas/financeiro/relatorio/dre'}
             ]
         },
 
         {
             id: 'Fiscal',
             titulo: 'Fiscal',
-            icon: 'mdi-cash-register',
+            icon: 'mdi-file-document-outline',
             submenus: [
-                {
-                    text: 'Nota de Serviço',
-                    icon: 'mdi-format-list-bulleted-type',
-                    route: '/paginas/fiscal/notadeservico'
-                },
-
+                {text: 'Entrada NFSe', route: '/paginas/fiscal/notadeservico'}
             ]
-
-
         },
 
         {
@@ -119,38 +92,15 @@ export const useSidebarStore = defineStore('sidebar', () => {
             titulo: 'Manutenção',
             icon: 'mdi-tools',
             submenus: [
-                {
-                    text: 'Clientes',
-                    icon: 'mdi-account-group',
-                    route: '/paginas/manutencao/clientes'
-                },
-                {
-                    text: 'Pessoas',
-                    icon: 'mdi-account-multiple',
-                    route: '/paginas/manutencao/pessoas'
-                },
-                {
-                    text: 'Usuários',
-                    icon: 'mdi-account-cog',
-                    route: '/paginas/manutencao/usuarios'
-                },
-                {
-                    text: 'Funcionários',
-                    icon: 'mdi-account-hard-hat',
-                    route: '/paginas/manutencao/funcionarios'
-                },
-                {
-                    text: 'Grupos de Usuários',
-                    icon: 'mdi-account-multiple',
-                    route: '/paginas/manutencao/grupousuario'
-                },
-                {
-                    text: 'Fórmulas',
-                    icon: 'mdi-function-variant',
-                    route: '/paginas/estoque/formulas'
-                },
+                {text: 'Clientes', route: '/paginas/manutencao/clientes'},
+                {text: 'Colaboradores', route: '/paginas/manutencao/funcionarios'},
+                {text: 'Contadores', route: '/paginas/manutencao/contadores'},
+                {text: 'Fornecedores', route: '/paginas/manutencao/fornecedores'},
+                {text: 'Transportadoras', route: '/paginas/manutencao/transportadoras'},
+                {text: 'Fórmula', route: '/paginas/estoque/formulas'}
             ]
         },
+
         {
             id: 'estoque',
             titulo: 'Estoque',
@@ -158,155 +108,62 @@ export const useSidebarStore = defineStore('sidebar', () => {
             submenus: [
                 {
                     text: 'Produtos',
-                    icon: 'mdi-tag-multiple',
                     submenus: [
-                        {
-                            text: 'Produtos',
-                            icon: 'mdi-tag-outline',
-                            route: '/paginas/produtos'
-                        },
-                        {
-                            text: 'Importar Produtos',
-                            icon: 'mdi-cloud-upload-outline',
-                            route: '/paginas/produtos/importar'
-                        },
-                        {
-                            text: 'Grade de Produtos',
-                            icon: 'mdi-view-grid-outline',
-                            route: '/paginas/produtos/grade'
-                        },
-                        {
-                            text: 'Local Produtos',
-                            icon: 'mdi-map-marker',
-                            route: '/paginas/produtos/local'
-                        },
-                        {
-                            text: 'Entrada Nota Fiscal',
-                            icon: 'mdi-file-document-outline',
-                            route: '/paginas/entradadfe'
-                        },
-                        {
-                            text: 'Dev. Nota Fiscal',
-                            icon: 'mdi-file-document-edit-outline',
-                            route: '/paginas/deventrada'
-                        },
-                        {
-                            text: 'Certificados',
-                            icon: 'mdi-certificate',
-                            route: '/paginas/certificados'
-                        },
-                        {
-                            text: 'Inventário',
-                            icon: 'mdi-clipboard-list',
-                            route: '/paginas/inventario'
-                        }
+                        {text: 'Produtos', route: '/paginas/produtos'},
+                        {text: 'Importar Produtos', route: '/paginas/produtos/importar'},
+                        {text: 'Grade de Produtos', route: '/paginas/produtos/grade'},
+                        {text: 'Local Produtos', route: '/paginas/produtos/local'},
+                        {text: 'Entrada Nota Fiscal', route: '/paginas/entradadfe'},
+                        {text: 'Dev. Nota Fiscal', route: '/paginas/deventrada'},
+                        {text: 'Certificados', route: '/paginas/certificados'},
+                        {text: 'Inventário', route: '/paginas/inventario'}
                     ]
                 },
-                {
-                    text: 'Grupos',
-                    icon: 'mdi-shape-plus',
-                    route: '/paginas/estoque/grupo'
-                },
-                {
-                    text: 'Classe',
-                    icon: 'mdi-clipboard-text-outline',
-                    route: '/paginas/estoque/classe'
-                },
-                {
-                    text: 'CEST',
-                    icon: 'mdi-file-table-box-outline',
-                    route: '/paginas/estoque/cest'
-                },
-                {
-                    text: 'Aliquota UF',
-                    icon: 'mdi-chart-line',
-                    route: '/paginas/estoque/aliquotauf'
-                },
+                {text: 'Grupos', route: '/paginas/estoque/grupo'},
+                {text: 'Classe', route: '/paginas/estoque/classe'},
+                {text: 'CEST', route: '/paginas/estoque/cest'},
+                {text: 'Aliquota UF', route: '/paginas/estoque/aliquotauf'}
             ]
         },
-        // {
-        //     id: 'produtos',
-        //     titulo: 'Produtos',
-        //     icon: 'mdi-tag-multiple',
-        //     submenus: [
-        //         {
-        //             text: 'Produtos',
-        //             icon: 'mdi-tag-outline',
-        //             route: '/paginas/produtos'
-        //         },
-        //
-        //         {
-        //             text: 'Local Produtos',
-        //             icon: 'mdi-map-marker',
-        //             route: '/paginas/produtos/local'
-        //         },
-        //         {
-        //             text: 'Entrada Nota Fiscal',
-        //             icon: 'mdi-file-document-outline',
-        //             route: '/paginas/entradadfe'
-        //         },
-        //         {
-        //             text: 'Certificados',
-        //             icon: 'mdi-certificate',
-        //             route: '/paginas/certificados'
-        //         },
-        //
-        //     ]
-        // },
+
         {
             id: 'PDV',
             titulo: 'PDV',
-            icon: 'mdi-package-variant',
+            icon: 'mdi-point-of-sale',
             submenus: [
-                {
-                    text: 'Operação',
-                    icon: 'mdi-shape-plus',
-                    route: '/paginas/pdv/operacao'
-                },
-                {
-                    text: 'Terminais de Venda',
-                    icon: 'mdi-monitor-multiple',
-                    route: '/paginas/pdv/terminais-vendas'
-                },
+                {text: 'Operação', route: '/paginas/pdv/operacao'},
+                {text: 'Terminais de Venda', route: '/paginas/pdv/terminais-vendas'}
             ]
         },
+
         {
             id: 'relatorios',
             titulo: 'Relatórios',
             icon: 'mdi-file-chart',
             submenus: [
-                {
-                    text: 'Relatório Financeiro',
-                    icon: 'mdi-chart-line',
-                    route: '/paginas/relatorios/financeiro'
-                },
-                {
-                    text: 'Relatório Contábil',
-                    icon: 'mdi-file-document-outline',
-                    route: '/paginas/relatorios/contabil'
-                }
+                {text: 'Relatório Financeiro', route: '/paginas/relatorios/financeiro'},
+                {text: 'Relatório Contábil', route: '/paginas/relatorios/contabil'}
             ]
         },
+
         {
             id: 'integracoes',
             titulo: 'Integrações',
             icon: 'mdi-cogs',
             submenus: [
-                {
-                    text: 'Loja de Integrações',
-                    icon: 'mdi-store',
-                    route: '/paginas/integracoes/loja'
-                },
-                {
-                    text: 'APIs Externas',
-                    icon: 'mdi-api',
-                    route: '/paginas/integracoes/api-externa'
-                },
-                {
-                    text: 'Cloudflare R2',
-                    icon: 'mdi-cloud-upload-outline',
-                    route: '/paginas/integracao/cloudflare-r2'
-                }
+                {text: 'Loja de Integrações', route: '/paginas/integracoes/loja'},
+                {text: 'APIs Externas', route: '/paginas/integracoes/api-externa'},
+                {text: 'Cloudflare R2', route: '/paginas/integracao/cloudflare-r2'}
+            ]
+        },
+
+        {
+            id: 'seguranca',
+            titulo: 'Segurança',
+            icon: 'mdi-shield-lock',
+            submenus: [
+                {text: 'Usuários', route: '/paginas/manutencao/usuarios'},
+                {text: 'Grupo de Usuários', route: '/paginas/manutencao/grupousuario'}
             ]
         }
     ]);
