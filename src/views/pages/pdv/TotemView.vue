@@ -194,13 +194,13 @@
               class="background-card rounded-lg"
           >
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip :color="itemRaw(item).ativo ? 'green' : 'red'" size="small">
+              <v-chip :color="itemRaw(item).ativo ? 'success' : 'error'" size="small">
                 {{ itemRaw(item).ativo ? 'Ativo' : 'Inativo' }}
               </v-chip>
             </template>
 
             <template v-slot:[`item.permite_sincronizacao`]="{ item }">
-              <v-chip :color="itemRaw(item).permite_sincronizacao ? 'blue' : 'grey'" size="small" variant="tonal">
+              <v-chip :color="itemRaw(item).permite_sincronizacao ? 'info' : 'default'" size="small" variant="tonal">
                 {{ itemRaw(item).permite_sincronizacao ? 'Sincroniza' : 'Bloqueado' }}
               </v-chip>
             </template>
@@ -224,7 +224,7 @@
                     icon="mdi-pencil"
                     size="small"
                     variant="text"
-                    color="blue"
+                    color="info"
                     title="Editar terminal"
                     @click="editarTotem(itemRaw(item))"
                 />
@@ -233,7 +233,7 @@
                     icon="mdi-delete"
                     size="small"
                     variant="text"
-                    color="red"
+                    color="error"
                     title="Excluir terminal"
                     @click="excluirTotem(itemRaw(item))"
                 />
@@ -339,7 +339,7 @@
                       <v-text-field
                           v-model="terminalConfigurando.descricao"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           hide-details
                       />
                     </v-col>
@@ -349,7 +349,7 @@
                       <v-text-field
                           v-model="terminalConfigurando.codigo"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           hide-details
                       />
                     </v-col>
@@ -362,7 +362,7 @@
                           item-title="title"
                           item-value="value"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           hide-details
                       />
                     </v-col>
@@ -373,7 +373,7 @@
                           v-model="terminalConfigurando.senha_terminal"
                           placeholder="Senha para acessar os paineis do terminal"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           :append-inner-icon="verSenha ? 'mdi-eye-outline' : 'mdi-eye-off-outline'"
                           :type="verSenha ? 'text' : 'password'"
                           @click:append-inner="verSenha = !verSenha"
@@ -453,7 +453,7 @@
                               v-model="ambienteForm.nome"
                               placeholder="Ex: Cozinha, Bar, Área externa"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -466,7 +466,7 @@
                               item-title="title"
                               item-value="value"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -523,7 +523,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerAmbiente(ambiente)"
                         >
@@ -548,7 +548,7 @@
                               item-value="id"
                               placeholder="Selecione"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -559,7 +559,7 @@
                               v-model="menuForm.nome"
                               placeholder="Ex: Comidas, Bebidas, Combos"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -570,7 +570,7 @@
                               v-model="menuForm.icone"
                               placeholder="Ex: 🍔"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -607,7 +607,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerMenu(menu)"
                         >
@@ -647,7 +647,7 @@
                               item-title="nome"
                               item-value="id"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                               @update:model-value="preencherAmbienteDoMenu"
                           />
@@ -661,7 +661,7 @@
                               item-title="nome"
                               item-value="id"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -674,7 +674,7 @@
                               clearable
                               placeholder="Todos"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -688,7 +688,7 @@
                               item-value="id"
                               placeholder="Selecione"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                               multiple
                               chips
@@ -774,7 +774,7 @@
                             </div>
 
                             <v-btn
-                                color="red"
+                                color="error"
                                 variant="tonal"
                                 @click="removerProdutoVinculado(vinculo)"
                             >
@@ -805,7 +805,7 @@
                               v-model="mesaForm.numero"
                               placeholder="Ex: 12"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -816,7 +816,7 @@
                               v-model="mesaForm.nome"
                               placeholder="Ex: Varanda 3"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -828,7 +828,7 @@
                               type="number"
                               min="1"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -843,7 +843,7 @@
                               clearable
                               placeholder="Nenhum"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -878,7 +878,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerMesa(mesa)"
                         >
@@ -911,7 +911,7 @@
                               item-value="id"
                               placeholder="Selecione"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -922,7 +922,7 @@
                               v-model="funcionarioVincularForm.papel"
                               placeholder="Ex: garcom, caixa, cozinha"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -957,7 +957,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerVinculoFuncionario(vinculo)"
                         >
@@ -983,7 +983,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
-import api from '@/services/api'
+import { useTotemStore } from '@/stores/APIs/totem'
+
+const totemStore = useTotemStore()
 
 const formularioAberto = ref(false)
 const editando = ref(false)
@@ -1002,19 +1004,29 @@ const snackbar = reactive({
   color: 'success'
 })
 
-const headers_auth = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`
+const totems = computed(() => totemStore.terminais)
+const ambientes = computed(() => totemStore.ambientes)
+const menus = computed(() => totemStore.menus)
+const menuProdutos = computed(() => totemStore.produtosVinculados)
+const produtos = computed(() => {
+  const gruposMap = Object.fromEntries(totemStore.grupos.map(g => [g.id, g.descgrupo]))
+  return totemStore.produtosCatalogo.map(p => ({
+    id: p.id,
+    nome: p.descproduto,
+    codigo: p.codigo,
+    grupo: gruposMap[p.id_grupo] || '',
+    emoji: '🛒',
+    preco: parseFloat(p.preco_venda) || 0,
+    ativo: p.ativo !== false,
+    emite_ticket_padrao: false
+  }))
 })
-
-const totems = ref([])
-const ambientes = ref([])
-const menus = ref([])
-const menuProdutos = ref([])
-const produtos = ref([])
-const grupos = ref([])
-const mesas = ref([])
-const funcionariosVinculados = ref([])
-const funcionariosDisponiveis = ref([])
+const grupos = computed(() => totemStore.grupos)
+const mesas = computed(() => totemStore.mesas)
+const funcionariosVinculados = computed(() => totemStore.funcionariosVinculados)
+const funcionariosDisponiveis = computed(() =>
+  totemStore.funcionariosTodos.filter(f => f.acessa_sistema_terminal && f.ativo)
+)
 
 const formData = reactive({
   id: null,
@@ -1242,8 +1254,8 @@ const normalizarTerminal = t => ({
 const carregarTotems = async () => {
   loading.value = true
   try {
-    const { data } = await api.get('/api/v1/admin/terminais-venda', { headers: headers_auth() })
-    totems.value = (Array.isArray(data) ? data : data.data ?? []).map(normalizarTerminal)
+    await totemStore.listarTerminais()
+    totemStore.terminais = totemStore.terminais.map(normalizarTerminal)
   } catch {
     mostrarMensagem('Erro ao carregar terminais.', 'error')
   } finally {
@@ -1252,52 +1264,7 @@ const carregarTotems = async () => {
 }
 
 const carregarConfigTerminal = async terminalId => {
-  const h = { headers: headers_auth() }
-
-  const safe = promise => promise.catch(() => ({ data: [] }))
-
-  const [respAmbientes, respMenus, respProdutos, respVinculados, respGrupos, respMesas, respFuncVinculados, respFuncDisponiveis] = await Promise.all([
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/ambientes`, h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/menus`, h)),
-    safe(api.get('/api/v1/admin/produtos-catalogo', h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/produtos-vinculados`, h)),
-    safe(api.get('/api/v1/estoque/grupos', h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/mesas`, h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/funcionarios`, h)),
-    safe(api.get('/api/v1/manutencao/funcionarios', h))
-  ])
-
-  mesas.value = respMesas.data?.data ?? respMesas.data ?? []
-  funcionariosVinculados.value = respFuncVinculados.data?.data ?? respFuncVinculados.data ?? []
-
-  const todosFuncionarios = respFuncDisponiveis.data?.data ?? respFuncDisponiveis.data ?? []
-  funcionariosDisponiveis.value = (Array.isArray(todosFuncionarios) ? todosFuncionarios : [])
-      .filter(f => f.acessa_sistema_terminal && f.ativo)
-
-  ambientes.value = respAmbientes.data?.data ?? respAmbientes.data ?? []
-  menus.value = respMenus.data?.data ?? respMenus.data ?? []
-
-  const rawGrupos = respGrupos.data?.data ?? respGrupos.data ?? []
-  grupos.value = Array.isArray(rawGrupos) ? rawGrupos : []
-  const gruposMap = Object.fromEntries(grupos.value.map(g => [g.id, g.descgrupo]))
-
-  const rawProdutos = respProdutos.data?.data ?? respProdutos.data ?? []
-  produtos.value = (Array.isArray(rawProdutos) ? rawProdutos : []).map(p => ({
-    id: p.id,
-    nome: p.descproduto,
-    codigo: p.codigo,
-    grupo: gruposMap[p.id_grupo] || '',
-    emoji: '🛒',
-    preco: parseFloat(p.preco_venda) || 0,
-    ativo: p.ativo !== false,
-    emite_ticket_padrao: false
-  }))
-
-  menuProdutos.value = (respVinculados.data?.data ?? respVinculados.data ?? []).map(v => ({
-    ...v,
-    produto: v.produto ? { ...v.produto, emoji: '🛒', grupo: '' } : null,
-    menu: menus.value.find(m => m.id === v.menu_id) || null
-  }))
+  await totemStore.carregarConfigTerminal(terminalId)
 }
 
 const toggleFormulario = () => {
@@ -1356,50 +1323,40 @@ const salvarTotem = async () => {
   loading.value = true
 
   try {
-    const payload = {
-      nome: formData.descricao,
-      codigo: gerarCodigoTerminal(formData.codigo || formData.descricao),
-      status: formData.ativo ? 'ativo' : 'inativo',
-      permite_sincronizacao: formData.permite_sincronizacao,
-      emite_cupom_fiscal: formData.emite_cupom_fiscal,
-      emite_ticket: formData.emite_ticket,
-      modo_ticket: formData.modo_ticket,
-      valor_couvert_padrao: formData.valor_couvert_padrao || 0,
-      percentual_taxa_servico_padrao: formData.percentual_taxa_servico_padrao || 0,
+    const dadosParaSalvar = {
+      ...formData,
+      codigo: gerarCodigoTerminal(formData.codigo || formData.descricao)
     }
 
-    if (formData.senha_terminal) {
-      payload.senha_operacional = formData.senha_terminal
-    }
+    const resposta = await totemStore.salvarTerminal(dadosParaSalvar)
 
-    const h = { headers: headers_auth() }
-
-    if (editando.value) {
-      await api.put(`/api/v1/admin/terminais-venda/${formData.id}`, payload, h)
-      mostrarMensagem('Terminal atualizado com sucesso.', 'success')
-    } else {
-      const { data: novoTerminal } = await api.post('/api/v1/admin/terminais-venda', payload, h)
-      const terminalId = novoTerminal?.data?.id ?? novoTerminal?.id
+    if (!editando.value && resposta) {
+      const terminalId = resposta?.data?.id ?? resposta?.id
 
       if (terminalId) {
-        const respAmbiente = await api.post(
-          `/api/v1/admin/terminais-venda/${terminalId}/ambientes`,
-          { nome: 'Ambiente Padrão', tipo: 'geral', controla_comandas: true, exibe_painel_chamados: true },
-          h
-        )
-        const ambienteId = respAmbiente.data?.data?.id ?? respAmbiente.data?.id
+        const respAmbiente = await totemStore.salvarAmbiente(terminalId, {
+          nome: 'Ambiente Padrão',
+          tipo: 'geral',
+          controla_comandas: true,
+          exibe_painel_chamados: true
+        })
+        const ambienteId = respAmbiente?.data?.id ?? respAmbiente?.id
 
         if (ambienteId) {
-          await api.post(
-            `/api/v1/admin/terminais-venda/${terminalId}/menus`,
-            { ambiente_id: ambienteId, nome: 'Menu Geral', icone: '📋', ativo: true },
-            h
-          )
+          await totemStore.salvarMenu(terminalId, {
+            ambiente_id: ambienteId,
+            nome: 'Menu Geral',
+            icone: '📋',
+            ativo: true
+          })
         }
       }
-
-      mostrarMensagem('Terminal cadastrado com sucesso.', 'success')
     }
+
+    mostrarMensagem(
+      editando.value ? 'Terminal atualizado com sucesso.' : 'Terminal cadastrado com sucesso.',
+      'success'
+    )
 
     await carregarTotems()
     cancelarFormulario()
@@ -1415,9 +1372,11 @@ const salvarTotem = async () => {
 const excluirTotem = async item => {
   loading.value = true
   try {
-    await api.delete(`/api/v1/admin/terminais-venda/${item.id}`, { headers: headers_auth() })
-    await carregarTotems()
-    mostrarMensagem('Terminal excluído.', 'success')
+    const ok = await totemStore.excluirTerminal(item.id)
+    if (ok) {
+      await carregarTotems()
+      mostrarMensagem('Terminal excluído.', 'success')
+    }
   } catch (error) {
     const msg = error.response?.data?.erro || 'Erro ao excluir terminal.'
     mostrarMensagem(msg, 'error')
@@ -1466,16 +1425,12 @@ const salvarAmbiente = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/ambientes`,
-      {
-        nome: ambienteForm.nome,
-        tipo: ambienteForm.tipo,
-        controla_comandas: ambienteForm.controla_comandas,
-        exibe_painel_chamados: ambienteForm.exibe_painel_chamados
-      },
-      { headers: headers_auth() }
-    )
+    await totemStore.salvarAmbiente(terminalConfigurandoId.value, {
+      nome: ambienteForm.nome,
+      tipo: ambienteForm.tipo,
+      controla_comandas: ambienteForm.controla_comandas,
+      exibe_painel_chamados: ambienteForm.exibe_painel_chamados
+    })
     resetAmbienteForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Ambiente cadastrado.', 'success')
@@ -1487,7 +1442,7 @@ const salvarAmbiente = async () => {
 
 const removerAmbiente = async ambiente => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-ambientes/${ambiente.id}`, { headers: headers_auth() })
+    await totemStore.removerAmbiente(ambiente.id)
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Ambiente removido.', 'success')
   } catch (error) {
@@ -1520,16 +1475,12 @@ const salvarMenu = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/menus`,
-      {
-        ambiente_id: menuForm.ambiente_id,
-        nome: menuForm.nome,
-        icone: menuForm.icone || null,
-        ativo: menuForm.ativo
-      },
-      { headers: headers_auth() }
-    )
+    await totemStore.salvarMenu(terminalConfigurandoId.value, {
+      ambiente_id: menuForm.ambiente_id,
+      nome: menuForm.nome,
+      icone: menuForm.icone || null,
+      ativo: menuForm.ativo
+    })
     resetMenuForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Menu cadastrado.', 'success')
@@ -1541,7 +1492,7 @@ const salvarMenu = async () => {
 
 const removerMenu = async menu => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-menus/${menu.id}`, { headers: headers_auth() })
+    await totemStore.removerMenu(menu.id)
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Menu removido.', 'success')
   } catch (error) {
@@ -1577,20 +1528,16 @@ const vincularProduto = async () => {
   }
 
   try {
+    const qty = produtoForm.produto_id.length
     await Promise.all(
       produtoForm.produto_id.map(id =>
-        api.post(
-          `/api/v1/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
-          {
-            produto_id: id,
-            ambiente_preparo_id: produtoForm.ambiente_preparo_id,
-            emite_ticket: produtoForm.emite_ticket
-          },
-          { headers: headers_auth() }
-        )
+        totemStore.vincularProduto(produtoForm.menu_id, {
+          produto_id: id,
+          ambiente_preparo_id: produtoForm.ambiente_preparo_id,
+          emite_ticket: produtoForm.emite_ticket
+        })
       )
     )
-    const qty = produtoForm.produto_id.length
     produtoForm.produto_id = []
     produtoForm.emite_ticket = false
     await carregarConfigTerminal(terminalConfigurandoId.value)
@@ -1623,13 +1570,14 @@ const vincularGrupoProdutos = async () => {
   }
 
   try {
-    await Promise.all(novos.map(p =>
-      api.post(
-        `/api/v1/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
-        { produto_id: p.id, ambiente_preparo_id: produtoForm.ambiente_preparo_id, emite_ticket: p.emite_ticket_padrao },
-        { headers: headers_auth() }
-      )
-    ))
+    await totemStore.vincularGrupo(
+      produtoForm.menu_id,
+      novos.map(p => ({
+        produto_id: p.id,
+        ambiente_preparo_id: produtoForm.ambiente_preparo_id,
+        emite_ticket: p.emite_ticket_padrao
+      }))
+    )
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem(`${novos.length} produtos vinculados.`, 'success')
   } catch (error) {
@@ -1640,7 +1588,7 @@ const vincularGrupoProdutos = async () => {
 
 const removerProdutoVinculado = async vinculo => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-menu-produtos/${vinculo.id}`, { headers: headers_auth() })
+    await totemStore.removerProdutoVinculado(vinculo.id)
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Produto removido do menu.', 'success')
   } catch (error) {
@@ -1674,16 +1622,12 @@ const salvarMesa = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/mesas`,
-      {
-        numero: mesaForm.numero,
-        nome: mesaForm.nome || null,
-        capacidade: mesaForm.capacidade || 1,
-        ambiente_id: mesaForm.ambiente_id
-      },
-      { headers: headers_auth() }
-    )
+    await totemStore.salvarMesa(terminalConfigurandoId.value, {
+      numero: mesaForm.numero,
+      nome: mesaForm.nome || null,
+      capacidade: mesaForm.capacidade || 1,
+      ambiente_id: mesaForm.ambiente_id
+    })
     resetMesaForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Mesa cadastrada.', 'success')
@@ -1695,7 +1639,7 @@ const salvarMesa = async () => {
 
 const removerMesa = async mesa => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-mesas/${mesa.id}`, { headers: headers_auth() })
+    await totemStore.removerMesa(mesa.id)
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Mesa removida.', 'success')
   } catch (error) {
@@ -1721,14 +1665,10 @@ const vincularFuncionario = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/funcionarios`,
-      {
-        funcionario_id: funcionarioVincularForm.funcionario_id,
-        papel: funcionarioVincularForm.papel || null
-      },
-      { headers: headers_auth() }
-    )
+    await totemStore.vincularFuncionario(terminalConfigurandoId.value, {
+      funcionario_id: funcionarioVincularForm.funcionario_id,
+      papel: funcionarioVincularForm.papel || null
+    })
     resetFuncionarioVincularForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Funcionário vinculado ao terminal.', 'success')
@@ -1740,7 +1680,7 @@ const vincularFuncionario = async () => {
 
 const removerVinculoFuncionario = async vinculo => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-funcionarios/${vinculo.id}`, { headers: headers_auth() })
+    await totemStore.removerFuncionario(vinculo.id)
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Funcionário desvinculado do terminal.', 'success')
   } catch (error) {

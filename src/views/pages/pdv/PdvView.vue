@@ -84,7 +84,7 @@
 
           <!-- Itens do carrinho -->
           <div v-if="itensCarrinho.length === 0" class="carrinho-vazio">
-            <v-icon icon="mdi-cart-outline" size="80" color="grey"></v-icon>
+            <v-icon icon="mdi-cart-outline" size="80"></v-icon>
             <p>Começar a adicionar produtos</p>
           </div>
 
@@ -125,11 +125,12 @@
 
           <!-- Botão Finalizar -->
           <v-btn
-            color="success"
+            color="var(--text-color-laranja)"
+            variant="flat"
             size="large"
             block
             @click="finalizarVenda"
-            class="btn-finalizar"
+            class="btn-finalizar text-white"
           >
             Finalizar Venda
           </v-btn>
@@ -159,9 +160,9 @@ const categoriaSelecionada = ref('Todos');
 
 // Categorias
 const categorias = ref([
-  { nome: 'Misc', cor: 'red-lighten-3' },
-  { nome: 'Desks', cor: 'green-lighten-3' },
-  { nome: 'Chairs', cor: 'orange-lighten-3' }
+  { nome: 'Misc', cor: 'error' },
+  { nome: 'Desks', cor: 'success' },
+  { nome: 'Chairs', cor: 'var(--text-color-laranja)' }
 ]);
 
 // Produtos mockados (baseado na imagem)
@@ -241,7 +242,6 @@ onMounted(() => {
 
 // Funções
 const handleAberturaCaixa = (dados) => {
-  console.log('Caixa aberto com:', dados);
   caixaAberto.value = true;
   // Aqui você pode salvar os dados de abertura do caixa
 };
@@ -299,8 +299,6 @@ const abrirLeitorBarras = () => {
 };
 
 const handleCodigoLido = (codigo) => {
-  console.log('Código de barras lido:', codigo);
-
   // Buscar produto pelo código de barras
   const produtoEncontrado = produtos.value.find(p =>
     p.codigoBarras === codigo || p.id.toString() === codigo
@@ -308,10 +306,6 @@ const handleCodigoLido = (codigo) => {
 
   if (produtoEncontrado) {
     adicionarProduto(produtoEncontrado);
-    // Você pode adicionar uma notificação de sucesso aqui
-  } else {
-    // Produto não encontrado - você pode adicionar uma notificação de erro aqui
-    console.log('Produto não encontrado com o código:', codigo);
   }
 
   // Alternativamente, você pode usar o código para buscar no campo de busca
