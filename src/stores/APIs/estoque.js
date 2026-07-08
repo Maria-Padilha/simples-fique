@@ -65,7 +65,29 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR GRUPO POR ID
+         * @param {number} id - ID do grupo a ser buscado.
+         * @return {Promise<void>}
+         */
+
+        async buscarGrupoPorId(id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/grupos/${id}`);
+
+                this.grupo = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -83,7 +105,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.post('/estoque/grupos', grupoData);
                 await this.buscarTodos();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -102,7 +124,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.put(`/estoque/grupos/${id}`, grupoData);
                 await this.buscarTodos();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -120,7 +142,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.delete(`/estoque/grupos/${id}`);
                 await this.buscarTodos();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -144,7 +166,30 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR SUBGRUPO POR ID
+         * @param {number} idgrupo - ID do grupo vinculado.
+         * @param {number} id - ID do subgrupo a ser buscado.
+         * @return {Promise<void>}
+         */
+
+        async buscarSubgrupoPorId(idgrupo, id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/subgrupos/${idgrupo}/${id}`);
+
+                this.subgrupo = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -161,7 +206,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.post('/estoque/subgrupos', { ...subgrupoData, id_grupo: idgrupo });
                 await this.buscarTodosSubgrupos(idgrupo);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -180,7 +225,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.put(`/estoque/subgrupos/${idgrupo}/${id}`, subgrupoData);
                 await this.buscarTodosSubgrupos(idgrupo);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -198,7 +243,29 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.delete(`/estoque/subgrupos/${idgrupo}/${id}`);
                 await this.buscarTodosSubgrupos(idgrupo);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR CLASSE POR ID
+         * @param {number} id - ID da classe a ser buscada.
+         * @return {Promise<void>}
+         */
+
+        async buscarClassePorId(id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/classes/${id}`);
+
+                this.classe = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -222,7 +289,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -240,7 +307,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.post('/estoque/classes', classeData);
                 await this.buscarTodasClasses();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -259,7 +326,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.put(`/estoque/classes/${id}`, classeData);
                 await this.buscarTodasClasses();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -277,7 +344,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.delete(`/estoque/classes/${id}`);
                 await this.buscarTodasClasses();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -302,7 +369,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -327,7 +394,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -412,7 +479,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -458,7 +525,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -475,13 +542,13 @@ export const useEstoqueStore = defineStore('estoque', {
             this.loading = true;
 
             try {
-                const response = await apiPhp.get(`/estoque/almoxarifados/${id}`);
+                const response = await apiPhp.get(`/estoque/almoxarifados/${idemp}/${id}`);
 
                 this.almoxarifado = response.data?.data ?? response.data;
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -500,7 +567,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.post('/estoque/almoxarifados', almoxarifadoData);
                 await this.buscarAlmoxarifados(idemp);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -517,10 +584,10 @@ export const useEstoqueStore = defineStore('estoque', {
         async editarAlmoxarifado(idemp, id, almoxarifadoData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/almoxarifados/${id}`, almoxarifadoData);
+                await apiPhp.put(`/estoque/almoxarifados/${idemp}/${id}`, almoxarifadoData);
                 await this.buscarAlmoxarifados(idemp);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -536,10 +603,10 @@ export const useEstoqueStore = defineStore('estoque', {
         async deletarAlmoxarifado(idemp, id) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/almoxarifados/${id}`);
+                await apiPhp.delete(`/estoque/almoxarifados/${idemp}/${id}`);
                 await this.buscarAlmoxarifados(idemp);
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -565,7 +632,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -587,7 +654,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -689,7 +756,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 console.error('Erro ao buscar alíquotas:', error);
             } finally {
                 this.loading = false;
@@ -749,7 +816,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -765,7 +832,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 this.errorMessage = '';
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -777,7 +844,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.post('/manutencao/formulas', formulaData);
                 await this.buscarTodasFormulas();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -789,7 +856,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.put(`/manutencao/formulas/${id}`, formulaData);
                 await this.buscarTodasFormulas();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -811,7 +878,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await this.buscarTodasFormulas();
 
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
 
                 if (this.errorMessage === 'Not Acceptable') {
                     this.errorMessage = 'Fórmula não aceita. Verifique se todas as variaveis existem e se a sintaxe está correta.';
@@ -829,7 +896,7 @@ export const useEstoqueStore = defineStore('estoque', {
                 await apiPhp.delete(`/manutencao/formulas/${id}`);
                 await this.buscarTodasFormulas();
             } catch (error) {
-                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
