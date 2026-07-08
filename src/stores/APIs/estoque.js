@@ -766,10 +766,14 @@ export const useEstoqueStore = defineStore('estoque', {
         async cadastrarAliquota(aliquotaData, emp, uf) {
             this.loading = true;
             try {
-                const apiStoreInstance = useApiStore();
-                await apiStoreInstance.executarAcao(`aliquotauf/${emp}`, 'post', aliquotaData);
+                const payload = { ...aliquotaData, id_empresa: emp };
+                await apiPhp.post('/estoque/aliquota-ufs', payload);
+                this.successMessage = 'Alíquota cadastrada com sucesso!';
+                toast.success(this.successMessage);
                 await this.buscarTodasAliquotas(emp, uf);
             } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro ao cadastrar alíquota';
+                toast.error(this.errorMessage);
                 console.error('Erro ao cadastrar alíquota:', error);
             } finally {
                 this.loading = false;
@@ -779,10 +783,14 @@ export const useEstoqueStore = defineStore('estoque', {
         async editarAliquota(aliquotaData, emp, cfop, uf) {
             this.loading = true;
             try {
-                const apiStoreInstance = useApiStore();
-                await apiStoreInstance.executarAcao(`aliquotauf/${emp}/${uf}/${cfop}`, 'put', aliquotaData);
+                const payload = { ...aliquotaData, id_empresa: emp };
+                await apiPhp.put(`/estoque/aliquota-ufs/${emp}/${uf}/${cfop}`, payload);
+                this.successMessage = 'Alíquota atualizada com sucesso!';
+                toast.success(this.successMessage);
                 await this.buscarTodasAliquotas(emp, uf);
             } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro ao editar alíquota';
+                toast.error(this.errorMessage);
                 console.error('Erro ao editar alíquota:', error);
             } finally {
                 this.loading = false;
@@ -792,11 +800,14 @@ export const useEstoqueStore = defineStore('estoque', {
         async deletarAliquota(emp, cfop, uf) {
             this.loading = true;
             try {
-                const apiStoreInstance = useApiStore();
-                await apiStoreInstance.executarAcao(`aliquotauf/${emp}/${uf}/${cfop}`, 'delete');
+                await apiPhp.delete(`/estoque/aliquota-ufs/${emp}/${uf}/${cfop}`);
+                this.successMessage = 'Alíquota excluída com sucesso!';
+                toast.success(this.successMessage);
                 await this.buscarTodasAliquotas(emp, uf);
             } catch (error) {
-                console.error('Erro ao deletar alíquota:', error);
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro ao excluir alíquota';
+                toast.error(this.errorMessage);
+                console.error('Erro ao excluir alíquota:', error);
             } finally {
                 this.loading = false;
             }

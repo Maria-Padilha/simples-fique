@@ -149,6 +149,11 @@ export const useSidebarStore = defineStore('sidebar', () => {
                     icon: 'mdi-function-variant',
                     route: '/paginas/estoque/formulas'
                 },
+                {
+                    text: 'Certificados',
+                    icon: 'mdi-certificate',
+                    route: '/paginas/certificados'
+                },
             ]
         },
         {
@@ -189,11 +194,6 @@ export const useSidebarStore = defineStore('sidebar', () => {
                             text: 'Dev. Nota Fiscal',
                             icon: 'mdi-file-document-edit-outline',
                             route: '/paginas/deventrada'
-                        },
-                        {
-                            text: 'Certificados',
-                            icon: 'mdi-certificate',
-                            route: '/paginas/certificados'
                         },
                         {
                             text: 'Inventário',

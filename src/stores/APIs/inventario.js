@@ -49,7 +49,7 @@ export const useInventarioStore = defineStore('inventario', {
 
       this.loading = true
       try {
-        const response = await apiPhp.get(`/estoque/inventarios/${id}`)
+        const response = await apiPhp.get(`/estoque/inventarios/${idEmpresa}/${id}`)
 
         this.inventarioAtual = response.data?.data ?? response.data ?? null
         return response.data
@@ -165,7 +165,7 @@ export const useInventarioStore = defineStore('inventario', {
 
       this.loading = true
       try {
-        const response = await apiPhp.post(`/estoque/inventarios/${id}/cancelar`)
+        const response = await apiPhp.post(`/estoque/inventarios/${idEmpresa}/${id}/cancelar`)
 
         this.inventarios = this.inventarios.filter(inv => inv.id !== id)
         toast.success('Inventário cancelado com sucesso!')
@@ -251,8 +251,8 @@ export const useInventarioStore = defineStore('inventario', {
      * @param {number} id - ID do inventário
      * @param {Array} itens - Lista de itens no formato [{ id_produto, qtd_contada, diferenca, id_localizacao }]
      */
-    async inserirItemInventario(idEmpresa, id, itens) {
-      if (!idEmpresa || !id) {
+    async inserirItemInventario(idEmpresa, idInventario, itens) {
+      if (!idEmpresa || !idInventario) {
         toast.error('Parâmetros inválidos')
         return
       }
@@ -263,14 +263,28 @@ export const useInventarioStore = defineStore('inventario', {
       }
 
       this.loading = true
+      let erros = 0
       try {
-        const response = await apiPhp.post('/estoque/inventario-itens', {
-          id_inventario: id,
-          itens
-        })
+        for (const item of itens) {
+          try {
+            await apiPhp.post('/estoque/inventario-itens', {
+              id_inventario: idInventario,
+              id_produto: item.id_produto,
+              qtd_contada: item.qtd_contada,
+              id_cor: item.id_cor ?? 0,
+              id_tamanho: item.id_tamanho ?? 0
+            })
+          } catch {
+            erros++
+          }
+        }
 
-        toast.success('Contagem salva com sucesso!')
-        return response.data
+        if (erros === 0) {
+          toast.success('Contagem salva com sucesso!')
+        } else {
+          toast.warning(`${erros} item(ns) não puderam ser salvos`)
+        }
+        return true
       } catch (error) {
         toast.error('Erro ao salvar contagem')
         throw error
@@ -286,8 +300,8 @@ export const useInventarioStore = defineStore('inventario', {
      * @param {Array} itens - Lista de itens
      * @param {number} id_almoxarifado - ID do almoxarifado
      */
-    async atualizarItemInventario(idEmpresa, id, itens, id_almoxarifado = {}) {
-      if (!idEmpresa || !id || !id_almoxarifado) {
+    async atualizarItemInventario(idEmpresa, idInventario, itens, id_almoxarifado = {}) {
+      if (!idEmpresa || !idInventario || !id_almoxarifado) {
         toast.error('Parâmetros inválidos')
         return
       }
@@ -298,14 +312,25 @@ export const useInventarioStore = defineStore('inventario', {
       }
 
       this.loading = true
+      let erros = 0
       try {
-        const response = await apiPhp.put(`/estoque/inventario-itens/${id}`, {
-          itens,
-          id_almoxarifado
-        })
+        for (const item of itens) {
+          try {
+            await apiPhp.put(
+              `/estoque/inventario-itens/${idEmpresa}/${idInventario}/${item.id_produto}/${item.id_cor ?? 0}/${item.id_tamanho ?? 0}`,
+              { qtd_contada: item.qtd_contada }
+            )
+          } catch {
+            erros++
+          }
+        }
 
-        toast.success('Contagem atualizada com sucesso!')
-        return response.data
+        if (erros === 0) {
+          toast.success('Contagem atualizada com sucesso!')
+        } else {
+          toast.warning(`${erros} item(ns) não puderam ser atualizados`)
+        }
+        return true
       } catch (error) {
         toast.error('Erro ao atualizar contagem')
         throw error
@@ -344,7 +369,7 @@ export const useInventarioStore = defineStore('inventario', {
 
       this.loading = true
       try {
-        const response = await apiPhp.get('/estoque/inventario-itens', { params })
+        const response = await apiPhp.get('/estoque/produto-almoxarifados', { params })
 
         this.gridProdutos = response.data?.data ?? response.data ?? []
         return response.data
@@ -357,8 +382,88 @@ export const useInventarioStore = defineStore('inventario', {
     },
 
     /**
+     * Envia arquivo para processamento automático de inventário
+     * @param {File} arquivo - Arquivo .txt com códigos e quantidades
+     * @param {object} config - Configuração do layout
+     * @param {number} config.id_empresa - ID da empresa
+     * @param {number} config.id_almoxarifado - ID do almoxarifado
+     * @param {string} config.layout_utilizado - Tipo de layout
+     * @param {boolean} config.usar_separador - Usar separador
+     * @param {string} [config.separador_char] - Caractere separador
+     * @param {number} [config.layout_dig_prod] - Dígitos do produto (tamanho fixo)
+     * @param {number} [config.layout_dig_qtd] - Dígitos da quantidade (tamanho fixo)
+     */
+    async processarArquivoInventario(arquivo, config) {
+      if (!arquivo || !config.id_empresa || !config.id_almoxarifado || !config.layout_utilizado) {
+        toast.error('Parâmetros inválidos para processar arquivo')
+        return
+      }
+
+      this.loading = true
+      try {
+        const formData = new FormData()
+        formData.append('arquivo', arquivo)
+        formData.append('id_empresa', config.id_empresa)
+        formData.append('id_almoxarifado', config.id_almoxarifado)
+        formData.append('layout_utilizado', config.layout_utilizado)
+        formData.append('usar_separador', config.usar_separador ? '1' : '0')
+
+        if (config.usar_separador && config.separador_char) {
+          formData.append('separador_char', config.separador_char)
+        }
+        if (!config.usar_separador) {
+          formData.append('layout_dig_prod', config.layout_dig_prod || '0')
+          formData.append('layout_dig_qtd', config.layout_dig_qtd || '0')
+        }
+
+        const response = await apiPhp.post('/estoque/inventarios/processar-arquivo', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+
+        return response.data?.data ?? response.data ?? null
+      } catch (error) {
+        toast.error('Erro ao processar arquivo')
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
      * Limpa o estado do store
      */
+    /**
+     * Busca um produto no catálogo de referência pelo GTIN (código de barras)
+     * @param {string} gtin - Código de barras do produto
+     */
+    async buscarProdutoReferencia(gtin) {
+      if (!gtin) return null
+
+      try {
+        const response = await apiPhp.get(`/estoque/produtos/referencia/${gtin}`)
+        return response.data?.data ?? response.data ?? null
+      } catch (error) {
+        if (error.response?.status === 404) return null
+        throw error
+      }
+    },
+
+    /**
+     * Importa um produto do catálogo de referência
+     * @param {string} gtin - Código de barras do produto
+     */
+    async importarProdutoReferencia(gtin) {
+      if (!gtin) return null
+
+      try {
+        const response = await apiPhp.post('/estoque/produtos/importar', { codigo_gtin: gtin })
+        return response.data?.data ?? response.data ?? null
+      } catch (error) {
+        toast.error('Erro ao importar produto')
+        throw error
+      }
+    },
+
     limparEstado() {
       this.inventarios = []
       this.inventarioAtual = null

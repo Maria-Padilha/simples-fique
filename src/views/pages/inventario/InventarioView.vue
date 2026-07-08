@@ -1431,124 +1431,62 @@ const importarArquivo = async () => {
 
   processandoArquivo.value = true
   try {
-    const fileContent = await inventario.arquivo.text()
-    const linhas = fileContent.split('\n').filter(linha => linha.trim())
+    const empresaSelecionadaStr = localStorage.getItem('empresaSelecionada')
+    if (!empresaSelecionadaStr) { toast.error('Empresa não selecionada'); return }
+    const idEmpresa = JSON.parse(empresaSelecionadaStr).id
 
-    console.log('[Inventário] Total de linhas:', linhas.length)
-    console.log('[Inventário] Primeiras 3 linhas:', linhas.slice(0, 3))
+    const resultado = await inventarioStore.processarArquivoInventario(inventario.arquivo, {
+      id_empresa: idEmpresa,
+      id_almoxarifado: inventario.id_almoxarifado,
+      layout_utilizado: inventario.layout_utilizado,
+      usar_separador: usarSeparador.value,
+      separador_char: usarSeparador.value ? inventario.separador_char : undefined,
+      layout_dig_prod: !usarSeparador.value ? inventario.layout_dig_prod : undefined,
+      layout_dig_qtd: !usarSeparador.value ? inventario.layout_dig_qtd : undefined
+    })
 
-    let itensProcessados = 0
-    let erros = 0
+    if (!resultado) {
+      toast.error('Erro ao processar arquivo - resposta vazia')
+      return
+    }
 
-    for (const linha of linhas) {
-      try {
-        let codigo, quantidade, localizacaoId = null
-        
-        if (usarSeparador.value) {
-          // Processar com separador
-          const partes = linha.split(inventario.separador_char).map(p => p.trim())
-          console.log('[Inventário] Linha processada:', linha)
-          console.log('[Inventário] Partes:', partes)
-          
-          if (inventario.layout_utilizado === 'cod_interno_qtd_loc') {
-            [codigo, quantidade, localizacaoId] = partes
-          } else {
-            [codigo, quantidade] = partes
-          }
-        } else {
-          // Processar tamanho fixo
-          const digitosProduto = inventario.layout_dig_prod
-          const digitosQtd = inventario.layout_dig_qtd
-          
-          codigo = linha.substring(0, digitosProduto).trim()
-          quantidade = linha.substring(digitosProduto, digitosProduto + digitosQtd).trim()
-          console.log('[Inventário] Tamanho fixo - Código:', codigo, 'Quantidade:', quantidade)
+    const itens = resultado.itens || []
+
+    let inseridos = 0
+    for (const item of itens) {
+      if (item.encontrado && item.produto) {
+        const jaExiste = itensInventario.value.find(i => i.codigo === (item.codigo_barras || item.produto.codigo_gtin))
+        if (!jaExiste) {
+          const qtdSistema = item.produto?.saldo_atual || item.produto?.quantidade || 0
+          itensInventario.value.push({
+            produtoId: item.produto.id,
+            codigo: item.codigo_barras || item.produto.codigo_gtin || item.produto.codigo_sku || '',
+            nome: item.produto.descproduto || item.produto.nome || item.produto.produto || '',
+            estoqueSistema: qtdSistema,
+            quantidadeContada: item.quantidade || 0,
+            diferenca: 0,
+            unidade: item.produto.unidade || item.produto.embalagem || 'UN',
+            localizacaoId: null,
+            localizacao: ''
+          })
+          inseridos++
         }
-
-        console.log('[Inventário] Buscando produto - Código:', codigo, 'Quantidade:', quantidade, 'Tipo:', inventario.layout_utilizado)
-
-        // Buscar produto baseado no tipo de documento
-        let produto = null
-        switch (inventario.layout_utilizado) {
-          case 'cod_interno_qtd':
-          case 'cod_interno_qtd_loc':
-            produto = produtos.value.find(p => p.id === parseInt(codigo))
-            console.log('[Inventário] Buscando por ID:', parseInt(codigo), 'Encontrado:', !!produto)
-            break
-          case 'cod_barras_qtd':
-            produto = produtos.value.find(p => p.codigo_gtin === codigo || p.codigo_sku === codigo)
-            console.log('[Inventário] Buscando por código de barras:', codigo, 'Encontrado:', !!produto)
-            break
-          case 'cod_referencia_qtd':
-            produto = produtos.value.find(p => p.codigo_sku === codigo)
-            console.log('[Inventário] Buscando por SKU:', codigo, 'Encontrado:', !!produto)
-            break
-          case 'cod_fabricacao_qtd':
-            produto = produtos.value.find(p => p.codigo_fabricante === codigo)
-            console.log('[Inventário] Buscando por código fabricante:', codigo, 'Encontrado:', !!produto)
-            break
-        }
-
-        if (produto) {
-          // Verificar se já existe
-          const jaExiste = itensInventario.value.find(item => item.produtoId === produto.id)
-          if (!jaExiste) {
-            const qtdContada = parseFloat(quantidade) || 0
-            
-            // Buscar saldo do produto no almoxarifado via API
-            const empresaSelecionadaStr = localStorage.getItem('empresaSelecionada')
-            const empresaSelecionada = JSON.parse(empresaSelecionadaStr)
-            const idEmpresa = empresaSelecionada.id
-            
-            let qtdSistema = 0
-            try {
-              const saldoData = await inventarioStore.consultarSaldoProdutoAlmoxarifado(
-                idEmpresa,
-                inventario.id_almoxarifado,
-                produto.id
-              )
-              qtdSistema = saldoData?.saldo || saldoData?.quantidade || 0
-              console.log('[Inventário] Saldo do produto no almoxarifado:', qtdSistema)
-            } catch (error) {
-              console.warn('[Inventário] Erro ao buscar saldo, usando 0:', error)
-              qtdSistema = 0
-            }
-
-            itensInventario.value.push({
-              produtoId: produto.id,
-              codigo: produto.codigo_sku || produto.codigo_gtin || produto.id,
-              nome: produto.descproduto,
-              estoqueSistema: qtdSistema,
-              quantidadeContada: qtdContada,
-              diferenca: 0,
-              unidade: produto.unidade || 'UN',
-              localizacaoId: localizacaoId ? parseInt(localizacaoId) : null,
-              localizacao: localizacaoId ? getDescricaoLocalizacao(parseInt(localizacaoId)) : ''
-            })
-            itensProcessados++
-            console.log('[Inventário] Produto adicionado:', produto.descproduto)
-          } else {
-            console.log('[Inventário] Produto já existe:', produto.descproduto)
-          }
-        } else {
-          console.warn('[Inventário] Produto não encontrado para código:', codigo)
-          erros++
-        }
-      } catch (error) {
-        console.error('[Inventário] Erro ao processar linha:', linha, error)
-        erros++
       }
     }
 
-    console.log('[Inventário] Processamento concluído - Sucesso:', itensProcessados, 'Erros:', erros)
+    const naoEncontrados = resultado.nao_encontrados || 0
+    const invalidas = resultado.invalidas || 0
 
-    if (itensProcessados > 0) {
-      toast.success(`${itensProcessados} produtos importados com sucesso!`)
+    if (inseridos > 0) {
+      toast.success(`${inseridos} produto(s) importado(s) com sucesso!`)
     }
-    if (erros > 0) {
-      toast.warning(`${erros} linhas não puderam ser processadas`)
+    if (naoEncontrados > 0) {
+      toast.warning(`${naoEncontrados} código(s) de barras não encontrado(s) no catálogo`)
     }
-    if (itensProcessados === 0 && erros === 0) {
+    if (invalidas > 0) {
+      toast.warning(`${invalidas} linha(s) inválida(s) ignoradas`)
+    }
+    if (inseridos === 0 && naoEncontrados === 0 && invalidas === 0) {
       toast.info('Nenhum produto novo foi encontrado')
     }
   } catch (error) {
@@ -1631,16 +1569,80 @@ const copiarLink = async () => {
   }
 }
 
-const buscarPorCodigo = () => {
-  if (!filtroManual.codigo) return
-  const produto = produtosGrid.value.find(p =>
-    String(p.id_produto) === String(filtroManual.codigo) ||
-    p.codigo_gtin === filtroManual.codigo
-  )
-  if (produto) {
-    filtroManual.produtoId = produto.id_produto
-  } else {
-    toast.warning('Produto não encontrado para o código informado')
+const buscarPorCodigo = async () => {
+  const codigo = filtroManual.codigo
+  if (!codigo) return
+
+  const empresaSelecionadaStr = localStorage.getItem('empresaSelecionada')
+  if (!empresaSelecionadaStr) { toast.error('Empresa não selecionada'); return }
+  const idEmpresa = JSON.parse(empresaSelecionadaStr).id
+
+  if (!inventario.id_almoxarifado) {
+    toast.warning('Selecione um almoxarifado primeiro')
+    return
+  }
+
+  try {
+    let produto = produtosGrid.value.find(p =>
+      String(p.id_produto) === codigo ||
+      p.codigo_gtin === codigo
+    )
+
+    if (!produto) {
+      const ref = await inventarioStore.buscarProdutoReferencia(codigo)
+      if (!ref) {
+        toast.warning('Produto não encontrado')
+        return
+      }
+      const importado = await inventarioStore.importarProdutoReferencia(codigo)
+      if (!importado) {
+        toast.warning('Erro ao importar produto')
+        return
+      }
+      await carregarProdutos()
+      await carregarGridProdutos()
+      produto = produtosGrid.value.find(p =>
+        String(p.id_produto) === String(importado.id || importado.id_produto)
+      )
+      if (!produto) {
+        toast.warning('Produto importado mas não encontrado na grade')
+        return
+      }
+    }
+
+    const produtoId = produto.id_produto
+    filtroManual.produtoId = produtoId
+
+    if (itensInventario.value.find(i => i.produtoId === produtoId)) {
+      toast.info('Produto já está no inventário')
+      return
+    }
+
+    let qtdSistema = 0
+    try {
+      const saldoData = await inventarioStore.consultarSaldoProdutoAlmoxarifado(
+        idEmpresa, inventario.id_almoxarifado, produtoId
+      )
+      qtdSistema = saldoData?.saldo || saldoData?.quantidade || 0
+    } catch {
+      console.warn('[Inventário] Erro ao buscar saldo, usando 0')
+    }
+
+    itensInventario.value.push({
+      produtoId,
+      codigo: produto.codigo_gtin || produto.id_produto,
+      nome: produto.descproduto,
+      estoqueSistema: qtdSistema,
+      quantidadeContada: 0,
+      diferenca: 0,
+      unidade: produto.abreviatura || 'UN',
+      localizacaoId: null,
+      localizacao: ''
+    })
+
+    toast.success(`Produto "${produto.descproduto}" adicionado`)
+  } catch (error) {
+    toast.error('Erro ao buscar produto')
   }
 }
 

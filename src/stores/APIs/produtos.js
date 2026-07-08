@@ -1443,20 +1443,14 @@ export const useProdutosStore = defineStore('produtos', {
             this.loading = true;
 
             try {
-                const response = await apiPhp.get(`/aliquotauf/${emp}/${uf}/${cfop}`, {
-                    headers: {
-                        'Authorization': `Bearer ${this.token}`
-                    }
-                });
+                const response = await apiPhp.get(`/estoque/aliquota-ufs/${emp}/${uf}/${cfop}`);
 
                 this.aliquotaInfos = response.data;
                 this.errorMessage = '';
 
-                console.log('Aliquotas infos encontrados:', this.aliquotaInfos);
-
             } catch (error) {
-                this.errorMessage = error.response;
-                console.error('Erro ao buscar aliquitas infos:', error);
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro ao buscar alíquotas';
+                console.error('Erro ao buscar alíquotas infos:', error);
             } finally {
                 this.loading = false;
             }
