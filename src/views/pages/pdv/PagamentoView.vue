@@ -259,14 +259,6 @@ const validarPagamento = () => {
     return;
   }
 
-  // Aqui você salvaria o pagamento
-  const dadosPagamento = {
-    total: totalVenda.value,
-    pagamentos: pagamentos.value,
-    troco: troco.value,
-    data: new Date().toISOString()
-  };
-
   // Limpar dados da sessão
   sessionStorage.removeItem('dadosVenda');
 

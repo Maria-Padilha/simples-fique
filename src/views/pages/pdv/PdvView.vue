@@ -241,7 +241,7 @@ onMounted(() => {
 });
 
 // Funções
-const handleAberturaCaixa = (dados) => {
+const handleAberturaCaixa = () => {
   caixaAberto.value = true;
   // Aqui você pode salvar os dados de abertura do caixa
 };
