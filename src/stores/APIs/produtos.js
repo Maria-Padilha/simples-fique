@@ -1,6 +1,5 @@
 import {defineStore} from "pinia"
 import apiPhp from "@/services/apiPhp";
-import {useApiStore} from "@/stores/APIs/api";
 
 const CAMPOS_PRODUTO = {
     descproduto: 'Descrição do Produto',
@@ -66,8 +65,12 @@ export const useProdutosStore = defineStore('produtos', {
         embalagem: null,
 
         fornecedores: [],
+        fornecedor: null,
 
         similar: [],
+        produtoSimilar: null,
+
+        produtoPreco: null,
 
         entradadfe: [],
         entradadfeItem: null,
@@ -75,11 +78,13 @@ export const useProdutosStore = defineStore('produtos', {
         deventrada: [],
 
         localizacoes: [],
+        localizacao: null,
 
         API_MIDIAS: "http://192.168.10.79:3005",
         fotosBanco: [],
 
         cores: [],
+        cor: null,
         tamanhos: [
             {title: 'PP', value: 'PP'},
             {title: 'P', value: 'P'},
@@ -347,11 +352,48 @@ export const useProdutosStore = defineStore('produtos', {
         async cadastrarMedida(payload) {
             this.loading = true;
             try {
-                const apiStore = useApiStore();
-                await apiStore.executarAcao('medida', 'post', payload);
+                await apiPhp.post('/estoque/medidas', payload);
                 await this.buscarMedidas();
             } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 console.error('Erro ao cadastrar medida:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * ATUALIZAR MEDIDA
+         * @param {number} id - ID da medida a ser atualizada.
+         * @param {object} payload - Dados da medida a serem atualizados.
+         * @return {Promise<void>}
+         */
+
+        async atualizarMedida(id, payload) {
+            this.loading = true;
+            try {
+                await apiPhp.put(`/estoque/medidas/${id}`, payload);
+                await this.buscarMedidas();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * DELETAR MEDIDA
+         * @param {number} id - ID da medida a ser deletada.
+         * @return {Promise<void>}
+         */
+
+        async deletarMedida(id) {
+            this.loading = true;
+            try {
+                await apiPhp.delete(`/estoque/medidas/${id}`);
+                await this.buscarMedidas();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -482,6 +524,29 @@ export const useProdutosStore = defineStore('produtos', {
         },
 
         /**
+         * BUSCAR EMBALAGEM POR ID
+         * @param {number} produtoId - ID do produto vinculado.
+         * @param {number} id - ID da embalagem a ser buscada.
+         * @return {Promise<void>}
+         */
+
+        async buscarEmbalagemPorId(produtoId, id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/produto-embalagens/${produtoId}/${id}`);
+
+                this.embalagem = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
          * CADASTRAR EMBALAGEM
          * @param {object} embalagemData - Dados da embalagem a ser cadastrada.
          * @return {Promise<void>}
@@ -510,7 +575,7 @@ export const useProdutosStore = defineStore('produtos', {
         async atualizarEmbalagem(produtoId, id, embalagemData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/produto-embalagens/${id}`, { ...embalagemData, id_produto: produtoId });
+                await apiPhp.put(`/estoque/produto-embalagens/${produtoId}/${id}`, { ...embalagemData, id_produto: produtoId });
                 await this.buscarEmbalagens(produtoId);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -529,7 +594,7 @@ export const useProdutosStore = defineStore('produtos', {
         async deletarEmbalagem(produtoId, id) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/produto-embalagens/${id}`);
+                await apiPhp.delete(`/estoque/produto-embalagens/${produtoId}/${id}`);
                 await this.buscarEmbalagens(produtoId);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -553,6 +618,29 @@ export const useProdutosStore = defineStore('produtos', {
                 });
 
                 this.fornecedores = response.data?.data ?? response.data ?? [];
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR FORNECEDOR POR ID
+         * @param {number} idProduto - ID do produto vinculado.
+         * @param {number} idPessoa - ID da pessoa/fornecedor.
+         * @return {Promise<void>}
+         */
+
+        async buscarFornecedorPorId(idProduto, idPessoa) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/produto-fornecedors/${idProduto}/${idPessoa}`);
+
+                this.fornecedor = response.data?.data ?? response.data;
                 this.errorMessage = '';
 
             } catch (error) {
@@ -590,7 +678,7 @@ export const useProdutosStore = defineStore('produtos', {
         async deletarFornecedor(idProduto, id) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/produto-fornecedors/${id}`, { params: { id_produto: idProduto } });
+                await apiPhp.delete(`/estoque/produto-fornecedors/${idProduto}/${id}`);
                 await this.buscarFornecedores(idProduto);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -610,7 +698,7 @@ export const useProdutosStore = defineStore('produtos', {
         async atualizarFornecedor(idProduto, id, fornecedorData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/produto-fornecedors/${id}`, { ...fornecedorData, id_produto: idProduto });
+                await apiPhp.put(`/estoque/produto-fornecedors/${idProduto}/${id}`, { ...fornecedorData, id_produto: idProduto });
                 await this.buscarFornecedores(idProduto);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -634,6 +722,29 @@ export const useProdutosStore = defineStore('produtos', {
                 });
 
                 this.similar = response.data?.data ?? response.data ?? [];
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR PRODUTO SIMILAR POR ID
+         * @param {number} idProduto - ID do produto vinculado.
+         * @param {number} idSimilar - ID do produto similar.
+         * @return {Promise<void>}
+         */
+
+        async buscarProdutoSimilarPorId(idProduto, idSimilar) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/produto-similars/${idProduto}/${idSimilar}`);
+
+                this.produtoSimilar = response.data?.data ?? response.data;
                 this.errorMessage = '';
 
             } catch (error) {
@@ -671,7 +782,7 @@ export const useProdutosStore = defineStore('produtos', {
         async deletarProdutoSimilar(idProduto, id) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/produto-similars/${id}`, { params: { id_produto: idProduto } });
+                await apiPhp.delete(`/estoque/produto-similars/${idProduto}/${id}`);
                 await this.buscarProdutosSimilares(idProduto);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -691,7 +802,7 @@ export const useProdutosStore = defineStore('produtos', {
         async atualizarProdutoSimilar(idProduto, id, similarData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/produto-similars/${id}`, { ...similarData, id_produto: idProduto });
+                await apiPhp.put(`/estoque/produto-similars/${idProduto}/${id}`, { ...similarData, id_produto: idProduto });
                 await this.buscarProdutosSimilares(idProduto);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -873,6 +984,29 @@ export const useProdutosStore = defineStore('produtos', {
         },
 
         /**
+         * BUSCAR LOCALIZAÇÃO POR ID
+         * @param {number} idEmpresa - ID da Empresa.
+         * @param {number} id - ID da localização a ser buscada.
+         * @return {Promise<void>}
+         */
+
+        async buscarLocalizacaoPorId(idEmpresa, id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/localizacoes/${idEmpresa}/${id}`);
+
+                this.localizacao = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
          * CADASTRAR LOCALIZAÇÃO
          * @param {object} localizacaoData - Dados da localização a ser cadastrada.
          * @return {Promise<void>}
@@ -900,7 +1034,7 @@ export const useProdutosStore = defineStore('produtos', {
         async deletarLocalizacao(idEmpresa, id) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/localizacoes/${id}`);
+                await apiPhp.delete(`/estoque/localizacoes/${idEmpresa}/${id}`);
                 await this.buscarLocalizacoes(idEmpresa);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -920,7 +1054,7 @@ export const useProdutosStore = defineStore('produtos', {
         async atualizarLocalizacao(idEmpresa, id, localizacaoData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/localizacoes/${id}`, localizacaoData);
+                await apiPhp.put(`/estoque/localizacoes/${idEmpresa}/${id}`, localizacaoData);
                 await this.buscarLocalizacoes(idEmpresa);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -941,6 +1075,28 @@ export const useProdutosStore = defineStore('produtos', {
                 const response = await apiPhp.get(`/estoque/cors`);
 
                 this.cores = response.data?.data ?? response.data ?? [];
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR COR POR ID
+         * @param {number} id - ID da cor a ser buscada.
+         * @return {Promise<void>}
+         */
+
+        async buscarCorPorId(id) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/cors/${id}`);
+
+                this.cor = response.data?.data ?? response.data;
                 this.errorMessage = '';
 
             } catch (error) {
@@ -988,6 +1144,24 @@ export const useProdutosStore = defineStore('produtos', {
         },
 
         /**
+         * DELETAR COR
+         * @param {number} id - ID da cor a ser deletada.
+         * @return {Promise<void>}
+         */
+
+        async deletarCor(id) {
+            this.loading = true;
+            try {
+                await apiPhp.delete(`/estoque/cors/${id}`);
+                await this.buscarCores();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
          * GRADE DE PRODUTOS
          */
 
@@ -1006,7 +1180,7 @@ export const useProdutosStore = defineStore('produtos', {
         async deletarGradeProduto(idEmp, idProduto, idCor, idTam) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/grades/${idProduto}/${idCor}/${idTam}`);
+                await apiPhp.delete(`/estoque/grades/${idEmp}/${idProduto}/${idCor}/${idTam}`);
                 await this.buscarGradeProduto(idEmp);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -1018,7 +1192,7 @@ export const useProdutosStore = defineStore('produtos', {
         async atualizarGradeProduto(idEmp, idProduto, idCor, idTam, gradeData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/grades/${idProduto}/${idCor}/${idTam}`, gradeData);
+                await apiPhp.put(`/estoque/grades/${idEmp}/${idProduto}/${idCor}/${idTam}`, gradeData);
                 await this.buscarGradeProduto(idEmp);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -1044,11 +1218,11 @@ export const useProdutosStore = defineStore('produtos', {
             }
         },
 
-        async buscarGradeProdutoPorId(idEmp, idProduto) {
+        async buscarGradeProdutoPorId(idEmp, idProduto, idCor, idTam) {
             this.loading = true;
 
             try {
-                const response = await apiPhp.get(`/estoque/grades/${idProduto}`);
+                const response = await apiPhp.get(`/estoque/grades/${idEmp}/${idProduto}/${idCor}/${idTam}`);
 
                 const gradeItem = response.data?.data ?? response.data;
                 this.errorMessage = '';
@@ -1058,6 +1232,47 @@ export const useProdutosStore = defineStore('produtos', {
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 return null;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /** ================= PREÇOS DE PRODUTOS ================= */
+
+        async buscarProdutoPreco(idEmpresa, idProduto) {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/produto-precos/${idEmpresa}/${idProduto}`);
+
+                this.produtoPreco = response.data?.data ?? response.data;
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async cadastrarProdutoPreco(precoData) {
+            this.loading = true;
+            try {
+                await apiPhp.post('/estoque/produto-precos', precoData);
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async atualizarProdutoPreco(idEmpresa, idProduto, precoData) {
+            this.loading = true;
+            try {
+                await apiPhp.put(`/estoque/produto-precos/${idEmpresa}/${idProduto}`, precoData);
+                await this.buscarProdutoPreco(idEmpresa, idProduto);
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
             }
@@ -1096,7 +1311,7 @@ export const useProdutosStore = defineStore('produtos', {
         async atualizarTributo(idEmpresa, id, tributoData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/produto-tributos/${id}`, tributoData);
+                await apiPhp.put(`/estoque/produto-tributos/${idEmpresa}/${id}`, tributoData);
                 await this.buscarTributoPorId(idEmpresa, id);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -1108,7 +1323,7 @@ export const useProdutosStore = defineStore('produtos', {
         async deletarTributo(idEmpresa, id) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/produto-tributos/${id}`);
+                await apiPhp.delete(`/estoque/produto-tributos/${idEmpresa}/${id}`);
                 await this.buscarTributoPorId(idEmpresa, id);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -1121,11 +1336,10 @@ export const useProdutosStore = defineStore('produtos', {
             this.loading = true;
 
             try {
-                const response = await apiPhp.get('/estoque/produto-tributos', {
-                    params: { id_produto: id }
-                });
+                const response = await apiPhp.get(`/estoque/produto-tributos/${idEmpresa}/${id}`);
 
-                this.tributos = response.data?.data ?? response.data ?? [];
+                const data = response.data?.data ?? response.data;
+                this.tributos = data ? (Array.isArray(data) ? data : [data]) : [];
                 this.errorMessage = '';
 
             } catch (error) {
@@ -1175,12 +1389,13 @@ export const useProdutosStore = defineStore('produtos', {
             return response.json();
         },
 
-        async salvarFotoBanco(dataFoto) {
+        async salvarFotoBanco(fotoData) {
             this.loading = true;
             try {
-                const payload = Array.isArray(dataFoto?.data) ? dataFoto.data[0] : dataFoto
-                await apiPhp.post('/estoque/produto-fotos', payload);
+                await apiPhp.post('/estoque/produto-fotos', fotoData);
+                this.errorMessage = '';
             } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 console.error('Erro ao cadastrar foto no banco de dados:', error);
             } finally {
                 this.loading = false;

@@ -5,6 +5,7 @@
       <v-sheet class="bg-transparent">
         <v-tabs v-model="tab" color="var(--text-color-laranja)">
           <v-tab value="one">Produtos</v-tab>
+          <v-tab value="preco">Preço</v-tab>
           <v-tab value="tributo">Tributo</v-tab>
           <v-tab value="emb">Embalagem</v-tab>
           <v-tab value="for">Fornecedor</v-tab>
@@ -315,6 +316,191 @@
             </v-form>
           </v-tabs-window-item>
 
+          <v-tabs-window-item value="preco">
+            <v-card elevation="0" class="background-secondary mt-10">
+              <v-card-text class="pa-4">
+                <v-form ref="formRefPreco">
+                  <v-row>
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Custo de Compra"
+                          prefix="R$"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.custo_compra"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Custo Médio"
+                          prefix="R$"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.custo_medio"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Custo de Aquisição"
+                          prefix="R$"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.custo_aquisicao"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Margem Lucro Líquido"
+                          suffix="%"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.margem_lucro_liquido"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Preço de Venda"
+                          prefix="R$"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.preco_venda"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Preço de Venda Sugerido"
+                          prefix="R$"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.preco_venda_sugerido"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Preço de Garantia"
+                          prefix="R$"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.preco_garantia"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="% Desconto"
+                          suffix="%"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.perc_desconto"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Comissão (%)"
+                          suffix="%"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.comissao_perc"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Comissão (R$)"
+                          prefix="R$"
+                          v-mask-number
+                          hide-details="auto"
+                          v-model="formsPreco.comissao_vlr"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Quantidade Mínima"
+                          type="number"
+                          min="0"
+                          hide-details="auto"
+                          v-model="formsPreco.quantidade_minima"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Fator"
+                          type="number"
+                          min="0"
+                          hide-details="auto"
+                          v-model="formsPreco.fator"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3" class="d-flex align-center">
+                      <v-switch
+                          hide-details="auto"
+                          :label="`Permite Estoque Negativo? ${formsPreco.permite_estoque_negativo === 'S' ? 'Sim' : 'Não'}`"
+                          v-model="permiteEstoqueNegativo"
+                          color="var(--text-color-laranja)"
+                      />
+                    </v-col>
+                  </v-row>
+
+                  <div class="d-flex justify-end mt-6">
+                    <v-btn
+                        class="text-none text-white" color="var(--text-color-laranja)" variant="flat"
+                        @click="salvarPreco" :loading="produtosStore.loading"
+                        prepend-icon="mdi-content-save-outline"
+                    >
+                      Salvar Preço
+                    </v-btn>
+                  </div>
+                </v-form>
+              </v-card-text>
+            </v-card>
+          </v-tabs-window-item>
+
           <v-tabs-window-item value="tributo">
             <v-card elevation="0" class="background-secondary mt-10">
               <v-card-text class="pa-4">
@@ -364,12 +550,10 @@
 
                       <v-col cols="12" md="4">
                         <v-autocomplete
-                            :readonly="formsTributo.incidenciafisca !== '02'"
+                            :readonly="formsTributo.incidenciafiscal !== '02'"
                             density="compact"
                             variant="outlined"
                             label="CEST"
-                            type="number"
-                            min="0"
                             hide-details="auto"
                             :items="cests"
                             item-title="descricao"
@@ -415,7 +599,7 @@
                   :search="search"
                   @update:search="(value) => search = value"
                   search-label="Pesquisar Items"
-                  item-key="id"
+                  item-key="id_produto"
                   no-data-icon="mdi-database-off"
                   no-data-text="Nenhum item encontrado"
 
@@ -632,7 +816,7 @@
                   :search="search"
                   @update:search="(value) => search = value"
                   search-label="Pesquisar Items"
-                  item-key="id"
+                  item-key="id_pessoa"
                   no-data-icon="mdi-database-off"
                   no-data-text="Nenhum item encontrado"
 
@@ -825,7 +1009,7 @@
                   <v-row v-if="!loadingFotos && fotosR2.length > 0">
                     <v-col
                         v-for="foto in fotosR2"
-                        :key="foto.key"
+                        :key="foto.id"
                         cols="12"
                         sm="6"
                         md="4"
@@ -840,7 +1024,16 @@
                             :src="foto.url"
                             height="150"
                             cover
-                        />
+                        >
+                          <v-btn
+                              icon="mdi-delete"
+                              size="small"
+                              color="error"
+                              variant="flat"
+                              class="ma-2"
+                              @click.stop="excluirFotoSalva(foto.id)"
+                          />
+                        </v-img>
 
                         <v-card-text class="pa-3">
                           <div class="text-caption text-truncate">
@@ -906,6 +1099,16 @@
       >
         <template #item>{{ itemSelecionadoSimilar?.descproduto }}</template>
       </excluir-modal>
+
+      <!-- DELETAR TRIBUTO -->
+      <excluir-modal
+          :cancelar="() => openModalDeleteTributo = false"
+          :deletar="excluirTributo"
+          :loading="produtosStore.loading"
+          v-model:modal-excluir="openModalDeleteTributo"
+      >
+        <template #item>Tributo do produto</template>
+      </excluir-modal>
     </template>
   </top-all-pages>
 </template>
@@ -928,7 +1131,6 @@ import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import BotaoExpandTransition from "@/components/base/padrao-paginas/BotaoExpandTransition.vue";
 import FormsExpandTransition from "@/components/base/padrao-paginas/FormsExpandTransition.vue";
 import TabelaPadrao from "@/components/base/padrao-paginas/TabelaPadrao.vue";
-import axios from "axios";
 import { toast } from "vue3-toastify";
 
 const route = useRoute();
@@ -1225,7 +1427,7 @@ const buscarPessoa = (id) => {
 };
 
 const headersFor = [
-  {title: 'ID', key: 'id'},
+  {title: 'ID', key: 'id_pessoa_display', value: (item) => item.id_pessoa},
   {title: 'Nome do Fornecedor', key: 'id_pessoa'},
   {title: 'Nota', key: 'id_nota'},
   {title: 'Data última compra', key: 'dtultima_compra'},
@@ -1242,7 +1444,9 @@ const itemSelecionadoFor = ref(null);
 
 const editarFor = (item) => {
   itemSelecionadoFor.value = item;
-  Object.assign(formsFornecedor, item)
+  Object.assign(formsFornecedor, item, {
+    dtultima_compra: item.dtultima_compra ? item.dtultima_compra.slice(0, 10) : null,
+  });
   editandoFor.value = true;
   formularioAbertoFor.value = true;
 };
@@ -1352,6 +1556,67 @@ const salvarFormularioSimilar = async () => {
   cancelarFormularioSimilar();
 };
 
+/** ================ PREÇO ================ **/
+
+const formRefPreco = ref(null);
+
+const formsPreco = reactive({
+  custo_compra: null,
+  custo_medio: null,
+  custo_aquisicao: null,
+  margem_lucro_liquido: null,
+  perc_desconto: null,
+  preco_venda: null,
+  preco_venda_sugerido: null,
+  preco_garantia: null,
+  comissao_perc: null,
+  comissao_vlr: null,
+  permite_estoque_negativo: 'N',
+  quantidade_minima: null,
+  fator: null,
+});
+
+const permiteEstoqueNegativo = computed({
+  get: () => formsPreco.permite_estoque_negativo === 'S',
+  set: (val) => {
+    formsPreco.permite_estoque_negativo = val ? 'S' : 'N';
+  }
+});
+
+const salvarPreco = async () => {
+  const payload = {
+    id_produto: Number(id),
+    custo_compra: Number(formsPreco.custo_compra) || 0,
+    custo_medio: Number(formsPreco.custo_medio) || 0,
+    custo_aquisicao: Number(formsPreco.custo_aquisicao) || 0,
+    margem_lucro_liquido: Number(formsPreco.margem_lucro_liquido) || 0,
+    perc_desconto: Number(formsPreco.perc_desconto) || 0,
+    preco_venda: Number(formsPreco.preco_venda) || 0,
+    preco_venda_sugerido: Number(formsPreco.preco_venda_sugerido) || 0,
+    preco_garantia: Number(formsPreco.preco_garantia) || 0,
+    comissao_perc: Number(formsPreco.comissao_perc) || 0,
+    comissao_vlr: Number(formsPreco.comissao_vlr) || 0,
+    permite_estoque_negativo: formsPreco.permite_estoque_negativo,
+    quantidade_minima: Number(formsPreco.quantidade_minima) || 0,
+    fator: Number(formsPreco.fator) || 1,
+  };
+
+  if (produtosStore.produtoPreco) {
+    await produtosStore.atualizarProdutoPreco(idEmpresa?.id, id, payload);
+  } else {
+    await produtosStore.cadastrarProdutoPreco(payload);
+    await produtosStore.buscarProdutoPreco(idEmpresa?.id, id);
+  }
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  Object.assign(formsPreco, produtosStore.produtoPreco);
+  toast.success("Preço salvo com sucesso!");
+};
+
 /** ================ TRIBUTOS ================ **/
 
 const exibirTributos = ref(false);
@@ -1384,9 +1649,11 @@ const toggleFormularioTributo = () => {
 };
 
 const headersTributo = [
-  {title: 'ID', key: 'id'},
-  {title: 'Descrição do Tributo', key: 'desctributo'},
-  {title: 'Valor (%)', key: 'valor_tributo'},
+  {title: 'Classificação Fiscal', key: 'classificacao_fiscal'},
+  {title: 'Incidência Fiscal', key: 'incidenciafiscal'},
+  {title: 'CEST', key: 'id_cest'},
+  {title: 'Margem Lucro Bruto (%)', key: 'margem_lucro_bruto'},
+  {title: 'Margem Lucro CNAE (%)', key: 'margem_lucro_cnae'},
   {title: 'Ações', key: 'acoes', sortable: false},
 ];
 
@@ -1409,18 +1676,42 @@ const salvarFormularioTributo = async () => {
     await produtosStore.cadastrarTributo(formsTributo, idEmpresa?.id, id);
   }
 
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  toast.success("Tributo salvo com sucesso!");
   cancelarFormularioTributo();
 };
 
+const itemSelecionadoTributo = ref(null);
+
 const editarTributo = (item) => {
-  itemSelecionado.value = item;
+  itemSelecionadoTributo.value = item;
   Object.assign(formsTributo, item)
   editandoTributo.value = true;
   formularioAbertoTributo.value = true;
 };
 
+const openModalDeleteTributo = ref(false);
 const deletarTributo = (item) => {
-  console.log("Deletando tributo: ", item);
+  console.log("[Tributo] Item selecionado para exclusão:", item);
+  itemSelecionadoTributo.value = item;
+  openModalDeleteTributo.value = true;
+};
+
+const excluirTributo = async () => {
+  console.log("[Tributo] Excluindo com idEmpresa:", idEmpresa?.id, "id_produto:", id);
+  await produtosStore.deletarTributo(idEmpresa?.id, id);
+  openModalDeleteTributo.value = false;
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  toast.success("Tributo excluído com sucesso!");
 };
 
 
@@ -1431,7 +1722,7 @@ const deletarTributo = (item) => {
 function formatarData(dataISO) {
   if (!dataISO) return "";
 
-  const [ano, mes, dia] = dataISO.split("-");
+  const [ano, mes, dia] = dataISO.slice(0, 10).split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
@@ -1453,8 +1744,6 @@ const form = ref({
   foto_url: null,
 });
 
-const API_MIDIAS = "http://192.168.10.79:3005";
-
 const fotoProduto = ref(null);
 const previewImagem = ref(null);
 const loadingUploadFoto = ref(false);
@@ -1465,75 +1754,21 @@ const normalizarKey = (key) => {
   return String(key || "").replaceAll("\\/", "/");
 };
 
-const getPresignedUrl = async (key) => {
-  const keyNormalizada = normalizarKey(key);
-
-  const url = `${API_MIDIAS}/api/files/presigned/${encodeURIComponent(keyNormalizada)}`;
-
-  console.log("URL PRESIGNED:", url);
-
-  try {
-    const { data } = await axios.get(url, {
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    return data;
-  } catch (error) {
-    console.error("ERRO AXIOS COMPLETO:", {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      data: error.response?.data,
-      headers: error.response?.headers,
-      request: error.request,
-    });
-
-    throw error;
-  }
-};
-
 const carregarFotosR2 = async () => {
   loadingFotos.value = true;
-  fotosR2.value = [];
 
   try {
     await produtosStore.buscarFotosBanco(id);
 
-    const fotosBanco = produtosStore.fotosBanco?.data || [];
+    const fotosBanco = produtosStore.fotosBanco || [];
 
-    console.log("FOTOS DO BANCO AQUI:", fotosBanco);
-
-    const fotosComUrl = await Promise.all(
-        fotosBanco.map(async (foto) => {
-          try {
-            const key = normalizarKey(foto.r2key);
-
-            if (!key) return null;
-
-            const presigned = await getPresignedUrl(key);
-
-            return {
-              id: foto.id,
-              id_produto: foto.id_produto,
-              descproduto: foto.descproduto,
-              key,
-              nome: key.split("/").pop(),
-              url: presigned.signedUrl,
-              expiresAt: presigned.expiresAt,
-              contentType: presigned.fileInfo?.contentType,
-            };
-          } catch (error) {
-            console.error("Erro ao carregar foto individual:", foto, error);
-            return null;
-          }
-        })
-    );
-
-    fotosR2.value = fotosComUrl.filter(Boolean);
-
-    console.log("FOTOS R2 FINAL:", fotosR2.value);
+    fotosR2.value = fotosBanco.map((foto) => ({
+      id: foto.id,
+      id_produto: foto.id_produto,
+      key: foto.r2key,
+      nome: foto.r2key ? normalizarKey(foto.r2key).split("/").pop() : `foto-${foto.id}`,
+      url: foto.foto_url,
+    }));
   } catch (error) {
     console.error("Erro ao carregar fotos do produto:", error);
     fotosR2.value = [];
@@ -1549,6 +1784,15 @@ const selecionarFotoR2 = (foto) => {
   previewImagem.value = foto.url;
 };
 
+const converterFotoBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(leitor.result);
+    leitor.onerror = reject;
+    leitor.readAsDataURL(file);
+  });
+};
+
 const uploadFotoProduto = async () => {
   const file = Array.isArray(fotoProduto.value)
       ? fotoProduto.value[0]
@@ -1559,70 +1803,63 @@ const uploadFotoProduto = async () => {
   loadingUploadFoto.value = true;
 
   try {
-    const idSaas = Number(idEmpresa?.id || 1);
-    const idUsuario = Number(idEmpresa?.id || 1);
-
-    const data = await produtosStore.uploadFile(idSaas, idUsuario, file);
-
-    console.log("RETORNO UPLOAD:", data);
-
-    const key = normalizarKey(data.key || data?.file?.key);
-
-    if (!key) {
-      throw new Error("Upload não retornou a key do arquivo.");
-    }
+    const foto = await converterFotoBase64(file);
 
     await produtosStore.salvarFotoBanco({
       id_produto: Number(id),
-      r2key: key,
+      foto,
     });
 
-    form.value.foto_key = key;
+    if (produtosStore.errorMessage) {
+      toast.error(produtosStore.errorMessage);
+      return;
+    }
 
-    const presigned = await getPresignedUrl(key);
-
-    form.value.foto_url = presigned.signedUrl;
-    previewImagem.value = presigned.signedUrl;
-
+    previewImagem.value = foto;
     fotoProduto.value = null;
 
     await carregarFotosR2();
-
-    console.log("Upload sucesso:", data);
+    toast.success("Foto enviada com sucesso!");
   } catch (error) {
     console.error("Erro ao enviar foto:", error);
+    toast.error("Erro ao enviar foto.");
   } finally {
     loadingUploadFoto.value = false;
   }
 };
 
-const removerFotoProduto = async () => {
-  const key = form.value.foto_key;
-
-  if (!key) return;
-
+const excluirFotoSalva = async (idFoto) => {
   try {
     loadingFotos.value = true;
 
-    // 1. Apaga no R2
-    await produtosStore.deleteFile(key);
+    await produtosStore.deletarFotoBanco(Number(id), idFoto);
 
-    // 2. Se deu certo, apaga no banco
-    await produtosStore.deletarFotoBanco(Number(id), form.value.foto_id);
-    form.value.foto_id = null;
+    if (produtosStore.errorMessage) {
+      toast.error(produtosStore.errorMessage);
+      return;
+    }
 
-    // 3. Limpa tela
-    form.value.foto_key = null;
-    form.value.foto_url = null;
-    fotoProduto.value = null;
-    previewImagem.value = null;
+    if (form.value.foto_id === idFoto) {
+      form.value.foto_key = null;
+      form.value.foto_url = null;
+      form.value.foto_id = null;
+      fotoProduto.value = null;
+      previewImagem.value = null;
+    }
 
     await carregarFotosR2();
+    toast.success("Foto excluída com sucesso!");
   } catch (error) {
     console.error("Erro ao remover foto:", error);
+    toast.error("Erro ao remover foto.");
   } finally {
     loadingFotos.value = false;
   }
+};
+
+const removerFotoProduto = async () => {
+  if (!form.value.foto_id) return;
+  await excluirFotoSalva(form.value.foto_id);
 };
 
 const limparPreviewLocal = () => {
@@ -1693,6 +1930,12 @@ watchEffect(async () => {
   }
   if (tributos.value.length === 0) {
     await produtosStore.buscarTributoPorId(idEmpresa?.id, id);
+  }
+  if (id && !produtosStore.produtoPreco) {
+    await produtosStore.buscarProdutoPreco(idEmpresa?.id, id);
+    if (produtosStore.produtoPreco) {
+      Object.assign(formsPreco, produtosStore.produtoPreco);
+    }
   }
 });
 </script>

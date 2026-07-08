@@ -316,7 +316,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.atualizarEmbalagem(1, 5, { nome: 'Pack Editado' })
 
-      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-embalagens/5', {
+      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-embalagens/1/5', {
         nome: 'Pack Editado',
         id_produto: 1,
       })
@@ -330,7 +330,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.deletarEmbalagem(1, 5)
 
-      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-embalagens/5')
+      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-embalagens/1/5')
       expect(store.loading).toBe(false)
     })
   })
@@ -371,7 +371,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.atualizarFornecedor(1, 5, { nome: 'Forn Editado' })
 
-      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-fornecedors/5', {
+      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-fornecedors/1/5', {
         nome: 'Forn Editado',
         id_produto: 1,
       })
@@ -385,9 +385,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.deletarFornecedor(1, 5)
 
-      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-fornecedors/5', {
-        params: { id_produto: 1 },
-      })
+      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-fornecedors/1/5')
       expect(store.loading).toBe(false)
     })
   })
@@ -519,7 +517,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.deletarLocalizacao(1, 5)
 
-      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/localizacoes/5')
+      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/localizacoes/1/5')
       expect(store.loading).toBe(false)
     })
 
@@ -530,7 +528,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.atualizarLocalizacao(1, 5, { nome: 'Galpão A' })
 
-      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/localizacoes/5', { nome: 'Galpão A' })
+      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/localizacoes/1/5', { nome: 'Galpão A' })
       expect(store.loading).toBe(false)
     })
   })
