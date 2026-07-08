@@ -353,6 +353,8 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
     </template>
   </top-all-pages>
 </template>
@@ -363,8 +365,6 @@ import { useThemeStore } from '@/stores/config-temas/theme'
 import { useGrupoUsuarioStore } from '@/stores/APIs/grupousuario'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
-import { toast } from 'vue3-toastify'
-import apiPhp from '@/services/apiPhp'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 
 const themeStore = useThemeStore()
@@ -376,6 +376,13 @@ const formValido = ref(false)
 const formRef = ref(null)
 const loading = computed(() => store.loading)
 const paginaAtual = ref(1)
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+const mostrarMensagem = (msg, color = 'success') => {
+  snackbar.message = msg
+  snackbar.color = color
+  snackbar.show = true
+}
 
 watch(paginaAtual, (page) => {
   if (page !== store.currentPage) {
@@ -450,7 +457,7 @@ const cancelarFormulario = () => {
 
 const salvarGrupoUsuario = async () => {
   if (!formRef.value?.validate()) {
-    toast.error('Preencha os campos obrigatórios')
+    mostrarMensagem('Preencha os campos obrigatórios', 'error')
     return
   }
 
@@ -469,11 +476,11 @@ const salvarGrupoUsuario = async () => {
   }
 
   if (store.successMessage) {
-    toast.success(store.successMessage)
+    mostrarMensagem(store.successMessage, 'success')
   }
 
   if (store.errorMessage) {
-    toast.error(store.errorMessage)
+    mostrarMensagem(store.errorMessage, 'error')
   }
 
   if (store.successMessage) {
@@ -494,11 +501,11 @@ const excluirGrupoUsuario = async (item) => {
   await store.deleteGrupoUsuario(item.id)
 
   if (store.successMessage) {
-    toast.success(store.successMessage)
+    mostrarMensagem(store.successMessage, 'success')
   }
 
   if (store.errorMessage) {
-    toast.error(store.errorMessage)
+    mostrarMensagem(store.errorMessage, 'error')
   }
 }
 
@@ -518,38 +525,19 @@ const abrirModalPermissoes = async (item) => {
 const carregarPermissoesDoModulo = async (codigoModulo) => {
   const idGrupo = grupoSelecionado.value?.id
 
-  if (!idGrupo) {
-    console.log('ID do grupo não encontrado')
-    return
-  }
+  if (!idGrupo) return
 
-  console.log(`Carregando permissões do módulo: ${codigoModulo} para grupo: ${idGrupo}`)
   carregandoPermissoesPorModulo.value[codigoModulo] = true
 
   try {
-    const url = `/manutencao/grupo-usuario-programas/${idGrupo}/modulo/${codigoModulo}`
-    console.log('URL da requisição:', url)
-
-    const response = await apiPhp.get(url)
-
-    console.log('Resposta recebida:', response.data)
-
-    if (response.data) {
-      const dados = Array.isArray(response.data) ? response.data : []
-      permissoesPorModuloData.value[codigoModulo] = dados
-      console.log(`Permissões carregadas para ${codigoModulo}:`, dados)
-
-      if (!dados || dados.length === 0) {
-        console.log(`Nenhuma permissão encontrada para o módulo ${codigoModulo}`)
-      }
-    } else {
-      permissoesPorModuloData.value[codigoModulo] = []
-      toast.error('Erro ao carregar permissões')
+    const dados = await store.buscarPermissoesModulo(idGrupo, codigoModulo)
+    permissoesPorModuloData.value[codigoModulo] = dados
+    if (!dados || dados.length === 0) {
+      // sem permissões
     }
   } catch (error) {
-    console.error('Erro ao buscar permissões:', error)
     permissoesPorModuloData.value[codigoModulo] = []
-    toast.error('Erro ao carregar permissões do módulo')
+    mostrarMensagem('Erro ao carregar permissões do módulo', 'error')
   } finally {
     carregandoPermissoesPorModulo.value[codigoModulo] = false
   }
@@ -561,7 +549,6 @@ const permissoesPorModulo = (codigoModulo) => {
 
 const atualizarPermissao = async (permissao, campo, valor) => {
   permissao[campo] = valor ? 'S' : 'N'
-  console.log(`Permissão atualizada - Programa: ${permissao.id_programa}, Campo: ${campo}, Valor: ${valor ? 'S' : 'N'}`)
 
   // Salvar todas as permissões do módulo em uma requisição
   await salvarTodasPermissoesDoModulo(permissao.modulo_vst)
@@ -571,7 +558,6 @@ const salvarTodasPermissoesDoModulo = async (codigoModulo) => {
   try {
     const permissoes = permissoesPorModulo(codigoModulo)
 
-    // Construir payload com todos os programas do módulo
     const payload = permissoes.map(permissao => ({
       id_programa: permissao.id_programa,
       visualizar: permissao.visualizar,
@@ -582,18 +568,10 @@ const salvarTodasPermissoesDoModulo = async (codigoModulo) => {
       pdf: permissao.pdf
     }))
 
-    console.log('Enviando payload com', payload.length, 'programas:', payload)
-
-    await apiPhp.post(
-      `/manutencao/grupo-usuario-programas/${grupoSelecionado.value.id}`,
-      payload
-    )
-
-    console.log('Permissões salvas com sucesso')
-    toast.success('Permissões atualizadas com sucesso')
+    await store.salvarPermissoes(grupoSelecionado.value.id, payload)
+    mostrarMensagem(store.successMessage || 'Permissões atualizadas com sucesso', 'success')
   } catch (error) {
-    console.error('Erro ao salvar permissões:', error)
-    toast.error('Erro ao salvar permissões')
+    mostrarMensagem(store.errorMessage || 'Erro ao salvar permissões', 'error')
   }
 }
 

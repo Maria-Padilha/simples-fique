@@ -597,7 +597,7 @@
                       <v-chip v-if="item.transportadora === 'S'" color="info" size="x-small" variant="tonal">
                         Transportadora
                       </v-chip>
-                      <v-chip v-if="item.colaborador === 'S'" color="orange" size="x-small" variant="tonal">
+                      <v-chip v-if="item.colaborador === 'S'" color="var(--text-color-laranja)" size="x-small" variant="tonal">
                         Colaborador
                       </v-chip>
                       <v-chip v-if="item.representante === 'S'" color="pink" size="x-small" variant="tonal">

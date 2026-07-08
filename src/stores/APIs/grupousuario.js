@@ -145,6 +145,37 @@ export const useGrupoUsuarioStore = defineStore('grupousuario', {
             } finally {
                 this.loading = false;
             }
+        },
+
+        async buscarPermissoesModulo(idGrupo, codigoModulo) {
+            this.loading = true
+            try {
+                const response = await apiPhp.get(
+                    `/manutencao/grupo-usuario-programas/${idGrupo}/modulo/${codigoModulo}`
+                )
+                const dados = Array.isArray(response.data) ? response.data : []
+                return dados
+            } catch (error) {
+                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido'
+                return []
+            } finally {
+                this.loading = false
+            }
+        },
+
+        async salvarPermissoes(idGrupo, payload) {
+            try {
+                await apiPhp.post(
+                    `/manutencao/grupo-usuario-programas/${idGrupo}`,
+                    payload
+                )
+                this.successMessage = 'Permissões atualizadas com sucesso'
+                this.errorMessage = ''
+            } catch (error) {
+                this.errorMessage = error?.response?.data?.message || error?.message || 'Erro ao salvar permissões'
+                this.successMessage = ''
+                throw error
+            }
         }
     }
 })

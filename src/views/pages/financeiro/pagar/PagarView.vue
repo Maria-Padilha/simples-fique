@@ -41,16 +41,12 @@
         <v-card :color="themeStore.darkMode ? 'text-white' : ''" class="background-secondary" elevation="0">
           <v-card-text class="pa-4">
             <div class="d-flex justify-end align-center mb-3 gap-2">
-              <v-btn
-                  color="var(--text-color-laranja)"
-                  :prepend-icon="formularioAberto ? 'mdi-minus' : 'mdi-plus'"
-                  variant="flat"
-                  size="small"
-                  class="text-white"
-                  @click="toggleFormulario"
-              >
-                {{ formularioAberto ? 'Cancelar' : 'Nova Conta a Pagar' }}
-              </v-btn>
+              <BotaoExpandTransition
+                  :formulario-aberto="formularioAberto"
+                  texto-abrir="Nova Conta a Pagar"
+                  texto-fechar="Cancelar"
+                  @toggle="toggleFormulario"
+              />
             </div>
 
             <!-- Formulário Expansível -->
@@ -255,7 +251,7 @@
                                   <v-text-field
                                       label="Descrição do Histórico"
                                       variant="outlined"
-                                      density="comfortable"
+                                      density="compact"
                                       hide-details="auto"
                                       v-model="descricaoHistorico"
                                   />
@@ -373,7 +369,7 @@
                         <v-col cols="12" v-if="formData.qtdparcelas > 1 && !parcelasCalculadas">
                           <v-card variant="outlined" class="mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-calculator-variant" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-calculator-variant" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Configurações das Parcelas
                             </v-card-title>
 
@@ -424,7 +420,7 @@
                                 <!-- Botão Calcular -->
                                 <v-col cols="12" class="d-flex justify-center">
                                   <v-btn
-                                      color="orange"
+                                      color="var(--text-color-laranja)"
                                       variant="elevated"
                                       @click="calcularParcelas"
                                       :disabled="!formData.vlroriginal || !formData.qtdparcelas"
@@ -448,11 +444,11 @@
                             <div v-if="parcelas.length > 0 || (formData.qtdparcelas === 1 && formData.vlroriginal)">
                               <v-divider class="mb-4"></v-divider>
                               <div class="d-flex align-center mb-4">
-                                <v-icon icon="mdi-format-list-numbered" class="mr-3" color="orange"></v-icon>
+                                <v-icon icon="mdi-format-list-numbered" class="mr-3" color="var(--text-color-laranja)"></v-icon>
                                 <h4 class="text-h6 mb-0">Detalhamento das Parcelas</h4>
                                 <v-spacer></v-spacer>
                                 <v-chip
-                                    :color="(parcelas.length === 1 || formData.qtdparcelas === 1) ? 'success' : 'orange'"
+                                    :color="(parcelas.length === 1 || formData.qtdparcelas === 1) ? 'success' : 'var(--text-color-laranja)'"
                                     variant="elevated"
                                     size="small"
                                 >
@@ -493,7 +489,7 @@
                                     <template v-slot:[`item.nrparcela`]="{ item }">
                                       <div class="d-flex align-center">
                                         <v-avatar
-                                            :color="item.nrparcela === 1 && valorEntrada > 0 ? 'orange' : 'orange lighten-2'"
+                                            color="var(--text-color-laranja)"
                                             size="28"
                                             class="mr-2"
                                         >
@@ -576,7 +572,7 @@
                                       <v-card
                                           variant="tonal"
                                           class="pa-3"
-                                          color="orange"
+                                          color="var(--text-color-laranja)"
                                       >
                                         <div class="d-flex align-center justify-space-between">
                                           <div class="d-flex align-center">
@@ -584,7 +580,7 @@
                                                 icon="mdi-chart-pie"
                                                 class="mr-2"
                                                 size="small"
-                                                color="orange"
+                                                color="var(--text-color-laranja)"
                                             ></v-icon>
                                             <h5 class="text-subtitle-1 mb-0 font-weight-medium">
                                               Resumo das Parcelas
@@ -612,12 +608,12 @@
                         <v-col cols="12" v-if="parcelas.length > 0">
                           <v-card variant="outlined" class="background-secondary mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-swap-horizontal" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-swap-horizontal" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Rateio por Centro de Custo
                               <v-spacer></v-spacer> 
                               <v-btn
                                   size="small"
-                                  color="orange"
+                                  color="var(--text-color-laranja)"
                                   variant="text"
                                   prepend-icon="mdi-plus"
                                   @click="adicionarCentro"
@@ -626,7 +622,7 @@
                               </v-btn>
                               <v-btn
                                   size="small"
-                                  color="orange"
+                                  color="var(--text-color-laranja)"
                                   variant="elevated"
                                   class="ml-2"
                                   @click="distribuirIgualmente"
@@ -720,7 +716,7 @@
                         <v-col cols="12">
                           <v-card variant="outlined" class="mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-file-image" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-file-image" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Anexar um Documento
                             </v-card-title>
 
@@ -833,7 +829,7 @@
               <!-- Formatação para Valor Original -->
               <template v-slot:[`item.vlroriginal`]="{ item }">
                 <v-chip
-                    :color="item.vlroriginal > 1000 ? 'orange' : 'primary'"
+                    :color="item.vlroriginal > 1000 ? 'var(--text-color-laranja)' : 'primary'"
                     variant="tonal"
                     size="small"
                 >
@@ -1024,7 +1020,7 @@
         >
           <v-card class="align-center justify-center d-flex">
             <v-card-title class="text-h6 pa-4 d-flex align-center">
-              <v-icon icon="mdi-file-xml-box" color="orange" class="mr-2"></v-icon>
+              <v-icon icon="mdi-file-xml-box" color="var(--text-color-laranja)" class="mr-2"></v-icon>
               Importar Conta a Pagar de XML (NFe)
               <v-spacer></v-spacer>
               <v-btn icon="mdi-close" variant="text" @click="fecharModalImportarXML"></v-btn>
@@ -1041,7 +1037,7 @@
                     accept=".xml"
                     prepend-icon="mdi-file-xml-box"
                     variant="outlined"
-                    density="comfortable"
+                    density="compact"
                     @update:modelValue="processarArquivoXML"
                     :loading="processandoXML"
                     show-size
@@ -1074,7 +1070,7 @@
                 <!-- Informações do Emitente (Fornecedor) -->
                 <v-card variant="outlined" class="mb-4">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-account-box" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-account-box" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Emitente (Fornecedor)
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1125,7 +1121,7 @@
                 <!-- Dados da NFe/NFSe -->
                 <v-card variant="outlined" class="mb-4">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-file-document" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-file-document" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Dados da {{ dadosXMLImportado.tipoNota === 'NFSe' ? 'Nota Fiscal de Serviço' : 'Nota Fiscal' }}
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1165,7 +1161,7 @@
                 <!-- Valores -->
                 <v-card variant="outlined" class="mb-4">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-currency-usd" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-currency-usd" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Valores
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1250,7 +1246,7 @@
                         </v-col>
                         <v-col cols="12" md="3">
                           <div class="text-caption text-grey">Valor Líquido</div>
-                          <div class="text-h6 font-weight-bold" style="color: #4CAF50;">
+                          <div class="text-h6 font-weight-bold text-success">
                             {{ formatarMoeda(dadosXMLImportado.valores.valorLiquido) }}
                           </div>
                         </v-col>
@@ -1262,7 +1258,7 @@
                 <!-- Pagamento (somente para NFe) -->
                 <v-card variant="outlined" class="mb-4" v-if="dadosXMLImportado.pagamento && dadosXMLImportado.pagamento.length > 0">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-credit-card" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-credit-card" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Pagamento
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1287,7 +1283,7 @@
                 <v-expansion-panels class="mb-4" v-if="dadosXMLImportado.produtos && dadosXMLImportado.produtos.length > 0">
                   <v-expansion-panel>
                     <v-expansion-panel-title>
-                      <v-icon :icon="dadosXMLImportado.tipoNota === 'NFSe' ? 'mdi-briefcase' : 'mdi-package-variant-closed'" class="mr-2" color="orange"></v-icon>
+                      <v-icon :icon="dadosXMLImportado.tipoNota === 'NFSe' ? 'mdi-briefcase' : 'mdi-package-variant-closed'" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                       {{ dadosXMLImportado.tipoNota === 'NFSe' ? 'Serviços' : 'Produtos/Itens' }} ({{ dadosXMLImportado.produtos.length }})
                     </v-expansion-panel-title>
                     <v-expansion-panel-text>
@@ -1322,7 +1318,7 @@
                 <!-- Opções para importação -->
                 <v-card variant="outlined">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-cog" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-cog" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Opções de Importação
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1433,6 +1429,7 @@ import ExportacaoModal from '@/components/base/modais/ExportacaoModal.vue'
 import PdfPreviewModal from '@/components/base/modais/PdfPreviewModal.vue'
 // eslint-disable-next-line no-unused-vars
 import AcessoNegadoModal from '@/components/base/modais/AcessoNegadoModal.vue'
+import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import BuscaAvancada from '@/components/base/padrao-paginas/BuscaAvancada.vue'
 import TipoDocumentoMenu from '@/components/base/menu/TipoDocumentoMenu.vue'

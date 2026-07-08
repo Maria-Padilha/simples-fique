@@ -189,7 +189,6 @@
                             variant="outlined"
                             density="compact"
                             prefix="R$"
-                            :theme="themeStore.darkMode ? 'dark' : 'light'"
                             class="custom-text-field required-left-border"
                             prepend-inner-icon="mdi-cash"
                         ></v-text-field>
@@ -204,7 +203,6 @@
                             type="date"
                             variant="outlined"
                             density="compact"
-                            :theme="themeStore.darkMode ? 'dark' : 'light'"
                             class="custom-text-field required-left-border"
                             prepend-inner-icon="mdi-calendar-plus"
                         ></v-text-field>
@@ -219,7 +217,6 @@
                             variant="outlined"
                             density="compact"
                             class="custom-text-field"
-                            :theme="themeStore.darkMode ? 'dark' : 'light'"
                             prepend-inner-icon="mdi-calendar-clock"
                         ></v-text-field>
                       </v-col>
