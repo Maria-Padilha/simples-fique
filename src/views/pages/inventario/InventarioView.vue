@@ -506,15 +506,27 @@
           </v-card-title>
 
           <v-card-text class="pa-4">
+            <v-alert
+                v-if="naoEncontradosCount > 0"
+                type="warning"
+                density="compact"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="naoEncontradosCount = 0"
+                icon="mdi-barcode-off"
+            >
+              <strong>{{ naoEncontradosCount }}</strong> {{ naoEncontradosCount === 1 ? 'código de barras não encontrado' : 'códigos de barras não encontrados' }} no catálogo de referência.
+            </v-alert>
             <v-table class="inventario-table" density="comfortable">
               <thead>
                 <tr>
                   <th class="text-center" style="width: 5%">#</th>
                   <th class="text-left" style="width: 10%">Código</th>
-                  <th class="text-left" style="width: 33%">Produto</th>
-                  <th class="text-center" style="width: 13%">Qtd. Sistema</th>
-                  <th class="text-center" style="width: 13%">Qtd. Contada</th>
-                  <th class="text-center" style="width: 13%">Diferença</th>
+                  <th class="text-left" style="width: 35%">Produto</th>
+                  <th class="text-center" style="width: 12%">Qtd. Sistema</th>
+                  <th class="text-center" style="width: 12%">Qtd. Contada</th>
+                  <th class="text-center" style="width: 12%">Diferença</th>
                   <th class="text-center" style="width: 10%">Ações</th>
                 </tr>
               </thead>
@@ -537,10 +549,43 @@
                   <td class="text-center text-body-2 font-weight-bold">{{ index + 1 }}</td>
                   <td class="text-body-2">{{ item.codigo }}</td>
                   <td>
-                    <div class="text-body-2 font-weight-medium">{{ item.nome }}</div>
-                    <div class="text-caption text-grey" v-if="item.localizacao">
-                      <v-icon icon="mdi-map-marker" size="x-small"></v-icon>
-                      {{ item.localizacao }}
+                    <div class="d-flex align-center ga-3">
+                      <v-avatar
+                          v-if="item.fotoUrl"
+                          size="44"
+                          rounded
+                          class="flex-shrink-0"
+                      >
+                        <v-img
+                            :src="item.fotoUrl"
+                            alt=""
+                            cover
+                            class="rounded"
+                        />
+                      </v-avatar>
+                      <v-avatar
+                          v-else
+                          size="44"
+                          rounded
+                          color="grey-lighten-3"
+                          class="flex-shrink-0"
+                      >
+                        <v-icon icon="mdi-package-variant" color="grey-lighten-1"></v-icon>
+                      </v-avatar>
+                      <div v-if="!item.encontrado">
+                        <v-icon icon="mdi-alert-circle-outline" color="warning" size="small"></v-icon>
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-body-2 font-weight-medium text-truncate" :class="{ 'text-warning': !item.encontrado }" :title="item.nome">{{ item.nome }}</div>
+                        <div class="text-caption text-grey" v-if="item.erro">
+                          <v-icon icon="mdi-alert" size="x-small" color="warning"></v-icon>
+                          {{ item.erro }}
+                        </div>
+                        <div class="text-caption text-grey" v-if="item.localizacao">
+                          <v-icon icon="mdi-map-marker" size="x-small"></v-icon>
+                          {{ item.localizacao }}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td class="text-center">
@@ -569,7 +614,7 @@
                         size="small"
                         variant="text"
                         color="error"
-                        @click="removerItem(index)"
+                        @click="abrirModalExcluir(index)"
                     ></v-btn>
                   </td>
                 </tr>
@@ -993,6 +1038,16 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+
+    <!-- Modal Excluir Item -->
+    <ExcluirModal
+        :cancelar="cancelarExclusaoItem"
+        :deletar="confirmarExclusaoItem"
+        :loading="loadingExcluir"
+        v-model:modal-excluir="modalExcluirItem"
+    >
+      <template #item>{{ itemExcluirNome }}</template>
+    </ExcluirModal>
       </div>
     </template>
   </top-all-pages>
@@ -1004,6 +1059,7 @@ import { useThemeStore } from '@/stores/config-temas/theme'
 import { useEstoqueStore } from '@/stores/APIs/estoque'
 import { useProdutosStore } from '@/stores/APIs/produtos'
 import { useInventarioStore } from '@/stores/APIs/inventario'
+import ExcluirModal from '@/components/base/modais/ExcluirModal.vue'
 import { toast } from 'vue3-toastify'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 
@@ -1064,6 +1120,7 @@ const itemAtual = reactive({
 })
 
 const itensInventario = ref([])
+const naoEncontradosCount = ref(0)
 const produtoEncontrado = ref(null)
 const lotes = ref([])
 const almoxarifados = ref([])
@@ -1452,42 +1509,49 @@ const importarArquivo = async () => {
 
     const itens = resultado.itens || []
 
-    let inseridos = 0
     for (const item of itens) {
-      if (item.encontrado && item.produto) {
-        const jaExiste = itensInventario.value.find(i => i.codigo === (item.codigo_barras || item.produto.codigo_gtin))
-        if (!jaExiste) {
-          const qtdSistema = item.produto?.saldo_atual || item.produto?.quantidade || 0
-          itensInventario.value.push({
-            produtoId: item.produto.id,
-            codigo: item.codigo_barras || item.produto.codigo_gtin || item.produto.codigo_sku || '',
-            nome: item.produto.descproduto || item.produto.nome || item.produto.produto || '',
-            estoqueSistema: qtdSistema,
-            quantidadeContada: item.quantidade || 0,
-            diferenca: 0,
-            unidade: item.produto.unidade || item.produto.embalagem || 'UN',
-            localizacaoId: null,
-            localizacao: ''
-          })
-          inseridos++
-        }
-      }
+      if (!item.encontrado || !item.produto) continue
+
+      const jaExiste = itensInventario.value.find(i => i.codigo === item.codigo_barras)
+      if (jaExiste) continue
+
+      const qtdSistema = item.produto?.saldo_atual || item.produto?.quantidade || 0
+      const qtdContada = item.quantidade || 0
+
+      itensInventario.value.push({
+        produtoId: item.produto.id,
+        codigo: item.codigo_barras || item.produto.codigo_gtin || item.produto.codigo_sku || '',
+        nome: item.produto.descricao || item.produto.descproduto || item.produto.nome || item.produto.produto || '',
+        fotoUrl: item.produto.foto_url || '',
+        estoqueSistema: qtdSistema,
+        quantidadeContada: qtdContada,
+        diferenca: qtdSistema - qtdContada,
+        unidade: item.produto.unidade || item.produto.embalagem || 'UN',
+        localizacaoId: null,
+        localizacao: '',
+        encontrado: true,
+        erro: null
+      })
     }
 
+    const total = resultado.total_linhas || 0
+    const encontrados = resultado.encontrados || 0
     const naoEncontrados = resultado.nao_encontrados || 0
     const invalidas = resultado.invalidas || 0
 
-    if (inseridos > 0) {
-      toast.success(`${inseridos} produto(s) importado(s) com sucesso!`)
+    naoEncontradosCount.value = naoEncontrados
+
+    if (total > 0) {
+      toast.success(`Arquivo processado: ${total} linha(s)`)
     }
-    if (naoEncontrados > 0) {
-      toast.warning(`${naoEncontrados} código(s) de barras não encontrado(s) no catálogo`)
+    if (encontrados > 0) {
+      toast.success(`${encontrados} produto(s) encontrado(s) e adicionado(s)`)
     }
     if (invalidas > 0) {
       toast.warning(`${invalidas} linha(s) inválida(s) ignoradas`)
     }
-    if (inseridos === 0 && naoEncontrados === 0 && invalidas === 0) {
-      toast.info('Nenhum produto novo foi encontrado')
+    if (encontrados === 0 && naoEncontrados === 0 && invalidas === 0) {
+      toast.info('Nenhum produto foi processado')
     }
   } catch (error) {
     toast.error('Erro ao processar arquivo')
@@ -1499,14 +1563,36 @@ const importarArquivo = async () => {
 
 
 
-const removerItem = (index) => {
-  itensInventario.value.splice(index, 1)
-  toast.info('Item removido do inventário')
+const modalExcluirItem = ref(false)
+const itemExcluirIndex = ref(null)
+const itemExcluirNome = ref('')
+const loadingExcluir = ref(false)
+
+const abrirModalExcluir = (index) => {
+  itemExcluirIndex.value = index
+  itemExcluirNome.value = itensInventario.value[index]?.nome || 'item'
+  modalExcluirItem.value = true
+}
+
+const confirmarExclusaoItem = () => {
+  if (itemExcluirIndex.value !== null) {
+    itensInventario.value.splice(itemExcluirIndex.value, 1)
+    toast.info('Item removido do inventário')
+  }
+  modalExcluirItem.value = false
+  itemExcluirIndex.value = null
+}
+
+const cancelarExclusaoItem = () => {
+  modalExcluirItem.value = false
+  itemExcluirIndex.value = null
 }
 
 const limparInventario = () => {
   if (confirm('Tem certeza que deseja limpar todos os itens do inventário?')) {
-    itensInventario.value = []
+  itensInventario.value = []
+  naoEncontradosCount.value = 0
+    naoEncontradosCount.value = 0
     toast.success('Inventário limpo')
   }
 }

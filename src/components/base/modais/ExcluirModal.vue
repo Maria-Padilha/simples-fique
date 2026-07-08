@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import { defineProps, computed } from 'vue';
+import { defineProps, defineEmits, computed } from 'vue';
 
 const props = defineProps({
   modalExcluir: {
@@ -51,14 +51,18 @@ const props = defineProps({
   }
 });
 
-const loading = computed(() => props.loading);
-const modalExcluir = computed(() => props.modalExcluir);
+const emit = defineEmits(['update:modalExcluir'])
+
+const modalExcluir = computed({
+  get: () => props.modalExcluir,
+  set: (val) => emit('update:modalExcluir', val)
+})
 
 const cancelar = () => {
-  props.cancelar();
+  props.cancelar()
 }
 
 const deletar = () => {
-  props.deletar();
-};
+  props.deletar()
+}
 </script>
