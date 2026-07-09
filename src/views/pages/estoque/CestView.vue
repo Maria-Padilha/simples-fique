@@ -142,6 +142,10 @@
           <template #item>{{itemSelecionado?.id}}</template>
         </ExcluirModal>
       </v-card>
+
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000" location="bottom right">
+        {{ snackbar.message }}
+      </v-snackbar>
     </template>
   </top-all-pages>
 </template>
@@ -156,10 +160,16 @@ import TabelaPadrao from "@/components/base/padrao-paginas/TabelaPadrao.vue";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import NcmMenu from "@/components/base/menu/NcmMenu.vue";
-import {toast} from "vue3-toastify";
 
 const themeStore = useThemeStore();
 const estoqueStore = useEstoqueStore();
+
+const snackbar = reactive({ show: false, message: '', color: 'success' });
+const mostrarMensagem = (message, color = 'success') => {
+  snackbar.message = message;
+  snackbar.color = color;
+  snackbar.show = true;
+};
 
 const cests = computed(() => estoqueStore.cests);
 const loading = computed(() => estoqueStore.loading);
@@ -247,7 +257,7 @@ const salvarFormulario = async () => {
   forms.pmva = Number(forms.pmva);
 
   if (!forms.id_ncm) {
-    toast.error("Por favor, selecione um NCM válido.");
+    mostrarMensagem("Por favor, selecione um NCM válido.", 'error');
     return
   }
 
@@ -255,7 +265,7 @@ const salvarFormulario = async () => {
   await estoqueStore.buscarNcms(forms.id_ncm);
 
   if (estoqueStore.ncms.length === 0) {
-    toast.error("NCM não encontrado. Por favor, selecione um NCM válido.");
+    mostrarMensagem("NCM não encontrado. Por favor, selecione um NCM válido.", 'error');
     return;
   }
 

@@ -76,7 +76,7 @@
             v-model="valorEntrada"
             variant="outlined"
             readonly
-            density="comfortable"
+            density="compact"
             hide-details
             class="input-valor"
           ></v-text-field>
@@ -123,13 +123,38 @@
       </div>
     </div>
   </div>
+
+  <!-- Snackbar de feedback -->
+  <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4000">{{ snackbar.message }}</v-snackbar>
+
+  <!-- Dialog de confirmação de cancelamento -->
+  <v-dialog v-model="confirmandoCancelamento" max-width="360">
+    <v-card>
+      <v-card-title>Cancelar pagamento</v-card-title>
+      <v-card-text>Tem certeza que deseja cancelar o pagamento?</v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="confirmandoCancelamento = false">Não</v-btn>
+        <v-btn color="error" variant="flat" @click="router.push({ name: 'pdv' })">Sim, cancelar</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+
+// Snackbar
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+const mostrarMensagem = (msg, color = 'success') => {
+  snackbar.message = msg; snackbar.color = color; snackbar.show = true
+}
+
+// Confirmação de cancelamento
+const confirmandoCancelamento = ref(false)
 
 // Estado
 const numeroCaixa = ref('2004');
@@ -234,30 +259,17 @@ const validarPagamento = () => {
     return;
   }
 
-  // Aqui você salvaria o pagamento
-  const dadosPagamento = {
-    total: totalVenda.value,
-    pagamentos: pagamentos.value,
-    troco: troco.value,
-    data: new Date().toISOString()
-  };
-
-  console.log('Pagamento validado:', dadosPagamento);
-
   // Limpar dados da sessão
   sessionStorage.removeItem('dadosVenda');
 
-  // Você pode adicionar uma notificação de sucesso aqui
-  alert(`Pagamento realizado com sucesso!\nTroco: R$ ${formatarValor(troco.value)}`);
+  mostrarMensagem('Pagamento realizado com sucesso! Troco: R$ ' + formatarValor(troco.value), 'success');
 
   // Voltar para a tela de operações ou PDV limpo
   router.push({ name: 'pdv' });
 };
 
 const voltarParaPdv = () => {
-  if (confirm('Tem certeza que deseja cancelar o pagamento?')) {
-    router.push({ name: 'pdv' });
-  }
+  confirmandoCancelamento.value = true;
 };
 
 // Utilitários
@@ -362,8 +374,8 @@ const formatarValor = (valor) => {
 }
 
 .forma-selecionada {
-  background-color: rgba(129, 212, 250, 0.08);
-  border-color: rgba(129, 212, 250, 0.4);
+  background-color: rgba(var(--v-theme-info), 0.08);
+  border-color: rgba(var(--v-theme-info), 0.4);
 }
 
 .forma-info {
@@ -414,7 +426,7 @@ const formatarValor = (valor) => {
 }
 
 .troco-negativo {
-  color: #ef5350 !important;
+  color: rgb(var(--v-theme-error)) !important;
 }
 
 /* Lado Direito - Calculadora */
@@ -514,7 +526,7 @@ const formatarValor = (valor) => {
 :deep(.atalho-btn) {
   background-color: rgba(56, 142, 60, 0.2) !important;
   border-color: rgba(56, 142, 60, 0.4) !important;
-  color: #81c784 !important;
+  color: rgb(var(--v-theme-success)) !important;
 }
 
 :deep(.atalho-btn:hover) {
@@ -525,7 +537,7 @@ const formatarValor = (valor) => {
 :deep(.operador-btn) {
   background-color: rgba(230, 126, 34, 0.2) !important;
   border-color: rgba(230, 126, 34, 0.4) !important;
-  color: #ffb74d !important;
+  color: var(--text-color-laranja) !important;
 }
 
 :deep(.operador-btn:hover) {
@@ -536,7 +548,7 @@ const formatarValor = (valor) => {
 :deep(.limpar-btn) {
   background-color: rgba(211, 47, 47, 0.2) !important;
   border-color: rgba(211, 47, 47, 0.4) !important;
-  color: #ef5350 !important;
+  color: rgb(var(--v-theme-error)) !important;
 }
 
 :deep(.limpar-btn:hover) {

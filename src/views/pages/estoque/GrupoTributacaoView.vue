@@ -213,7 +213,7 @@
                       <v-col cols="12" md="8">
                         <v-select
                           v-model="form.id_msg"
-                          :items="mensagens"
+                          :items="mensagensStore.mensagens"
                           item-title="titulo"
                           item-value="id"
                           label="Selecione a Mensagem a incluir"
@@ -283,7 +283,7 @@
                   <v-btn color="grey" variant="text" @click="cancelarFormulario">Cancelar</v-btn>
                   <v-btn
                     color="var(--text-color-laranja)"
-                    :loading="loading"
+                    :loading="grupoTributacaoStore.loading"
                     :disabled="!formValido"
                     variant="flat"
                     class="text-white"
@@ -301,7 +301,7 @@
             :formulario-aberto="formularioAberto"
             :headers="headers"
             :items="itensFiltrados"
-            :loading="loading"
+            :loading="grupoTributacaoStore.loading"
             :search="search"
             @update:search="(value) => search = value"
             search-label="Pesquisar grupo de tributação"
@@ -327,6 +327,8 @@
               {{ item.aliquota_icms != null ? item.aliquota_icms + '%' : '-' }}
             </template>
           </TabelaPadrao>
+
+          <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
         </v-card-text>
       </v-card>
     </template>
@@ -336,12 +338,15 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
-import apiPhp from '@/services/apiPhp'
+import { useGrupoTributacaoStore } from '@/stores/APIs/grupoTributacao'
+import { useMensagensStore } from '@/stores/APIs/mensagens'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 
 const themeStore = useThemeStore()
+const grupoTributacaoStore = useGrupoTributacaoStore()
+const mensagensStore = useMensagensStore()
 
 const empresaSelecionada = JSON.parse(localStorage.getItem('empresaSelecionada'))
 const idEmp = empresaSelecionada?.id ?? null
@@ -351,9 +356,11 @@ const editando = ref(false)
 const formValido = ref(false)
 const formRef = ref(null)
 const search = ref('')
-const loading = ref(false)
-const grupos = ref([])
-const mensagens = ref([])
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+const mostrarMensagem = (msg, color = 'success') => {
+  snackbar.message = msg; snackbar.color = color; snackbar.show = true
+}
 
 const form = reactive({
   id: null,
@@ -427,7 +434,7 @@ const tipoCstMap = { 1: 'ICMS', 2: 'IPI', 3: 'PIS', 4: 'COFINS' }
 const tipoCstLabel = (v) => tipoCstMap[v] ?? v
 
 const itensFiltrados = computed(() => {
-  const dados = grupos.value || []
+  const dados = grupoTributacaoStore.grupos || []
   return Array.isArray(dados) ? dados : []
 })
 
@@ -471,11 +478,11 @@ function resetarForm() {
 
 async function editarGrupo(item) {
   try {
-    const response = await apiPhp.get(`/manutencao/base-grupo-tributos/${idEmp}/${item.id}`)
-    const dados = Array.isArray(response.data) ? response.data[0] : response.data || item
+    const data = await grupoTributacaoStore.buscarGrupoPorId(idEmp, item.id)
+    const dados = Array.isArray(data) ? data[0] : data || item
     Object.assign(form, dados)
   } catch (error) {
-    console.error('Erro ao buscar grupo de tributação:', error)
+    mostrarMensagem('Erro ao buscar grupo de tributação', 'error')
     Object.assign(form, item)
   }
   editando.value = true
@@ -484,51 +491,45 @@ async function editarGrupo(item) {
 
 async function carregarGrupos() {
   try {
-    const response = await apiPhp.get('/manutencao/base-grupo-tributos')
-    grupos.value = Array.isArray(response.data) ? response.data : []
+    await grupoTributacaoStore.buscarGrupos()
   } catch (error) {
-    console.error('Erro ao carregar grupos de tributação:', error)
+    mostrarMensagem('Erro ao carregar grupos de tributação', 'error')
   }
 }
 
 async function carregarMensagens() {
   try {
-    const response = await apiPhp.get(`/manutencao/mensagens/${idEmp}`)
-    mensagens.value = Array.isArray(response.data) ? response.data : []
+    await mensagensStore.buscarMensagens(idEmp)
   } catch (error) {
-    console.error('Erro ao carregar mensagens:', error)
+    mostrarMensagem('Erro ao carregar mensagens', 'error')
   }
 }
 
 async function salvarGrupo() {
   const { id, ...payload } = form
-  loading.value = true
 
   try {
     if (editando.value) {
-      await apiPhp.put(`/manutencao/base-grupo-tributos/${idEmp}/${id}`, payload)
+      await grupoTributacaoStore.atualizarGrupo(idEmp, id, payload)
     } else {
-      await apiPhp.post('/manutencao/base-grupo-tributos', payload)
+      await grupoTributacaoStore.criarGrupo(payload)
     }
 
+    mostrarMensagem('Grupo salvo com sucesso!')
     cancelarFormulario()
     await carregarGrupos()
   } catch (error) {
-    console.error('Erro ao salvar grupo de tributação:', error)
-  } finally {
-    loading.value = false
+    mostrarMensagem('Erro ao salvar grupo de tributação', 'error')
   }
 }
 
 async function excluirGrupo(item) {
-  loading.value = true
   try {
-    await apiPhp.delete(`/manutencao/base-grupo-tributos/${idEmp}/${item.id}`)
+    await grupoTributacaoStore.deletarGrupo(idEmp, item.id)
+    mostrarMensagem('Grupo excluído com sucesso!')
     await carregarGrupos()
   } catch (error) {
-    console.error('Erro ao excluir grupo de tributação:', error)
-  } finally {
-    loading.value = false
+    mostrarMensagem('Erro ao excluir grupo de tributação', 'error')
   }
 }
 

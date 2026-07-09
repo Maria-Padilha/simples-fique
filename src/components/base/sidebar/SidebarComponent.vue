@@ -200,13 +200,9 @@
             <template v-slot:activator="{ props }">
               <v-list-item
                   v-bind="props"
-                  :prepend-icon="submenu.icon"
                   class="submenu-item"
                   density="comfortable"
               >
-                <template #prepend>
-                  <v-icon :icon="submenu.icon" size="21px" />
-                </template>
                 <template #title>
                   <span class="span">{{ submenu.text }}</span>
                 </template>
@@ -219,12 +215,8 @@
                 :key="j"
                 class="sub-submenu-item"
                 :to="subSubmenu.route"
-                :prepend-icon="subSubmenu.icon"
                 density="comfortable"
             >
-              <template #prepend>
-                <v-icon :icon="subSubmenu.icon" size="18px" />
-              </template>
               <template #title>
                 <span class="span-small">{{ subSubmenu.text }}</span>
               </template>
@@ -236,12 +228,8 @@
               v-else
               class="submenu-item"
               :to="submenu.route"
-              :prepend-icon="submenu.icon"
               density="comfortable"
           >
-            <template #prepend>
-              <v-icon :icon="submenu.icon" size="21px" />
-            </template>
             <template #title>
               <span class="span">{{ submenu.text }}</span>
             </template>
