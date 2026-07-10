@@ -111,7 +111,8 @@ export const useInventarioStore = defineStore('inventario', {
 
         return response.data
       } catch (error) {
-        toast.error('Erro ao cadastrar inventário')
+        const mensagem = error?.response?.data?.erro || error?.response?.data?.message || 'Erro ao cadastrar inventário'
+        toast.error(mensagem)
         throw error
       } finally {
         this.loading = false

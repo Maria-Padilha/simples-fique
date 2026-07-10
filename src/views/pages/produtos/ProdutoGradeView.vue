@@ -20,13 +20,12 @@
             :cancelar-formulario="cancelarFormularioGrade"
             :formulario-aberto="formularioAbertoGrade"
             :loading="loading"
-            :editando="editandoGrade"
         >
           <template #form>
             <v-form ref="formRefGrade">
               <v-row>
                 <!-- PRODUTO -->
-                <v-col cols="12" md="4">
+                <v-col cols="12" md="6">
                   <v-autocomplete
                       v-bind="fieldProps"
                       v-model="formGrade.id_produto"
@@ -34,34 +33,14 @@
                       item-title="descproduto"
                       item-value="id"
                       :items="produtos"
-                      :readonly="editandoGrade"
                       class="required-left-border"
                       :rules="validacaoObrigatorio"
+                      @update:model-value="aoSelecionarProduto"
                   />
                 </v-col>
 
-                <!-- CÓDIGO DE BARRAS -->
-                <v-col cols="12" md="4">
-                  <div class="barcode-field-wrap">
-                    <v-text-field
-                        v-bind="fieldProps"
-                        v-model="formGrade.codigo_grade"
-                        label="Código de barras"
-                        maxlength="25"
-                        counter="25"
-                        placeholder="Informe o código manualmente"
-                        v-mask-number
-                        :rules="validacaoCodigoGrade"
-                    >
-                      <template #prepend-inner>
-                        <v-icon icon="mdi-barcode" class="me-2" />
-                      </template>
-                    </v-text-field>
-                  </div>
-                </v-col>
-
                 <!-- LOCALIZAÇÃO -->
-                <v-col cols="12" md="4">
+                <v-col cols="12" md="6">
                   <v-autocomplete
                       v-bind="fieldProps"
                       v-model="formGrade.id_localizacao"
@@ -74,95 +53,186 @@
                   />
                 </v-col>
 
-                <!-- COR -->
-                <v-col cols="12" md="4">
-                  <v-select
-                      v-bind="fieldProps"
-                      v-model="formGrade.id_cor"
-                      label="Cor"
-                      :readonly="editandoGrade"
-                      :items="coresDisponiveis"
-                      item-title="descricao"
-                      item-value="id"
-                      class="required-left-border"
-                      :rules="validacaoObrigatorio"
-                  >
-                    <template #selection="{ item }">
-                      <div class="d-flex align-center gap-2">
-                    <span
-                        class="cor-dot"
-                        :style="{ background: item.raw?.cor_hexa || '#999' }"
-                    />
-                        <span>{{ item.raw?.descricao }}</span>
-                      </div>
-                    </template>
-
-                    <template #item="{ props, item }">
-                      <v-list-item v-bind="props">
-                        <template #prepend>
-                      <span
-                          class="cor-dot"
-                          :style="{ background: item.raw?.cor_hexa || '#999' }"
-                      />
-                        </template>
-                      </v-list-item>
-                    </template>
-
-                    <template #append-item>
-                      <v-divider class="my-2" />
-                      <div class="px-3 pb-2">
-                        <v-btn
-                            block
-                            variant="tonal"
-                            color="var(--text-color-laranja)"
-                            prepend-icon="mdi-plus"
-                            @click="abrirModalNovaCor"
-                        >
-                          Adicionar Cor
-                        </v-btn>
-                      </div>
-                    </template>
-                  </v-select>
-                </v-col>
-
-                <!-- TAMANHO -->
-                <v-col cols="12" md="4">
-                  <v-text-field
-                      v-bind="fieldProps"
-                      :readonly="editandoGrade"
-                      v-model="formGrade.id_tamanho"
-                      label="Tamanho"
-                      placeholder="Ex: P, M, G, XG, XL, U, 38, 120"
-                      maxlength="3"
-                      counter="3"
-                      class="required-left-border"
-                      :rules="validacaoTamanho"
-                      @input="formGrade.id_tamanho = normalizarTamanho(formGrade.id_tamanho)"
-                  />
-                </v-col>
-
-                <!-- STATUS -->
-                <v-col cols="12" md="4">
-                  <v-select
-                      v-bind="fieldProps"
-                      v-model="formGrade.status"
-                      label="Status"
-                      :items="statusOptions"
-                      item-title="title"
-                      item-value="value"
-                      readonly
-                      class="required-left-border"
-                      :rules="validacaoObrigatorio"
-                  />
-                </v-col>
-
+                <!-- MATRIZ COR x TAMANHO -->
                 <v-col cols="12">
-                  <v-alert
-                      type="warning" icon="mdi-barcode"
-                      title="Código de Barras"
-                      text="Caso não informado, será gerado automaticamente com base no produto, cor e tamanho."
-                      density="compact" variant="tonal" size="small"
-                  />
+                  <v-sheet class="grade-erp" rounded="lg" border>
+                    <div class="grade-erp__top mb-6">
+                      <div>
+                        <div class="text-subtitle-1 font-weight-medium">Grade de Cores x Tamanhos</div>
+                        <div class="text-caption opacity-70">Adicione cores e tamanhos e informe as quantidades.</div>
+                      </div>
+
+                      <v-chip size="small" variant="flat" color="var(--text-color-laranja)" class="text-white">
+                        Combinações: {{ totalCombinacoes }}
+                      </v-chip>
+                    </div>
+
+                    <div class="grade-erp__body">
+                      <!-- CORES (esquerda) -->
+                      <div class="grade-erp__left">
+                        <div class="h-[44px] mb-1" />
+
+                        <div class="grade-erp__left-title">
+                          <span class="text-caption font-weight-medium">CORES</span>
+                        </div>
+
+                        <div class="grade-erp__left-list">
+                          <div
+                              v-for="corId in matrizGrade.cores"
+                              :key="corId"
+                              class="grade-erp__left-item"
+                          >
+                            <div class="d-flex align-center gap-2">
+                              <span class="cor-dot" :style="{ background: getCor(corId)?.cor_hexa || '#999' }" />
+                              <span class="text-body-2 font-weight-medium">{{ getCor(corId)?.descricao || `Cor ${corId}` }}</span>
+                            </div>
+
+                            <v-btn
+                                icon="mdi-close"
+                                size="x-small"
+                                variant="text"
+                                @click="removeCor(corId)"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="grade-erp__left-add">
+                          <v-select
+                              density="compact"
+                              variant="outlined"
+                              placeholder="Selecione"
+                              :items="coresDisponiveis"
+                              item-title="descricao"
+                              item-value="id"
+                              v-model="selectCor"
+                              hide-details
+                          >
+                            <template #selection="{ item }">
+                              <div class="d-flex align-center gap-2">
+                                <span class="cor-dot" :style="{ background: item.raw?.cor_hexa || '#999' }" />
+                                <span>{{ item.raw?.descricao }}</span>
+                              </div>
+                            </template>
+
+                            <template #item="{ props, item }">
+                              <v-list-item v-bind="props">
+                                <template #prepend>
+                                  <span class="cor-dot" :style="{ background: item.raw?.cor_hexa || '#999' }" />
+                                </template>
+                              </v-list-item>
+                            </template>
+
+                            <template #append-item>
+                              <v-divider class="my-2" />
+                              <div class="px-3 pb-2">
+                                <v-btn
+                                    block
+                                    variant="tonal"
+                                    color="var(--text-color-laranja)"
+                                    prepend-icon="mdi-plus"
+                                    @click="abrirModalNovaCor"
+                                >
+                                  Adicionar Cor
+                                </v-btn>
+                              </div>
+                            </template>
+                          </v-select>
+
+                          <v-btn
+                              class="grade-erp__btn-plus"
+                              icon="mdi-plus"
+                              variant="tonal"
+                              size="small"
+                              :disabled="selectCor === null || selectCor === '' || selectCor === undefined"
+                              @click="addCor"
+                          />
+                        </div>
+                      </div>
+
+                      <!-- TAMANHOS + GRID (direita) -->
+                      <div class="grade-erp__right">
+                        <div class="grade-erp__left-title mb-3">
+                          <span class="text-caption font-weight-medium">TAMANHOS</span>
+                        </div>
+
+                        <div
+                            class="grade-erp__sizes"
+                            :style="{ gridTemplateColumns: `repeat(${Math.max(matrizGrade.tamanhos.length, 1)}, 120px) 220px` }"
+                        >
+                          <div
+                              v-for="tam in matrizGrade.tamanhos"
+                              :key="tam"
+                              class="grade-erp__size-cell"
+                          >
+                            <span>{{ tam }}</span>
+                            <v-btn
+                                icon="mdi-close"
+                                size="x-small"
+                                variant="text"
+                                @click="removeTamanho(tam)"
+                            />
+                          </div>
+
+                          <div class="grade-erp__size-add">
+                            <v-text-field
+                                density="compact"
+                                variant="outlined"
+                                placeholder="Ex: P, M, 42"
+                                hide-details="auto"
+                                v-model="novoTamanho"
+                                maxlength="3"
+                                :error-messages="erroNovoTamanho"
+                                @keyup.enter="addTamanho"
+                                @update:model-value="erroNovoTamanho = ''"
+                            />
+                            <v-btn
+                                class="grade-erp__btn-plus"
+                                icon="mdi-plus"
+                                size="small"
+                                variant="tonal"
+                                :disabled="!novoTamanho"
+                                @click="addTamanho"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="grade-erp__grid-wrap">
+                          <div
+                              class="grade-erp__grid"
+                              :style="{ gridTemplateColumns: `repeat(${matrizGrade.tamanhos.length}, 120px)` }"
+                          >
+                            <template v-for="corId in matrizGrade.cores" :key="corId">
+                              <div
+                                  v-for="tam in matrizGrade.tamanhos"
+                                  :key="`${corId}-${tam}`"
+                                  class="grade-erp__cell"
+                              >
+                                <v-text-field
+                                    density="compact"
+                                    variant="outlined"
+                                    type="number"
+                                    min="0"
+                                    hide-details
+                                    class="grade-erp__input mt-3"
+                                    v-model.number="matrizGrade.qtd[Number(corId)][tam]"
+                                />
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+
+                        <v-alert
+                            v-if="matrizGrade.cores.length === 0 || matrizGrade.tamanhos.length === 0"
+                            type="info"
+                            variant="tonal"
+                            density="compact"
+                            class="mt-3"
+                        >
+                          Adicione pelo menos <b>1 cor</b> e <b>1 tamanho</b> para liberar a grade.
+                        </v-alert>
+                      </div>
+                    </div>
+                  </v-sheet>
                 </v-col>
               </v-row>
             </v-form>
@@ -228,6 +298,92 @@
         >
           <template #item>{{ itemSelecionado?.codigo_grade }}</template>
         </excluir-modal>
+
+        <!-- EDITAR GRADE EXISTENTE -->
+        <cadastrar-modal
+            v-model:cadastrar-modal="modalEditarGrade"
+            :clear-input="cancelarEdicaoGrade"
+            :cadastrarcidade="salvarEdicaoGrade"
+            :width="450"
+            :loading="loading"
+            titulo-acao="Editar"
+            texto-botao="Salvar alterações"
+            icone-botao="mdi-content-save-outline"
+        >
+          <template #titulo>Grade</template>
+
+          <template #textfields>
+            <v-row dense class="px-4 py-5">
+              <v-col cols="12" md="6">
+                <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    label="Produto"
+                    :model-value="itemEditando?.descproduto"
+                    readonly
+                    hide-details="auto"
+                />
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    label="Cor"
+                    :model-value="itemEditando?.desccor || itemEditando?.id_cor"
+                    readonly
+                    hide-details="auto"
+                />
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    label="Tamanho"
+                    :model-value="itemEditando?.id_tamanho"
+                    readonly
+                    hide-details="auto"
+                />
+              </v-col>
+
+              <v-col cols="12">
+                <v-autocomplete
+                    density="compact"
+                    variant="outlined"
+                    label="Localização"
+                    item-title="descricao"
+                    item-value="id"
+                    :items="locais"
+                    v-model="formEditarGrade.id_localizacao"
+                    hide-details="auto"
+                />
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-select
+                    density="compact"
+                    variant="outlined"
+                    label="Status"
+                    :items="statusOptions"
+                    item-title="title"
+                    item-value="value"
+                    v-model="formEditarGrade.status"
+                    hide-details="auto"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    label="Código de barras"
+                    v-model="formEditarGrade.codigo_grade"
+                    maxlength="25"
+                    :rules="validacaoCodigoGrade"
+                    hide-details="auto"
+                />
+              </v-col>
+            </v-row>
+          </template>
+        </cadastrar-modal>
 
         <!-- CADASTRAR / EDITAR COR -->
         <cadastrar-modal
@@ -313,6 +469,7 @@ import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import CadastrarModal from "@/components/base/modais/CadastrarModal.vue";
 import { useProdutosStore } from "@/stores/APIs/produtos";
 import { useThemeStore } from "@/stores/config-temas/theme";
+import { toast } from "vue3-toastify";
 
 const produtosStore = useProdutosStore();
 const themeStore = useThemeStore();
@@ -321,27 +478,34 @@ const idEmpresa = JSON.parse(localStorage.getItem("empresaSelecionada"));
 
 // DADOS
 const loading = computed(() => produtosStore.loading);
-const produtos = computed(() => produtosStore.produtos || []);
+// Só produtos configurados para utilizar grade (utiliza_grade: "S") aparecem
+// como opção — evita criar combinações de cor/tamanho pra produto incompatível.
+const produtos = computed(() => (produtosStore.produtos || []).filter(p => p.utiliza_grade === 'S'));
 const locais = computed(() => produtosStore.localizacoes || []);
 const cores = computed(() => produtosStore.cores || []);
 const grades = computed(() => produtosStore.grades || []);
 
-// FORMULÁRIO
+// FORMULÁRIO (CRIAÇÃO)
 const formRefGrade = ref(null);
 const formularioAbertoGrade = ref(false);
 const exibirGrade = ref(false);
-const editandoGrade = ref(false);
 const itemSelecionado = ref(null);
 
 const formGrade = reactive({
   id_empresa: idEmpresa?.id || null,
   id_produto: null,
-  id_cor: null,
-  id_tamanho: null,
   id_localizacao: null,
-  status: 'A',
-  codigo_grade: ""
 });
+
+// Aviso defensivo: a lista de produtos já vem filtrada por utiliza_grade='S',
+// então isso só dispara se a lista ficar desatualizada entre o carregamento e a seleção.
+function aoSelecionarProduto(idProduto) {
+  if (!idProduto) return;
+  const produto = produtos.value.find(p => p.id === idProduto);
+  if (produto && produto.utiliza_grade !== 'S') {
+    toast.warning(`"${produto.descproduto}" não está configurado para utilizar grade`);
+  }
+}
 
 const fieldProps = computed(() => ({
   variant: "outlined",
@@ -368,24 +532,116 @@ function normalizarTamanho(valor) {
       .slice(0, 3);
 }
 
-const validacaoTamanho = [
-  (v) => !!String(v || "").trim() || "Campo obrigatório",
-  (v) => {
-    const valor = normalizarTamanho(v);
+// letras permitidas, simples ou combinadas (P, M, G, L, S, X, U — ex: XG, XXG)
+// ou números de 1 a 3 dígitos
+function tamanhoEhValido(valor) {
+  const regexLetras = /^(?=.{1,3}$)[PMGLSXU]+$/;
+  const regexNumeros = /^\d{1,3}$/;
+  return regexLetras.test(valor) || regexNumeros.test(valor);
+}
 
-    // letras permitidas, simples ou combinadas:
-    // P, M, G, L, S, X, U
-    // combinações como XG, XL, XP, XXG etc
-    const regexLetras = /^(?=.{1,3}$)[PMGLSXU]+$/;
+// =========================
+// MATRIZ COR x TAMANHO
+// =========================
+const matrizGrade = reactive({
+  cores: [],      // array de ids de cor
+  tamanhos: [],   // array de strings (tamanho já normalizado)
+  qtd: {},        // { [idCor]: { [tamanho]: number } }
+});
 
-    // números de 1 até 3 dígitos
-    const regexNumeros = /^\d{1,3}$/;
+const selectCor = ref(null);
+const novoTamanho = ref("");
+const erroNovoTamanho = ref("");
 
-    return (
-        regexLetras.test(valor) || regexNumeros.test(valor)
-    ) || "Informe letras válidas (P, M, G, L, S, X, U e combinações) ou número com até 3 dígitos";
+// cores já cadastradas que ainda não foram adicionadas à matriz
+const coresDisponiveis = computed(() => cores.value.filter(c => !matrizGrade.cores.includes(Number(c.id))));
+
+function ensureCell(corId, tamanho) {
+  const cid = Number(corId);
+  if (!matrizGrade.qtd[cid]) matrizGrade.qtd[cid] = {};
+  if (matrizGrade.qtd[cid][tamanho] === undefined) matrizGrade.qtd[cid][tamanho] = 0;
+}
+
+function ensureMatrix() {
+  if (!matrizGrade.cores.length || !matrizGrade.tamanhos.length) return;
+  matrizGrade.cores.forEach((corId) => {
+    matrizGrade.tamanhos.forEach((tam) => ensureCell(corId, tam));
+  });
+}
+
+function addCor() {
+  if (selectCor.value === null || selectCor.value === undefined || selectCor.value === "") return;
+
+  const corId = Number(selectCor.value);
+  if (Number.isNaN(corId) || matrizGrade.cores.includes(corId)) return;
+
+  matrizGrade.cores.push(corId);
+  selectCor.value = null;
+  ensureMatrix();
+}
+
+function removeCor(corId) {
+  const cid = Number(corId);
+  matrizGrade.cores = matrizGrade.cores.filter((id) => Number(id) !== cid);
+  delete matrizGrade.qtd[cid];
+}
+
+function getCor(corId) {
+  const cid = Number(corId);
+  return cores.value.find((c) => Number(c.id) === cid) || null;
+}
+
+function addTamanho() {
+  const valor = normalizarTamanho(novoTamanho.value);
+
+  if (!valor) {
+    erroNovoTamanho.value = "Informe um tamanho";
+    return;
   }
-];
+  if (!tamanhoEhValido(valor)) {
+    erroNovoTamanho.value = "Use letras (P, M, G, L, S, X, U) ou número de até 3 dígitos";
+    return;
+  }
+  if (matrizGrade.tamanhos.includes(valor)) {
+    erroNovoTamanho.value = "Esse tamanho já foi adicionado";
+    return;
+  }
+
+  matrizGrade.tamanhos.push(valor);
+  novoTamanho.value = "";
+  erroNovoTamanho.value = "";
+  ensureMatrix();
+}
+
+function removeTamanho(tam) {
+  matrizGrade.tamanhos = matrizGrade.tamanhos.filter((t) => t !== tam);
+  Object.keys(matrizGrade.qtd).forEach((corId) => {
+    if (matrizGrade.qtd[corId]) delete matrizGrade.qtd[corId][tam];
+  });
+}
+
+// conta quantas combinações têm quantidade preenchida (> 0) — é isso que
+// efetivamente vai ser criado ao salvar. A quantidade em si não é enviada
+// pra API: /estoque/grades não tem campo de estoque/quantidade — isso ainda
+// depende de um trabalho futuro no backend (ver plano de implementação).
+const totalCombinacoes = computed(() => {
+  let total = 0;
+  matrizGrade.cores.forEach((corId) => {
+    matrizGrade.tamanhos.forEach((tam) => {
+      if (Number(matrizGrade.qtd?.[Number(corId)]?.[tam] ?? 0) > 0) total++;
+    });
+  });
+  return total;
+});
+
+function resetMatrizGrade() {
+  matrizGrade.cores = [];
+  matrizGrade.tamanhos = [];
+  matrizGrade.qtd = {};
+  selectCor.value = null;
+  novoTamanho.value = "";
+  erroNovoTamanho.value = "";
+}
 
 // TABELA
 const search = ref("");
@@ -409,7 +665,7 @@ const statusOptions = [
 // ABRIR/FECHAR
 function toggleFormularioGrade() {
   formularioAbertoGrade.value = !formularioAbertoGrade.value;
-  if (formularioAbertoGrade.value && !editandoGrade.value) {
+  if (formularioAbertoGrade.value) {
     resetFormularioGrade();
   }
 }
@@ -418,14 +674,10 @@ function resetFormularioGrade() {
   Object.assign(formGrade, {
     id_empresa: idEmpresa?.id || null,
     id_produto: null,
-    id_cor: null,
-    id_tamanho: null,
     id_localizacao: null,
-    status: 'A',
-    codigo_grade: ""
   });
 
-  editandoGrade.value = false;
+  resetMatrizGrade();
   itemSelecionado.value = null;
 
   if (formRefGrade.value) {
@@ -438,57 +690,119 @@ function cancelarFormularioGrade() {
   formularioAbertoGrade.value = false;
 }
 
-// SALVAR
+// SALVAR — cria uma combinação de grade por célula preenchida (> 0). Não existe
+// endpoint em lote, então cada combinação vira uma chamada própria a
+// cadastrarGradeProduto (mesmo padrão de "um POST por item" já usado em
+// src/stores/APIs/inventario.js para casos parecidos).
 async function salvarFormularioGrade() {
   const validacao = await formRefGrade.value?.validate();
   if (!validacao?.valid) return;
 
-  const payload = {
-    id_empresa: formGrade.id_empresa,
-    id_produto: formGrade.id_produto,
-    id_cor: String(formGrade.id_cor),
-    id_tamanho: normalizarTamanho(formGrade.id_tamanho),
-    id_localizacao: formGrade.id_localizacao,
-    status: String(formGrade.status),
-    codigo_grade: formGrade.codigo_grade
-        ? String(formGrade.codigo_grade).trim()
-        : null,
-  };
+  const combinacoes = [];
+  matrizGrade.cores.forEach((corId) => {
+    matrizGrade.tamanhos.forEach((tam) => {
+      const qtd = Number(matrizGrade.qtd?.[Number(corId)]?.[tam] ?? 0);
+      if (qtd > 0) combinacoes.push({ corId, tam });
+    });
+  });
 
-  if (editandoGrade.value && itemSelecionado.value?.id_produto) {
-    await produtosStore.atualizarGradeProduto(
-        idEmpresa?.id,
-        itemSelecionado.value.id_produto,
-        itemSelecionado.value.id_cor,
-        itemSelecionado.value.id_tamanho,
-        payload
-    );
-  } else {
-    await produtosStore.cadastrarGradeProduto(payload, idEmpresa?.id);
+  if (combinacoes.length === 0) {
+    toast.warning('Preencha a quantidade de pelo menos uma combinação de cor e tamanho');
+    return;
   }
 
-  if (!produtosStore.errorMessage) {
-    await produtosStore.buscarGradeProduto(idEmpresa?.id);
+  let sucesso = 0;
+  let falha = 0;
+
+  for (const { corId, tam } of combinacoes) {
+    const payload = {
+      id_empresa: formGrade.id_empresa,
+      id_produto: formGrade.id_produto,
+      id_cor: String(corId),
+      id_tamanho: tam,
+      id_localizacao: formGrade.id_localizacao,
+      status: 'A',
+      codigo_grade: null,
+    };
+
+    produtosStore.errorMessage = '';
+    await produtosStore.cadastrarGradeProduto(payload, idEmpresa?.id);
+
+    if (produtosStore.errorMessage) {
+      falha++;
+    } else {
+      sucesso++;
+    }
+  }
+
+  if (sucesso > 0) {
+    toast.success(`${sucesso} combinação(ões) de grade criada(s) com sucesso`);
+  }
+  if (falha > 0) {
+    toast.error(`${falha} combinação(ões) não puderam ser criadas`);
+  }
+
+  await produtosStore.buscarGradeProduto(idEmpresa?.id);
+
+  if (falha === 0) {
     cancelarFormularioGrade();
   }
 }
 
-// EDITAR
-function editarGrade(item) {
-  editandoGrade.value = true;
-  itemSelecionado.value = item;
+// EDITAR (registro já existente — modal separado, fora da matriz de criação)
+const modalEditarGrade = ref(false);
+const itemEditando = ref(null);
 
-  Object.assign(formGrade, {
-    id_empresa: item.id_empresa ?? idEmpresa?.id,
-    id_produto: item.id_produto ?? null,
-    id_cor: item.id_cor ?? null,
-    id_tamanho: item.id_tamanho ?? null,
+const formEditarGrade = reactive({
+  id_localizacao: null,
+  status: 'A',
+  codigo_grade: "",
+});
+
+function editarGrade(item) {
+  itemEditando.value = item;
+
+  Object.assign(formEditarGrade, {
     id_localizacao: item.id_localizacao ?? null,
     status: item.status ?? 'A',
     codigo_grade: item.codigo_grade ?? "",
   });
 
-  formularioAbertoGrade.value = true;
+  modalEditarGrade.value = true;
+}
+
+function cancelarEdicaoGrade() {
+  modalEditarGrade.value = false;
+  itemEditando.value = null;
+}
+
+async function salvarEdicaoGrade() {
+  if (!itemEditando.value?.id_produto) return;
+
+  const payload = {
+    id_empresa: idEmpresa?.id,
+    id_produto: itemEditando.value.id_produto,
+    id_cor: String(itemEditando.value.id_cor),
+    id_tamanho: itemEditando.value.id_tamanho,
+    id_localizacao: formEditarGrade.id_localizacao,
+    status: String(formEditarGrade.status),
+    codigo_grade: formEditarGrade.codigo_grade
+        ? String(formEditarGrade.codigo_grade).trim()
+        : null,
+  };
+
+  await produtosStore.atualizarGradeProduto(
+      idEmpresa?.id,
+      itemEditando.value.id_produto,
+      itemEditando.value.id_cor,
+      itemEditando.value.id_tamanho,
+      payload
+  );
+
+  if (!produtosStore.errorMessage) {
+    await produtosStore.buscarGradeProduto(idEmpresa?.id);
+    cancelarEdicaoGrade();
+  }
 }
 
 // EXCLUIR
@@ -535,8 +849,6 @@ onMounted(async () => {
 // =========================
 const modalNovaCor = ref(false);
 const editandoCorId = ref(null);
-
-const coresDisponiveis = computed(() => cores.value);
 
 const coresDenatran = [
   { title: "01 - AMARELO", value: 1 },
@@ -619,5 +931,119 @@ async function salvarOuEditarCor() {
 
 .gap-2 {
   gap: 8px;
+}
+
+/* Matriz Cor x Tamanho */
+.grade-erp {
+  padding: 16px;
+  background: var(--bg-color-secondary) !important;
+  color: var(--text-color) !important;
+}
+
+.grade-erp__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.grade-erp__body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+}
+
+.grade-erp__left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grade-erp__left-title {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+
+.grade-erp__left-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.grade-erp__left-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--bg-color);
+}
+
+.grade-erp__left-add {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  gap: 8px;
+  align-items: center;
+}
+
+.grade-erp__right {
+  overflow: auto;
+}
+
+.grade-erp__sizes {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.grade-erp__size-cell {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--bg-color);
+  font-weight: 600;
+}
+
+.grade-erp__size-add {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  gap: 8px;
+  align-items: center;
+}
+
+.grade-erp__grid-wrap {
+  overflow: auto;
+  padding-bottom: 4px;
+}
+
+.grade-erp__grid {
+  display: grid;
+  gap: 8px;
+}
+
+.grade-erp__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grade-erp__input :deep(.v-field__input) {
+  text-align: center;
+}
+
+.grade-erp__btn-plus {
+  background: var(--text-color-laranja) !important;
+  color: #fff !important;
 }
 </style>

@@ -171,11 +171,13 @@ const mostrarMensagem = (message, color = 'success') => {
   snackbar.show = true;
 };
 
-const cests = computed(() => estoqueStore.cests);
+// A API faz soft delete (ativo='N', registro continua existindo) — a tabela só
+// mostra os ativos, senão um item "excluído" continuaria aparecendo na lista.
+const cests = computed(() => (estoqueStore.cests || []).filter(c => c.ativo !== 'N'));
 const loading = computed(() => estoqueStore.loading);
 
 watchEffect(() => {
-  if (cests.value.length === 0) {
+  if (estoqueStore.cests.length === 0) {
     estoqueStore.buscarCests();
   }
 });
@@ -246,7 +248,7 @@ const headers = [
  */
 
 const selecionarNcm = (ncmSelecionado) => {
-  forms.id_ncm = ncmSelecionado.id;
+  forms.id_ncm = String(ncmSelecionado.id).trim();
   console.log("NCM Selecionado: ", ncmSelecionado);
 }
 

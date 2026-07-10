@@ -409,10 +409,12 @@ export const useEstoqueStore = defineStore('estoque', {
         async cadastrarCest(cestData) {
             this.loading = true;
             try {
-                const apiStore = useApiStore();
-                await apiStore.executarAcao(`cest`, 'post', cestData);
+                await apiPhp.post('/estoque/cests', cestData);
+                toast.success('CEST cadastrado com sucesso!');
                 await this.buscarCests();
             } catch (error) {
+                const mensagem = error?.response?.data?.message || error?.response?.data?.erro || 'Erro ao cadastrar CEST';
+                toast.error(mensagem);
                 console.error('Erro ao cadastrar CEST:', error);
             } finally {
                 this.loading = false;
@@ -431,10 +433,15 @@ export const useEstoqueStore = defineStore('estoque', {
         async editarCest(id, idNcm, uf, cestData) {
             this.loading = true;
             try {
-                const apiStore = useApiStore();
-                await apiStore.executarAcao(`cest/${id}/${idNcm}/${uf}`, 'put', cestData);
+                // id_ncm vem com espaços de preenchimento do banco (campo CHAR de tamanho fixo);
+                // sem o trim, a URL fica malformada e a edição não bate no registro certo.
+                const url = `/estoque/cests/${String(id).trim()}/${String(idNcm).trim()}/${String(uf).trim()}`;
+                await apiPhp.put(url, cestData);
+                toast.success('CEST atualizado com sucesso!');
                 await this.buscarCests();
             } catch (error) {
+                const mensagem = error?.response?.data?.message || error?.response?.data?.erro || 'Erro ao atualizar CEST';
+                toast.error(mensagem);
                 console.error('Erro ao Atualizar CEST:', error);
             } finally {
                 this.loading = false;
@@ -452,10 +459,13 @@ export const useEstoqueStore = defineStore('estoque', {
         async deletarCest(id, idNcm, uf) {
             this.loading = true;
             try {
-                const apiStore = useApiStore();
-                await apiStore.executarAcao(`cest/${id}/${idNcm}/${uf}`, 'delete');
+                const url = `/estoque/cests/${String(id).trim()}/${String(idNcm).trim()}/${String(uf).trim()}`;
+                await apiPhp.delete(url);
+                toast.success('CEST excluído com sucesso!');
                 await this.buscarCests();
             } catch (error) {
+                const mensagem = error?.response?.data?.message || error?.response?.data?.erro || 'Erro ao excluir CEST';
+                toast.error(mensagem);
                 console.error('Erro ao Deletar CEST:', error);
             } finally {
                 this.loading = false;

@@ -114,12 +114,11 @@
                     </v-col>
                     <v-col cols="12" md="6">
                       <v-file-input
-                          label="Foto do SubGrupo"
+                          label="Foto do SubGrupo (opcional)"
                           variant="outlined"
                           density="compact"
                           accept="image/png, image/jpeg, image/bmp"
                           hide-details="auto"
-                          :rules="validacao"
                           v-model="formSub.foto"
                           chips
                           prepend-inner-icon="mdi-image-outline"
@@ -134,7 +133,7 @@
                           variant="outlined"
                           label="Comissão Vendedor (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.perc_comissao_vendedor"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -149,7 +148,7 @@
                           variant="outlined"
                           label="Comissão Tecnico (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.perc_comissao_tecnico"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -165,7 +164,7 @@
                           variant="outlined"
                           label="Índice Custo (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.indice_custo"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -180,7 +179,7 @@
                           variant="outlined"
                           label="Índice Venda (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.indice_venda"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -450,6 +449,11 @@ const toggleFormularioSub = () => {
 // CAMPOS DO FORMULÁRIO
 const validacao = [(v) => !!v || "O campo é obrigatório"];
 const validacaoFile = [(v) => !!v || "O campo é obrigatório"];
+const validacaoPercentual = [
+  (v) => !!v || "O campo é obrigatório",
+  (v) => Number(v) > 0 || "Deve ser maior que 0",
+  (v) => Number(v) <= 100 || "Não pode ser maior que 100",
+];
 
 const search = ref("");
 const base64 = ref("");
