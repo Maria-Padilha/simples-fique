@@ -1,26 +1,32 @@
 <template>
-  <v-dialog v-model="modalExcluir" max-width="400">
+  <v-dialog v-model="modalExcluir" max-width="420">
     <v-card class="background-secondary" elevation="0">
-      <v-card-title class="px-4 mt-5">
-        <div class="w-100 flex flex-col items-center justify-center">
-          <v-icon icon="mdi-close-circle-outline" color="red" size="70px" class="opacity-70 mb-2" />
-          <p class="text-xl font-semibold texto-color-primary">Excluir <slot name="item" />?</p>
-        </div>
+      <v-card-title class="d-flex flex-column align-center pt-6 pb-2 px-6">
+        <v-icon icon="mdi-close-circle-outline" color="error" size="56" class="mb-3" />
+        <p class="text-subtitle-1 font-weight-medium text-center texto-color-primary">
+          Excluir este item?
+        </p>
       </v-card-title>
 
-      <v-card-text class="px-4">
-        Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.
+      <v-card-text class="text-center px-6 pb-2">
+        <p class="text-body-2 text-medium-emphasis excluir-modal__item-name">
+          <slot name="item" />
+        </p>
+        <p class="text-body-2 text-medium-emphasis mt-2">
+          Tem certeza que deseja excluir? Esta ação não pode ser desfeita.
+        </p>
       </v-card-text>
 
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <v-btn color="grey" variant="text" @click="cancelar" size="small">Cancelar</v-btn>
-
+      <v-card-actions class="justify-end pa-4 pt-2">
+        <v-btn color="grey" variant="text" @click="cancelar" size="small">
+          Cancelar
+        </v-btn>
         <v-btn
             color="error"
             :loading="loading"
             @click="deletar"
-            variant="flat" size="small"
+            variant="flat"
+            size="small"
             class="text-white">
           Excluir
         </v-btn>
@@ -28,6 +34,18 @@
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+.excluir-modal__item-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  font-weight: 500;
+  color: var(--text-color);
+}
+</style>
 
 <script setup>
 import { defineProps, defineEmits, computed } from 'vue';

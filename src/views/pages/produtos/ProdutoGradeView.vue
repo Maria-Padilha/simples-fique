@@ -343,7 +343,7 @@
             :deletar="confirmarExclusao"
             :loading="loading"
         >
-          <template #item>{{ itemSelecionado?.codigo_grade }}</template>
+          <template #item>{{ itemSelecionado?.codigo_barras || itemSelecionado?.codigo_grade }}</template>
         </excluir-modal>
 
         <!-- EDITAR GRADE EXISTENTE -->
@@ -600,32 +600,29 @@ const produtos = computed(() => (produtosStore.produtos || []).filter(p => p.uti
 const locais = computed(() => produtosStore.localizacoes || []);
 const cores = computed(() => produtosStore.cores || []);
 const grades = computed(() => {
-  const todosProdutos = produtosStore.produtos || [];
-  const itens = [];
+  const produtosPorId = new Map((produtosStore.produtos || []).map((p) => [p.id, p]));
 
-  todosProdutos.forEach((produto) => {
-    const lista = produto.referenciados_grade_por_produto || [];
-    lista.forEach((item) => {
-      const cor = item.referencia_cor || {};
-      const localizacao = item.referencia_localizacao || {};
-      itens.push({
-        id: `${item.id_tamanho}_${item.id_cor}_${produto.id}`,
-        id_tamanho: item.id_tamanho,
-        id_cor: item.id_cor,
-        tamanho_descricao: item.tamanho_descricao || item.id_tamanho,
-        desccor: cor.descricao || item.desccor || item.id_cor,
-        cor_hexa: cor.cor_hexa || item.cor_hexa || '#999',
-        localizacao: localizacao.descricao || item.localizacao || '—',
-        id_localizacao: localizacao.id || item.id_localizacao || null,
-        descproduto: produto.descproduto,
-        id_produto: produto.id,
-        status: item.status || 'A',
-        codigo_grade: item.codigo_grade || '',
-      });
-    });
+  return (produtosStore.grades || []).map((item) => {
+    const produto = produtosPorId.get(item.id_produto) || {};
+    const almoId = produto.referenciados_produto_almoxarifado_por_produto?.[0]?.referencia_almoxarifado?.id || null;
+
+    return {
+      id: `${item.id_tamanho}_${item.id_cor}_${item.id_produto}`,
+      id_tamanho: item.id_tamanho,
+      id_cor: item.id_cor,
+      tamanho_descricao: item.tamanho_descricao || item.id_tamanho,
+      desccor: item.cor_descricao || item.desccor || item.id_cor,
+      cor_hexa: item.cor_hexa || '#999',
+      localizacao: item.localizacao_descricao || item.localizacao || '—',
+      id_localizacao: item.id_localizacao || null,
+      descproduto: item.descproduto || produto.descproduto,
+      id_produto: item.id_produto,
+      id_almoxarifado: item.id_almoxarifado || almoId,
+      status: item.status || 'A',
+      codigo_grade: item.codigo_grade || '',
+      codigo_barras: item.codigo_barras || '',
+    };
   });
-
-  return itens;
 });
 const tamanhosDisponiveis = computed(() => estoqueStore.tamanhos || []);
 
@@ -718,6 +715,7 @@ const validacaoObrigatorio = [
 ];
 
 const validacaoCodigoGrade = [
+  (v) => !!v || "Código de barras é obrigatório",
   (v) => !v || String(v).length <= 25 || "Máximo de 25 caracteres",
   (v) => !v || /^[0-9]+$/.test(String(v)) || "Informe apenas números",
 ];
@@ -844,7 +842,7 @@ const headers = [
   { title: "Produto", key: "descproduto" },
   { title: "Cor", key: "desccor" },
   { title: "Tamanho", key: "tamanho_descricao" },
-  { title: "Código Grade", key: "codigo_grade" },
+  { title: "Código de Barras", key: "codigo_barras" },
   { title: "Localização", key: "localizacao" },
   { title: "Status", key: "status" },
   { title: "Ações", key: "acoes", sortable: false },
@@ -941,7 +939,7 @@ function editarGrade(item) {
   Object.assign(formEditarGrade, {
     id_localizacao: item.id_localizacao ?? null,
     status: item.status ?? 'A',
-    codigo_grade: item.codigo_grade ?? "",
+    codigo_grade: item.codigo_barras || item.codigo_grade || '',
   });
 
   modalEditarGrade.value = true;
@@ -955,6 +953,25 @@ function cancelarEdicaoGrade() {
 async function salvarEdicaoGrade() {
   if (!itemEditando.value?.id_produto) return;
 
+  const codigoGrade = formEditarGrade.codigo_grade
+      ? String(formEditarGrade.codigo_grade).trim()
+      : '';
+
+  if (!codigoGrade) {
+    toast.warning('Informe o código de barras da grade');
+    return;
+  }
+
+  if (codigoGrade.length > 25) {
+    toast.warning('Código de barras deve ter no máximo 25 caracteres');
+    return;
+  }
+
+  if (!/^[0-9]+$/.test(codigoGrade)) {
+    toast.warning('Código de barras deve conter apenas números');
+    return;
+  }
+
   const payload = {
     id_empresa: idEmpresa?.id,
     id_produto: itemEditando.value.id_produto,
@@ -962,9 +979,7 @@ async function salvarEdicaoGrade() {
     id_tamanho: itemEditando.value.id_tamanho,
     id_localizacao: formEditarGrade.id_localizacao,
     status: String(formEditarGrade.status),
-    codigo_grade: formEditarGrade.codigo_grade
-        ? String(formEditarGrade.codigo_grade).trim()
-        : null,
+    codigo_grade: codigoGrade,
   };
 
   await produtosStore.atualizarGradeProduto(
@@ -975,10 +990,13 @@ async function salvarEdicaoGrade() {
       payload
   );
 
-  if (!produtosStore.errorMessage) {
-    await produtosStore.buscarProdutos();
-    cancelarEdicaoGrade();
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
   }
+
+  await produtosStore.buscarProdutos();
+  cancelarEdicaoGrade();
 }
 
 // EXCLUIR
@@ -1014,6 +1032,7 @@ async function confirmarExclusao() {
 onMounted(async () => {
   await Promise.all([
     produtosStore.buscarProdutos(),
+    produtosStore.buscarGradeProduto(idEmpresa?.id),
     produtosStore.buscarLocalizacoes(idEmpresa?.id),
     produtosStore.buscarCores(),
     estoqueStore.buscarTamanhos(),

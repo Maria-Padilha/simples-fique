@@ -530,6 +530,15 @@
             no-data-text="Nenhum item encontrado"
 
         >
+          <template v-slot:[`item.estoque_por_almoxarifado`]='{ item }'>
+            <span v-if="!item.estoque_por_almoxarifado?.length">—</span>
+            <div v-else class="d-flex flex-column ga-1 py-1">
+              <span v-for="almox in item.estoque_por_almoxarifado" :key="almox.id_almoxarifado">
+                {{ almox.almoxarifado_descricao }}: {{ almox.qtd }}
+              </span>
+            </div>
+          </template>
+
           <template v-slot:[`item.acoes`]='{ item }'>
             <v-btn
                 icon="mdi-eye-off" size="small"
@@ -662,9 +671,9 @@ const search = ref('');
 const headers = [
   { title: 'ID', key: 'id' },
   { title: 'Produto', key: 'descproduto' },
-  { title: 'Observação', key: 'observacao' },
-  { title: 'Código Referência', key: 'codigo_ref' },
-  { title: 'Código Fabricação', key: 'codigo_fab' },
+  { title: 'Código Referência', key: 'codigo_gtin' },
+  { title: 'Qtd. por Almoxarifado', key: 'estoque_por_almoxarifado', sortable: false },
+  { title: 'Estoque Total', key: 'estoque_total' },
   { title: 'Ativo', key: 'ativo' },
   { title: 'Ações', key: 'acoes', sortable: false },
 ];
