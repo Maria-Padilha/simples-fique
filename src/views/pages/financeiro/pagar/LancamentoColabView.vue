@@ -154,18 +154,15 @@
                     <!-- Valor Face -->
                     <v-col cols="12" md="2">
                       <v-text-field
-                        v-model.number="formData.vlrface"
+                        v-model="formData.vlrface"
                         label="Valor Face *"
-                        type="number"
-                        step="0.01"
-                        min="0"
+                        v-mask-decimal.br="2"
                         variant="outlined"
                         density="compact"
                         prepend-inner-icon="mdi-currency-brl"
                         :rules="[rules.required, rules.positivo]"
                         class="required-left-border"
-                        :hint="formData.vlrface ? formatarMoeda(formData.vlrface) : ''"
-                        persistent-hint
+                        hide-details="auto"
                         @input="calcularTotal"
                       />
                     </v-col>
@@ -188,17 +185,14 @@
                     <!-- % Juros -->
                     <v-col cols="12" md="2">
                       <v-text-field
-                        v-model.number="formData.percjuros"
+                        v-model="formData.percjuros"
                         label="Juros"
-                        type="number"
-                        step="0.01"
-                        min="0"
+                        v-mask-decimal.br="2"
                         variant="outlined"
                         density="compact"
                         prepend-inner-icon="mdi-percent"
                         suffix="%"
-                        :hint="formData.vlrjuros ? formatarMoeda(formData.vlrjuros) : ''"
-                        persistent-hint
+                        hide-details="auto"
                         @input="calcularTotal"
                       />
                     </v-col>
@@ -206,17 +200,14 @@
                     <!-- Vlr Total -->
                     <v-col cols="12" md="2">
                       <v-text-field
-                        v-model.number="formData.vlrtotal"
+                        v-model="formData.vlrtotal"
                         label="Valor Total"
-                        type="number"
-                        step="0.01"
+                        v-mask-decimal.br="2"
                         variant="outlined"
                         density="compact"
                         prepend-inner-icon="mdi-currency-brl"
                         hide-details="auto"
                         readonly
-                        :hint="formData.vlrtotal ? formatarMoeda(formData.vlrtotal) : ''"
-                        persistent-hint
                       />
                     </v-col>
 
@@ -442,10 +433,8 @@
                   <template #[`item.nr`]="{ index }">{{ index + 1 }}</template>
                   <template #[`item.valor`]="{ index }">
                     <v-text-field
-                      v-model.number="parcelas[index].valor"
-                      type="number"
-                      step="0.01"
-                      min="0"
+                      v-model="parcelas[index].valor"
+                      v-mask-decimal.br="2"
                       variant="outlined"
                       density="compact"
                       hide-details
@@ -716,10 +705,10 @@ const formData = reactive({
   id_colaborador: null,
   nrdocumento: '',
   observacao: '',
-  vlrface: null,
-  percjuros: 0,
+  vlrface: '',
+  percjuros: '',
   vlrjuros: 0,
-  vlrtotal: null,
+  vlrtotal: '',
   dtlancamento: new Date().toISOString().slice(0, 10),
   id_caixa: null,
   id_caixahist: null,
@@ -731,7 +720,7 @@ const formData = reactive({
   id_tipopagrec: null,
 })
 
-const parcelas = ref([{ valor: null, dtvencimento: new Date().toISOString().slice(0, 10) }])
+const parcelas = ref([{ valor: '', dtvencimento: new Date().toISOString().slice(0, 10) }])
 
 // ── Lookups ───────────────────────────────────────────────────────────────────
 const tiposMovimento = [
@@ -756,7 +745,7 @@ const planosContaFormatados = computed(() => {
 })
 
 const totalParcelas = computed(() =>
-  parcelas.value.reduce((acc, p) => acc + (Number(p.valor) || 0), 0)
+  parcelas.value.reduce((acc, p) => acc + (parseDecimalBR(p.valor) || 0), 0)
 )
 
 // ── Diálogos ──────────────────────────────────────────────────────────────────
@@ -784,21 +773,30 @@ const headersPesquisa = [
 // ── Regras ────────────────────────────────────────────────────────────────────
 const rules = {
   required: (v) => (v !== null && v !== undefined && v !== '') || 'Campo obrigatório',
-  positivo: (v) => (!v || Number(v) >= 0) || 'Valor deve ser positivo',
+  positivo: (v) => (!v || (parseDecimalBR(v) ?? 0) >= 0) || 'Valor deve ser positivo',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 const formatarMoeda = (v) => {
   if (v === null || v === undefined || v === '') return ''
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v))
 }
 
 const calcularTotal = () => {
-  const face = Number(formData.vlrface) || 0
-  const perc = Number(formData.percjuros) || 0
+  const face = parseDecimalBR(formData.vlrface) || 0
+  const perc = parseDecimalBR(formData.percjuros) || 0
   const juros = face * (perc / 100)
   formData.vlrjuros = parseFloat(juros.toFixed(2))
-  formData.vlrtotal = parseFloat((face + juros).toFixed(2))
+  formData.vlrtotal = formatDecimalBR(face + juros)
 }
 
 const onTipoMovimentoChange = () => {
@@ -826,7 +824,7 @@ const toggleFormulario = () => {
 
 // ── Parcelas ──────────────────────────────────────────────────────────────────
 const adicionarParcela = () => {
-  parcelas.value.push({ valor: null, dtvencimento: new Date().toISOString().slice(0, 10) })
+  parcelas.value.push({ valor: '', dtvencimento: new Date().toISOString().slice(0, 10) })
 }
 
 const removerParcela = (index) => {
@@ -835,13 +833,13 @@ const removerParcela = (index) => {
 
 const calcularParcelas = async () => {
   const qtd = parseInt(qtdparcelas.value) || 1
-  const total = parseFloat(formData.vlrtotal) || 0
+  const total = parseDecimalBR(formData.vlrtotal) || 0
 
   if (!total) return
 
   // Parcela única — cálculo local
   if (qtd === 1) {
-    parcelas.value = [{ valor: total, dtvencimento: primeirovencimento.value }]
+    parcelas.value = [{ valor: formatDecimalBR(total), dtvencimento: primeirovencimento.value }]
     parcelasCalculadas.value = true
     return
   }
@@ -862,7 +860,7 @@ const calcularParcelas = async () => {
         let valor = p.vlrparcela || p.valor || '0'
         if (typeof valor === 'string') valor = valor.replace(',', '.')
         return {
-          valor: parseFloat(valor || 0),
+          valor: formatDecimalBR(parseFloat(valor || 0)),
           dtvencimento: (p.dtvencimento || p.data_vencimento || '').slice(0, 10),
         }
       })
@@ -875,7 +873,7 @@ const calcularParcelas = async () => {
         const dt = new Date(base)
         dt.setDate(dt.getDate() + i * (parseInt(intervalo.value) || 30))
         return {
-          valor: i === qtd - 1 ? parseFloat((valorParcela + diff).toFixed(2)) : valorParcela,
+          valor: formatDecimalBR(i === qtd - 1 ? parseFloat((valorParcela + diff).toFixed(2)) : valorParcela),
           dtvencimento: dt.toISOString().slice(0, 10),
         }
       })
@@ -890,7 +888,7 @@ const calcularParcelas = async () => {
       const dt = new Date(base)
       dt.setDate(dt.getDate() + i * (parseInt(intervalo.value) || 30))
       return {
-        valor: i === qtd - 1 ? parseFloat((valorParcela + diff).toFixed(2)) : valorParcela,
+        valor: formatDecimalBR(i === qtd - 1 ? parseFloat((valorParcela + diff).toFixed(2)) : valorParcela),
         dtvencimento: dt.toISOString().slice(0, 10),
       }
     })
@@ -910,10 +908,10 @@ const novoLancamento = () => {
     id_colaborador: null,
     nrdocumento: '',
     observacao: '',
-    vlrface: null,
-    percjuros: 0,
+    vlrface: '',
+    percjuros: '',
     vlrjuros: 0,
-    vlrtotal: null,
+    vlrtotal: '',
     dtlancamento: new Date().toISOString().slice(0, 10),
     id_caixa: null,
     id_caixahist: null,
@@ -924,7 +922,7 @@ const novoLancamento = () => {
     id_tipodocumento: null,
     id_tipopagrec: null,
   })
-  parcelas.value = [{ valor: null, dtvencimento: new Date().toISOString().slice(0, 10) }]
+  parcelas.value = [{ valor: '', dtvencimento: new Date().toISOString().slice(0, 10) }]
   qtdparcelas.value = 1
   intervalo.value = 30
   primeirovencimento.value = new Date().toISOString().slice(0, 10)
@@ -944,10 +942,10 @@ const salvarLancamento = async () => {
     id_colaborador: formData.id_colaborador,
     nrdocumento: formData.nrdocumento,
     observacao: formData.observacao,
-    vlrface: formData.vlrface,
-    percjuros: formData.percjuros,
+    vlrface: parseDecimalBR(formData.vlrface),
+    percjuros: parseDecimalBR(formData.percjuros),
     vlrjuros: formData.vlrjuros,
-    vlrtotal: formData.vlrtotal,
+    vlrtotal: parseDecimalBR(formData.vlrtotal),
     dtlancamento: formData.dtlancamento,
     id_caixa: formData.tipo_movimento === 'C' ? formData.id_caixa : null,
     id_caixahist: formData.tipo_movimento === 'C' ? formData.id_caixahist : null,
@@ -958,7 +956,7 @@ const salvarLancamento = async () => {
     id_tipodocumento: formData.id_tipodocumento,
     id_tipopagrec: formData.id_tipopagrec,
     parcela: parcelas.value.map(p => ({
-      valor: p.valor,
+      valor: parseDecimalBR(p.valor),
       dtvencimento: p.dtvencimento,
     })),
   }
@@ -1027,10 +1025,10 @@ const selecionarLancamento = (item) => {
     id_colaborador: item.id_colaborador ?? null,
     nrdocumento: item.nrdocumento || '',
     observacao: item.observacao || '',
-    vlrface: item.vlrface ?? null,
-    percjuros: item.percjuros ?? 0,
+    vlrface: formatDecimalBR(item.vlrface ?? ''),
+    percjuros: formatDecimalBR(item.percjuros ?? ''),
     vlrjuros: item.vlrjuros ?? 0,
-    vlrtotal: item.vlrtotal ?? null,
+    vlrtotal: formatDecimalBR(item.vlrtotal ?? ''),
     dtlancamento: item.dtlancamento ? item.dtlancamento.slice(0, 10) : new Date().toISOString().slice(0, 10),
     id_caixa: item.id_caixa ?? item.id_caixamov ?? null,
     id_caixahist: item.id_caixahist ?? null,
@@ -1042,8 +1040,8 @@ const selecionarLancamento = (item) => {
     id_tipopagrec: item.id_tipopagrec ?? null,
   })
   parcelas.value = Array.isArray(item.parcelas) && item.parcelas.length
-    ? item.parcelas.map(p => ({ valor: p.valor, dtvencimento: p.dtvencimento?.slice(0, 10) || '' }))
-    : [{ valor: null, dtvencimento: new Date().toISOString().slice(0, 10) }]
+    ? item.parcelas.map(p => ({ valor: formatDecimalBR(p.valor), dtvencimento: p.dtvencimento?.slice(0, 10) || '' }))
+    : [{ valor: '', dtvencimento: new Date().toISOString().slice(0, 10) }]
   parcelasCalculadas.value = parcelas.value.length > 0
   qtdparcelas.value = parcelas.value.length || 1
   formularioAberto.value = true

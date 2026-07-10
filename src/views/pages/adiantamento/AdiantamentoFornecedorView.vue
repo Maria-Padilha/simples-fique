@@ -231,14 +231,12 @@
                            <v-text-field
                                v-model="formData.valor_documento"
                                label="Valor Documento *"
-                               type="number"
-                               step="0.01"
-                               min="0"
                                :rules="[rules.required]"
                                variant="outlined"
                                class="required-left-border"
                                density="compact"
                                prepend-inner-icon="mdi-file-document"
+                               v-mask-decimal.br="2"
                            />
                          </v-col>
 
@@ -247,14 +245,12 @@
                            <v-text-field
                                v-model="formData.valor_solicitado"
                                label="Valor Solicitado *"
-                               type="number"
-                               step="0.01"
-                               min="0"
                                :rules="[rules.required]"
                                class="required-left-border"
                                variant="outlined"
                                density="compact"
                                prepend-inner-icon="mdi-cash-multiple"
+                               v-mask-decimal.br="2"
                            />
                          </v-col>
 
@@ -303,14 +299,12 @@
                            <v-text-field
                                v-model="formData.valor_documento"
                                label="Valor Documento *"
-                               type="number"
                                class="required-left-border"
-                               step="0.01"
-                               min="0"
                                :rules="[rules.valorPositivo]"
                                variant="outlined"
                                density="compact"
                                prepend-inner-icon="mdi-file-document"
+                               v-mask-decimal.br="2"
                                @input="calcularValorSolicitado"
                            />
                          </v-col>
@@ -320,14 +314,12 @@
                            <v-text-field
                                v-model="formData.valor_solicitado"
                                label="Valor Solicitado *"
-                               type="number"
-                               step="0.01"
-                               min="0"
                                :rules="[rules.valorPositivo]"
                                class="required-left-border"
                                variant="outlined"
                                density="compact"
                                prepend-inner-icon="mdi-cash-multiple"
+                               v-mask-decimal.br="2"
                                @input="calcularValorDocumento"
                            />
                          </v-col>
@@ -856,13 +848,23 @@ const formData = reactive({
   nrdocumento: null,
   dtlancamento: new Date().toISOString().split('T')[0],
   dtprevisao_pagto: null,
-  valor_documento: 0,
-  valor_solicitado: 0,
+  valor_documento: '',
+  valor_solicitado: '',
   valor_autorizado: 0,
   tipo: 'Saida',
   origem: 'CAI',
   observacao: ''
 })
+
+// Helpers de formatação de moeda BR
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 
 // Regras de validação
 const rules = {
@@ -876,7 +878,8 @@ const rules = {
   valorPositivo: (value) => {
     if (utilizaAprovacaoAdiantamento.value === 'N') {
       if (!value) return 'Campo obrigatório'
-      if (parseFloat(value) <= 0) return 'Valor deve ser maior que zero'
+      const num = parseDecimalBR(value)
+      if (!num || num <= 0) return 'Valor deve ser maior que zero'
     }
     return true
   }
@@ -1030,15 +1033,15 @@ const aplicarPeriodo = (periodo) => {
 
 // Métodos de cálculo
 const calcularValorSolicitado = () => {
-  const documento = parseFloat(formData.valor_documento) || 0
+  const documento = parseDecimalBR(formData.valor_documento) || 0
   const autorizado = parseFloat(formData.valor_autorizado) || 0
-  formData.valor_solicitado = documento - autorizado
+  formData.valor_solicitado = formatDecimalBR(documento - autorizado)
 }
 
 const calcularValorDocumento = () => {
-  const solicitado = parseFloat(formData.valor_solicitado) || 0
+  const solicitado = parseDecimalBR(formData.valor_solicitado) || 0
   const autorizado = parseFloat(formData.valor_autorizado) || 0
-  formData.valor_documento = solicitado + autorizado
+  formData.valor_documento = formatDecimalBR(solicitado + autorizado)
 }
 
 // Métodos de negócio
@@ -1075,17 +1078,17 @@ const resetFormulario = () => {
     nrdocumento: null,
     dtlancamento: new Date().toISOString().split('T')[0],
     dtprevisao_pagto: null,
-    valor_documento: 0,
-    valor_solicitado: 0,
+    valor_documento: '',
+    valor_solicitado: '',
     valor_autorizado: 0,
     tipo: 'Saida',
     origem: 'CAI',
     observacao: ''
   })
-  
+
   editando.value = false
   modoPagamento.value = false
-  
+
   if (formRef.value) {
     formRef.value.resetValidation()
   }
@@ -1312,8 +1315,8 @@ const carregarAdiantamentoParaPagamento = async (id) => {
         nrdocumento: dados.nrdocumento || '',
         dtlancamento: dados.dtlancamento || new Date().toISOString().split('T')[0],
         dtprevisao_pagto: dados.dtprevisao_pagto,
-        valor_documento: dados.valor_documento || 0,
-        valor_solicitado: dados.valor_solicitado || 0,
+        valor_documento: formatDecimalBR(dados.valor_documento),
+        valor_solicitado: formatDecimalBR(dados.valor_solicitado),
         valor_autorizado: dados.valor_autorizado || 0,
         tipo: dados.tipo || 'Saida',
         origem: dados.origem || 'CAI',
@@ -1364,8 +1367,8 @@ const salvarAdiantamento = async () => {
       dtlancamento: formData.dtlancamento,
       dtprevisao_pagto: formData.dtprevisao_pagto || null,
       nrdocumento: formData.nrdocumento || null,
-      vlr_documento: parseFloat(formData.valor_documento) || 0,
-      vlr_solicitado: parseFloat(formData.valor_solicitado) || 0,
+      vlr_documento: parseDecimalBR(formData.valor_documento) || 0,
+      vlr_solicitado: parseDecimalBR(formData.valor_solicitado) || 0,
       observacao: formData.observacao || null,
       id_tipopagrec: formData.id_tipopagrec,
       id_hist_contabil: formData.id_hist_contabil || null,
@@ -1417,14 +1420,14 @@ const editarLancamento = (item) => {
     nrdocumento: item.nrdocumento || null,
     dtlancamento: item.dtlancamento,
     dtprevisao_pagto: item.dtprevisao_pagto || null,
-    valor_documento: item.valor_documento || 0,
-    valor_solicitado: item.valor_solicitado || 0,
+    valor_documento: formatDecimalBR(item.valor_documento),
+    valor_solicitado: formatDecimalBR(item.valor_solicitado),
     valor_autorizado: item.valor_autorizado || 0,
     tipo: item.tipo || 'Saida',
     origem: item.origem || 'CAI',
     observacao: item.observacao || ''
   })
-  
+
   editando.value = true
   formularioAberto.value = true
 }
