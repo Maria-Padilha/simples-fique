@@ -25,7 +25,7 @@
             <v-form ref="formRefGrade">
               <v-row>
                 <!-- PRODUTO -->
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-autocomplete
                       v-bind="fieldProps"
                       v-model="formGrade.id_produto"
@@ -39,8 +39,23 @@
                   />
                 </v-col>
 
+                <!-- CÓDIGO DE BARRAS -->
+                <v-col cols="12" md="4">
+                  <v-text-field
+                      v-bind="fieldProps"
+                      v-model="codigoBarrasInput"
+                      label="Código de barras"
+                      placeholder="Escaneie ou digite o GTIN"
+                      prepend-inner-icon="mdi-barcode"
+                      :loading="buscandoProdutoCodBarras"
+                      :disabled="buscandoProdutoCodBarras"
+                      hide-details="auto"
+                      @keyup.enter="buscarPorCodigoBarras"
+                  />
+                </v-col>
+
                 <!-- LOCALIZAÇÃO -->
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-autocomplete
                       v-bind="fieldProps"
                       v-model="formGrade.id_localizacao"
@@ -151,49 +166,81 @@
 
                       <!-- TAMANHOS + GRID (direita) -->
                       <div class="grade-erp__right">
-                        <div class="grade-erp__left-title mb-3">
-                          <span class="text-caption font-weight-medium">TAMANHOS</span>
+                        <div class="grade-erp__right-header mb-3">
+                          <span class="text-caption font-weight-medium" style="color: var(--text-color-laranja);">TAMANHOS</span>
+                          <v-select
+                              density="compact"
+                              variant="outlined"
+                              placeholder="Filtrar por tipo"
+                              :items="tiposTamanhoLista"
+                              item-title="title"
+                              item-value="value"
+                              v-model="filtroTipoTamanho"
+                              hide-details
+                              clearable
+                              multiple
+                              chips
+                              closable-chips
+                              class="grade-erp__filtro-tipo"
+                              style="max-width: 260px;"
+                          />
                         </div>
 
                         <div
                             class="grade-erp__sizes"
-                            :style="{ gridTemplateColumns: `repeat(${Math.max(matrizGrade.tamanhos.length, 1)}, 120px) 220px` }"
+                            :style="{ gridTemplateColumns: `repeat(${Math.max(matrizGrade.tamanhos.length, 1)}, 120px) 240px` }"
                         >
                           <div
                               v-for="tam in matrizGrade.tamanhos"
-                              :key="tam"
+                              :key="tam.id"
                               class="grade-erp__size-cell"
                           >
-                            <span>{{ tam }}</span>
-                            <v-btn
-                                icon="mdi-close"
-                                size="x-small"
-                                variant="text"
-                                @click="removeTamanho(tam)"
-                            />
+                            <span>{{ tam.descricao }}</span>
+                            <div class="d-flex">
+                              <v-btn
+                                  icon="mdi-pencil"
+                                  size="x-small"
+                                  variant="text"
+                                  @click="editarTamanho(tam)"
+                              />
+                              <v-btn
+                                  icon="mdi-delete"
+                                  size="x-small"
+                                  variant="text"
+                                  color="error"
+                                  @click="excluirTamanho(tam)"
+                              />
+                              <v-btn
+                                  icon="mdi-close"
+                                  size="x-small"
+                                  variant="text"
+                                  @click="removeTamanho(tam.id)"
+                              />
+                            </div>
                           </div>
 
                           <div class="grade-erp__size-add">
-                            <v-text-field
+                            <v-select
                                 density="compact"
                                 variant="outlined"
-                                placeholder="Ex: P, M, 42"
-                                hide-details="auto"
-                                v-model="novoTamanho"
-                                maxlength="3"
-                                :error-messages="erroNovoTamanho"
-                                @keyup.enter="addTamanho"
-                                @update:model-value="erroNovoTamanho = ''"
+                                placeholder="Selecione um tamanho"
+                                :items="tamanhosNaoAdicionados"
+                                item-title="descricao"
+                                item-value="id"
+                                v-model="selectTamanho"
+                                hide-details
                             />
                             <v-btn
                                 class="grade-erp__btn-plus"
                                 icon="mdi-plus"
                                 size="small"
                                 variant="tonal"
-                                :disabled="!novoTamanho"
+                                :disabled="!selectTamanho"
                                 @click="addTamanho"
                             />
                           </div>
+
+
                         </div>
 
                         <div class="grade-erp__grid-wrap">
@@ -204,7 +251,7 @@
                             <template v-for="corId in matrizGrade.cores" :key="corId">
                               <div
                                   v-for="tam in matrizGrade.tamanhos"
-                                  :key="`${corId}-${tam}`"
+                                  :key="`${corId}-${tam.id}`"
                                   class="grade-erp__cell"
                               >
                                 <v-text-field
@@ -214,7 +261,7 @@
                                     min="0"
                                     hide-details
                                     class="grade-erp__input mt-3"
-                                    v-model.number="matrizGrade.qtd[Number(corId)][tam]"
+                                    v-model.number="matrizGrade.qtd[Number(corId)][tam.id]"
                                 />
                               </div>
                             </template>
@@ -261,7 +308,7 @@
             </v-chip>
           </template>
 
-          <template #[`item.cor`]="{ item }">
+          <template #[`item.desccor`]="{ item }">
             <div class="d-flex align-center">
           <span
               class="cor-dot"
@@ -339,7 +386,7 @@
                     density="compact"
                     variant="outlined"
                     label="Tamanho"
-                    :model-value="itemEditando?.id_tamanho"
+                    :model-value="itemEditando?.tamanho_descricao || itemEditando?.id_tamanho"
                     readonly
                     hide-details="auto"
                 />
@@ -454,6 +501,73 @@
             </v-row>
           </template>
         </cadastrar-modal>
+
+        <!-- CADASTRAR / EDITAR TAMANHO -->
+        <cadastrar-modal
+            v-model:cadastrar-modal="modalNovoTamanho"
+            :clear-input="resetNovoTamanho"
+            :cadastrarcidade="salvarOuEditarTamanho"
+            :width="400"
+            :loading="estoqueStore.loading"
+            :titulo-acao="modoTamanho === 'edit' ? 'Editar' : 'Cadastrar'"
+            :texto-botao="modoTamanho === 'edit' ? 'Salvar alterações' : 'Cadastrar'"
+            :icone-botao="modoTamanho === 'edit' ? 'mdi-content-save-outline' : 'mdi-plus-circle-outline'"
+        >
+          <template #titulo>Tamanho</template>
+
+          <template #textfields>
+            <v-row dense class="px-4 py-5">
+              <v-col cols="12">
+                <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    label="Descrição *"
+                    v-model="novoTamanhoForm.descricao"
+                    placeholder="Ex: P, M, G, 38, 42"
+                    maxlength="30"
+                    counter="30"
+                    hide-details="auto"
+                />
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-select
+                    density="compact"
+                    variant="outlined"
+                    label="Tipo"
+                    :items="tiposTamanho"
+                    item-title="title"
+                    item-value="value"
+                    v-model="novoTamanhoForm.tipo"
+                    hide-details="auto"
+                    clearable
+                />
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    label="Ordem"
+                    v-model.number="novoTamanhoForm.ordem"
+                    type="number"
+                    min="0"
+                    hide-details="auto"
+                />
+              </v-col>
+            </v-row>
+          </template>
+        </cadastrar-modal>
+
+        <!-- EXCLUIR TAMANHO -->
+        <excluir-modal
+            v-model:modal-excluir="modalExcluirTamanho"
+            :cancelar="cancelarExclusaoTamanho"
+            :deletar="confirmarExclusaoTamanho"
+            :loading="estoqueStore.loading"
+        >
+          <template #item>{{ tamanhoExcluir?.descricao }}</template>
+        </excluir-modal>
       </v-card>
     </template>
   </top-all-pages>
@@ -468,10 +582,12 @@ import TabelaPadrao from "@/components/base/padrao-paginas/TabelaPadrao.vue";
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import CadastrarModal from "@/components/base/modais/CadastrarModal.vue";
 import { useProdutosStore } from "@/stores/APIs/produtos";
+import { useEstoqueStore } from "@/stores/APIs/estoque";
 import { useThemeStore } from "@/stores/config-temas/theme";
 import { toast } from "vue3-toastify";
 
 const produtosStore = useProdutosStore();
+const estoqueStore = useEstoqueStore();
 const themeStore = useThemeStore();
 
 const idEmpresa = JSON.parse(localStorage.getItem("empresaSelecionada"));
@@ -483,7 +599,35 @@ const loading = computed(() => produtosStore.loading);
 const produtos = computed(() => (produtosStore.produtos || []).filter(p => p.utiliza_grade === 'S'));
 const locais = computed(() => produtosStore.localizacoes || []);
 const cores = computed(() => produtosStore.cores || []);
-const grades = computed(() => produtosStore.grades || []);
+const grades = computed(() => {
+  const todosProdutos = produtosStore.produtos || [];
+  const itens = [];
+
+  todosProdutos.forEach((produto) => {
+    const lista = produto.referenciados_grade_por_produto || [];
+    lista.forEach((item) => {
+      const cor = item.referencia_cor || {};
+      const localizacao = item.referencia_localizacao || {};
+      itens.push({
+        id: `${item.id_tamanho}_${item.id_cor}_${produto.id}`,
+        id_tamanho: item.id_tamanho,
+        id_cor: item.id_cor,
+        tamanho_descricao: item.tamanho_descricao || item.id_tamanho,
+        desccor: cor.descricao || item.desccor || item.id_cor,
+        cor_hexa: cor.cor_hexa || item.cor_hexa || '#999',
+        localizacao: localizacao.descricao || item.localizacao || '—',
+        id_localizacao: localizacao.id || item.id_localizacao || null,
+        descproduto: produto.descproduto,
+        id_produto: produto.id,
+        status: item.status || 'A',
+        codigo_grade: item.codigo_grade || '',
+      });
+    });
+  });
+
+  return itens;
+});
+const tamanhosDisponiveis = computed(() => estoqueStore.tamanhos || []);
 
 // FORMULÁRIO (CRIAÇÃO)
 const formRefGrade = ref(null);
@@ -495,6 +639,7 @@ const formGrade = reactive({
   id_empresa: idEmpresa?.id || null,
   id_produto: null,
   id_localizacao: null,
+  id_almoxarifado: null,
 });
 
 // Aviso defensivo: a lista de produtos já vem filtrada por utiliza_grade='S',
@@ -502,8 +647,62 @@ const formGrade = reactive({
 function aoSelecionarProduto(idProduto) {
   if (!idProduto) return;
   const produto = produtos.value.find(p => p.id === idProduto);
-  if (produto && produto.utiliza_grade !== 'S') {
+  if (!produto) return;
+
+  if (produto.utiliza_grade !== 'S') {
     toast.warning(`"${produto.descproduto}" não está configurado para utilizar grade`);
+  }
+
+  codigoBarrasInput.value = produto.codigo_gtin || '';
+  formGrade.id_localizacao = produto.id_localizacao || null;
+  formGrade.id_almoxarifado = produto.referenciados_produto_almoxarifado_por_produto?.[0]?.referencia_almoxarifado?.id || null;
+
+  buscarGradeDoProduto(idProduto);
+}
+
+async function buscarGradeDoProduto(idProduto) {
+  const almoId = formGrade.id_almoxarifado;
+  if (!almoId) return;
+  await produtosStore.buscarGradeMatriz(idEmpresa?.id, idProduto, almoId);
+}
+
+// CÓDIGO DE BARRAS — busca o produto pelo GTIN e seleciona automaticamente
+const codigoBarrasInput = ref('');
+const buscandoProdutoCodBarras = ref(false);
+
+async function buscarPorCodigoBarras() {
+  const gtin = String(codigoBarrasInput.value || '').trim();
+  if (!gtin) return;
+
+  buscandoProdutoCodBarras.value = true;
+  try {
+    const produto = await produtosStore.buscarProdutoPorCodigoBarras(gtin);
+
+    if (!produto) {
+      toast.warning(`Nenhum produto encontrado com o código "${gtin}"`);
+      return;
+    }
+
+    // Verifica se o produto está na lista de produtos com grade
+    const produtoNaLista = produtos.value.find(p => p.id === produto.id);
+    if (!produtoNaLista) {
+      // Se não está na lista, pode ser que não tenha utiliza_grade = 'S'
+      // Adiciona temporariamente para o autocomplete funcionar
+      produtos.value.push(produto);
+    }
+
+    formGrade.id_produto = produto.id;
+    formGrade.id_localizacao = produto.id_localizacao || null;
+    formGrade.id_almoxarifado = produto.referenciados_produto_almoxarifado_por_produto?.[0]?.referencia_almoxarifado?.id || null;
+    codigoBarrasInput.value = '';
+    toast.success(`Produto "${produto.descproduto}" selecionado`);
+
+    buscarGradeDoProduto(produto.id);
+  } catch (error) {
+    console.error('[Grade] Erro ao buscar produto por código de barras:', error);
+    toast.error('Erro ao buscar produto por código de barras');
+  } finally {
+    buscandoProdutoCodBarras.value = false;
   }
 }
 
@@ -523,49 +722,52 @@ const validacaoCodigoGrade = [
   (v) => !v || /^[0-9]+$/.test(String(v)) || "Informe apenas números",
 ];
 
-function normalizarTamanho(valor) {
-  if (valor === null || valor === undefined) return "";
-
-  return String(valor)
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "")
-      .slice(0, 3);
-}
-
-// letras permitidas, simples ou combinadas (P, M, G, L, S, X, U — ex: XG, XXG)
-// ou números de 1 a 3 dígitos
-function tamanhoEhValido(valor) {
-  const regexLetras = /^(?=.{1,3}$)[PMGLSXU]+$/;
-  const regexNumeros = /^\d{1,3}$/;
-  return regexLetras.test(valor) || regexNumeros.test(valor);
-}
-
 // =========================
 // MATRIZ COR x TAMANHO
 // =========================
 const matrizGrade = reactive({
   cores: [],      // array de ids de cor
-  tamanhos: [],   // array de strings (tamanho já normalizado)
-  qtd: {},        // { [idCor]: { [tamanho]: number } }
+  tamanhos: [],   // array de objetos { id, origem, descricao, tipo, ordem }
+  qtd: {},        // { [idCor]: { [tamanhoId]: number } }
 });
 
 const selectCor = ref(null);
-const novoTamanho = ref("");
-const erroNovoTamanho = ref("");
+const selectTamanho = ref(null);
+const filtroTipoTamanho = ref(null);
+
+const tiposTamanhoLista = [
+  { title: 'Vestuário BR', value: 'vestuario_br' },
+  { title: 'Vestuário Inglês', value: 'vestuario_ingles' },
+  { title: 'Numérico', value: 'numerico' },
+  { title: 'Idade', value: 'idade' },
+];
 
 // cores já cadastradas que ainda não foram adicionadas à matriz
 const coresDisponiveis = computed(() => cores.value.filter(c => !matrizGrade.cores.includes(Number(c.id))));
 
-function ensureCell(corId, tamanho) {
+// tamanhos da API que ainda não foram adicionados à matriz, filtrados por tipo(s)
+const tamanhosNaoAdicionados = computed(() => {
+  const idsExistentes = matrizGrade.tamanhos.map(t => t.id);
+  return tamanhosDisponiveis.value.filter(t => {
+    if (idsExistentes.includes(t.id)) return false;
+    if (filtroTipoTamanho.value && filtroTipoTamanho.value.length > 0) {
+      if (!filtroTipoTamanho.value.includes(t.tipo)) return false;
+    }
+    return true;
+  });
+});
+
+function ensureCell(corId, tamanhoId) {
   const cid = Number(corId);
+  const tid = Number(tamanhoId);
   if (!matrizGrade.qtd[cid]) matrizGrade.qtd[cid] = {};
-  if (matrizGrade.qtd[cid][tamanho] === undefined) matrizGrade.qtd[cid][tamanho] = 0;
+  if (matrizGrade.qtd[cid][tid] === undefined) matrizGrade.qtd[cid][tid] = 0;
 }
 
 function ensureMatrix() {
   if (!matrizGrade.cores.length || !matrizGrade.tamanhos.length) return;
   matrizGrade.cores.forEach((corId) => {
-    matrizGrade.tamanhos.forEach((tam) => ensureCell(corId, tam));
+    matrizGrade.tamanhos.forEach((tam) => ensureCell(corId, tam.id));
   });
 }
 
@@ -592,31 +794,22 @@ function getCor(corId) {
 }
 
 function addTamanho() {
-  const valor = normalizarTamanho(novoTamanho.value);
+  if (!selectTamanho.value) return;
 
-  if (!valor) {
-    erroNovoTamanho.value = "Informe um tamanho";
-    return;
-  }
-  if (!tamanhoEhValido(valor)) {
-    erroNovoTamanho.value = "Use letras (P, M, G, L, S, X, U) ou número de até 3 dígitos";
-    return;
-  }
-  if (matrizGrade.tamanhos.includes(valor)) {
-    erroNovoTamanho.value = "Esse tamanho já foi adicionado";
-    return;
-  }
+  const tamanho = tamanhosDisponiveis.value.find(t => t.id === selectTamanho.value);
+  if (!tamanho) return;
+  if (matrizGrade.tamanhos.some(t => t.id === tamanho.id)) return;
 
-  matrizGrade.tamanhos.push(valor);
-  novoTamanho.value = "";
-  erroNovoTamanho.value = "";
+  matrizGrade.tamanhos.push({ ...tamanho });
+  selectTamanho.value = null;
   ensureMatrix();
 }
 
-function removeTamanho(tam) {
-  matrizGrade.tamanhos = matrizGrade.tamanhos.filter((t) => t !== tam);
+function removeTamanho(tamanhoId) {
+  const tid = Number(tamanhoId);
+  matrizGrade.tamanhos = matrizGrade.tamanhos.filter((t) => t.id !== tid);
   Object.keys(matrizGrade.qtd).forEach((corId) => {
-    if (matrizGrade.qtd[corId]) delete matrizGrade.qtd[corId][tam];
+    if (matrizGrade.qtd[corId]) delete matrizGrade.qtd[corId][tid];
   });
 }
 
@@ -628,7 +821,7 @@ const totalCombinacoes = computed(() => {
   let total = 0;
   matrizGrade.cores.forEach((corId) => {
     matrizGrade.tamanhos.forEach((tam) => {
-      if (Number(matrizGrade.qtd?.[Number(corId)]?.[tam] ?? 0) > 0) total++;
+      if (Number(matrizGrade.qtd?.[Number(corId)]?.[tam.id] ?? 0) > 0) total++;
     });
   });
   return total;
@@ -639,8 +832,8 @@ function resetMatrizGrade() {
   matrizGrade.tamanhos = [];
   matrizGrade.qtd = {};
   selectCor.value = null;
-  novoTamanho.value = "";
-  erroNovoTamanho.value = "";
+  selectTamanho.value = null;
+  filtroTipoTamanho.value = null;
 }
 
 // TABELA
@@ -648,10 +841,10 @@ const search = ref("");
 
 const headers = [
   { title: "ID", key: "id" },
-  { title: "Código Grade", key: "codigo_grade" },
   { title: "Produto", key: "descproduto" },
-  { title: "Cor", key: "cor" },
-  { title: "Tamanho", key: "id_tamanho" },
+  { title: "Cor", key: "desccor" },
+  { title: "Tamanho", key: "tamanho_descricao" },
+  { title: "Código Grade", key: "codigo_grade" },
   { title: "Localização", key: "localizacao" },
   { title: "Status", key: "status" },
   { title: "Ações", key: "acoes", sortable: false },
@@ -675,8 +868,10 @@ function resetFormularioGrade() {
     id_empresa: idEmpresa?.id || null,
     id_produto: null,
     id_localizacao: null,
+    id_almoxarifado: null,
   });
 
+  codigoBarrasInput.value = '';
   resetMatrizGrade();
   itemSelecionado.value = null;
 
@@ -690,61 +885,42 @@ function cancelarFormularioGrade() {
   formularioAbertoGrade.value = false;
 }
 
-// SALVAR — cria uma combinação de grade por célula preenchida (> 0). Não existe
-// endpoint em lote, então cada combinação vira uma chamada própria a
-// cadastrarGradeProduto (mesmo padrão de "um POST por item" já usado em
-// src/stores/APIs/inventario.js para casos parecidos).
+// SALVAR — envia todas as combinações de uma vez via POST /estoque/grades/matriz.
 async function salvarFormularioGrade() {
   const validacao = await formRefGrade.value?.validate();
   if (!validacao?.valid) return;
 
-  const combinacoes = [];
+  const itens = [];
   matrizGrade.cores.forEach((corId) => {
     matrizGrade.tamanhos.forEach((tam) => {
-      const qtd = Number(matrizGrade.qtd?.[Number(corId)]?.[tam] ?? 0);
-      if (qtd > 0) combinacoes.push({ corId, tam });
+      const qtd = Number(matrizGrade.qtd?.[Number(corId)]?.[tam.id] ?? 0);
+      if (qtd > 0) {
+        itens.push({
+          id_cor: Number(corId),
+          id_tamanho: tam.id,
+          origem_tamanho: tam.origem || '',
+          qtd,
+        });
+      }
     });
   });
 
-  if (combinacoes.length === 0) {
+  if (itens.length === 0) {
     toast.warning('Preencha a quantidade de pelo menos uma combinação de cor e tamanho');
     return;
   }
 
-  let sucesso = 0;
-  let falha = 0;
+  const payload = {
+    id_produto: formGrade.id_produto,
+    id_almoxarifado: formGrade.id_almoxarifado,
+    id_localizacao: formGrade.id_localizacao,
+    itens,
+  };
 
-  for (const { corId, tam } of combinacoes) {
-    const payload = {
-      id_empresa: formGrade.id_empresa,
-      id_produto: formGrade.id_produto,
-      id_cor: String(corId),
-      id_tamanho: tam,
-      id_localizacao: formGrade.id_localizacao,
-      status: 'A',
-      codigo_grade: null,
-    };
+  await produtosStore.cadastrarGradeMatriz(payload, idEmpresa?.id);
 
-    produtosStore.errorMessage = '';
-    await produtosStore.cadastrarGradeProduto(payload, idEmpresa?.id);
-
-    if (produtosStore.errorMessage) {
-      falha++;
-    } else {
-      sucesso++;
-    }
-  }
-
-  if (sucesso > 0) {
-    toast.success(`${sucesso} combinação(ões) de grade criada(s) com sucesso`);
-  }
-  if (falha > 0) {
-    toast.error(`${falha} combinação(ões) não puderam ser criadas`);
-  }
-
-  await produtosStore.buscarGradeProduto(idEmpresa?.id);
-
-  if (falha === 0) {
+  if (!produtosStore.errorMessage) {
+    toast.success(`${itens.length} combinação(ões) de grade criada(s) com sucesso`);
     cancelarFormularioGrade();
   }
 }
@@ -800,7 +976,7 @@ async function salvarEdicaoGrade() {
   );
 
   if (!produtosStore.errorMessage) {
-    await produtosStore.buscarGradeProduto(idEmpresa?.id);
+    await produtosStore.buscarProdutos();
     cancelarEdicaoGrade();
   }
 }
@@ -829,7 +1005,7 @@ async function confirmarExclusao() {
   );
 
   if (!produtosStore.errorMessage) {
-    await produtosStore.buscarGradeProduto(idEmpresa?.id);
+    await produtosStore.buscarProdutos();
     cancelarModalExcluir();
   }
 }
@@ -840,7 +1016,7 @@ onMounted(async () => {
     produtosStore.buscarProdutos(),
     produtosStore.buscarLocalizacoes(idEmpresa?.id),
     produtosStore.buscarCores(),
-    produtosStore.buscarGradeProduto(idEmpresa?.id),
+    estoqueStore.buscarTamanhos(),
   ]);
 });
 
@@ -917,6 +1093,90 @@ async function salvarOuEditarCor() {
     resetNovaCor();
   }
 }
+
+// =========================
+// CADASTRAR / EDITAR / EXCLUIR TAMANHO
+// =========================
+const modalNovoTamanho = ref(false);
+const editandoTamanhoId = ref(null);
+
+const tiposTamanho = tiposTamanhoLista;
+
+const modoTamanho = computed(() => (editandoTamanhoId.value ? "edit" : "create"));
+
+const novoTamanhoForm = reactive({
+  descricao: "",
+  tipo: null,
+  ordem: 0,
+});
+
+function resetNovoTamanho() {
+  novoTamanhoForm.descricao = "";
+  novoTamanhoForm.tipo = null;
+  novoTamanhoForm.ordem = 0;
+  modalNovoTamanho.value = false;
+  editandoTamanhoId.value = null;
+}
+
+function editarTamanho(tamanho) {
+  editandoTamanhoId.value = tamanho.id;
+  novoTamanhoForm.descricao = tamanho.descricao || "";
+  novoTamanhoForm.tipo = tamanho.tipo || null;
+  novoTamanhoForm.ordem = tamanho.ordem || 0;
+  modalNovoTamanho.value = true;
+}
+
+async function salvarOuEditarTamanho() {
+  const desc = String(novoTamanhoForm.descricao || "").trim();
+  if (!desc) {
+    toast.warning("Informe a descrição do tamanho");
+    return;
+  }
+
+  const payload = {
+    descricao: desc,
+    tipo: novoTamanhoForm.tipo || null,
+    ordem: Number(novoTamanhoForm.ordem) || 0,
+  };
+
+  if (modoTamanho.value === "edit") {
+    await estoqueStore.editarTamanho(idEmpresa?.id, editandoTamanhoId.value, payload);
+  } else {
+    await estoqueStore.cadastrarTamanho(payload);
+  }
+
+  if (!estoqueStore.errorMessage) {
+    toast.success(modoTamanho.value === "edit" ? "Tamanho atualizado" : "Tamanho cadastrado");
+    resetNovoTamanho();
+  } else {
+    toast.error(estoqueStore.errorMessage);
+  }
+}
+
+// EXCLUIR TAMANHO
+const modalExcluirTamanho = ref(false);
+const tamanhoExcluir = ref(null);
+
+function excluirTamanho(tamanho) {
+  tamanhoExcluir.value = tamanho;
+  modalExcluirTamanho.value = true;
+}
+
+function cancelarExclusaoTamanho() {
+  modalExcluirTamanho.value = false;
+  tamanhoExcluir.value = null;
+}
+
+async function confirmarExclusaoTamanho() {
+  if (!tamanhoExcluir.value) return;
+  await estoqueStore.deletarTamanho(idEmpresa?.id, tamanhoExcluir.value.id);
+  if (!estoqueStore.errorMessage) {
+    toast.success("Tamanho excluído");
+    cancelarExclusaoTamanho();
+  } else {
+    toast.error(estoqueStore.errorMessage);
+  }
+}
 </script>
 
 <style scoped>
@@ -967,6 +1227,26 @@ async function salvarOuEditarCor() {
   padding: 0 8px;
   background: rgba(0, 0, 0, 0.04);
   border-radius: 8px;
+}
+
+.grade-erp__right-header {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.grade-erp__filtro-tipo :deep(.v-field) {
+  min-height: 30px !important;
+}
+
+.grade-erp__filtro-tipo :deep(.v-chip) {
+  height: 22px !important;
+  font-size: 0.7rem !important;
 }
 
 .grade-erp__left-list {

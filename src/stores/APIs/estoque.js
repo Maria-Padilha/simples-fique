@@ -43,6 +43,8 @@ export const useEstoqueStore = defineStore('estoque', {
         cfops: [],
         cfop: null,
         recordsCfop: 0,
+
+        tamanhos: [],
     }),
 
     actions: {
@@ -671,10 +673,82 @@ export const useEstoqueStore = defineStore('estoque', {
         },
 
         /**
-         * CADASTRAR CFOP
-         * @param {Object} cfopData - Dados do CFOP a ser cadastrado.
+         * BUSCAR TODOS OS TAMANHOS
          * @return {Promise<void>}
          */
+
+        async buscarTamanhos() {
+            this.loading = true;
+
+            try {
+                const response = await apiPhp.get(`/estoque/tamanhos`);
+
+                this.tamanhos = response.data?.data ?? response.data ?? [];
+                this.errorMessage = '';
+
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * CADASTRAR TAMANHO
+         * @param {Object} tamanhoData - { descricao (obrigatório), tipo?, ordem? }
+         * @return {Promise<void>}
+         */
+
+        async cadastrarTamanho(tamanhoData) {
+            this.loading = true;
+            try {
+                await apiPhp.post('/estoque/tamanhos', tamanhoData);
+                await this.buscarTamanhos();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * EDITAR TAMANHO
+         * @param {number} idEmpresa - ID da empresa.
+         * @param {number} id - ID do tamanho.
+         * @param {Object} tamanhoData - { descricao?, tipo?, ordem? }
+         * @return {Promise<void>}
+         */
+
+        async editarTamanho(idEmpresa, id, tamanhoData) {
+            this.loading = true;
+            try {
+                await apiPhp.put(`/estoque/tamanhos/${idEmpresa}/${id}`, tamanhoData);
+                await this.buscarTamanhos();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * DELETAR TAMANHO
+         * @param {number} idEmpresa - ID da empresa.
+         * @param {number} id - ID do tamanho.
+         * @return {Promise<void>}
+         */
+
+        async deletarTamanho(idEmpresa, id) {
+            this.loading = true;
+            try {
+                await apiPhp.delete(`/estoque/tamanhos/${idEmpresa}/${id}`);
+                await this.buscarTamanhos();
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
 
         /**
          * CADASTRAR CFOP
