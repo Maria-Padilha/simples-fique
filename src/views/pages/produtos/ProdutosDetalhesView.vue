@@ -11,6 +11,7 @@
           <v-tab value="for">Fornecedor</v-tab>
           <v-tab value="sim">Produtos Similares</v-tab>
           <v-tab value="img">Imagens</v-tab>
+          <v-tab v-if="forms.utiliza_grade === 'S'" value="grade">Grade</v-tab>
         </v-tabs>
 
         <v-tabs-window v-model="tab">
@@ -327,7 +328,8 @@
                           variant="outlined"
                           label="Custo de Compra"
                           prefix="R$"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.custo_compra"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -340,7 +342,8 @@
                           variant="outlined"
                           label="Custo Médio"
                           prefix="R$"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.custo_medio"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -353,7 +356,8 @@
                           variant="outlined"
                           label="Custo de Aquisição"
                           prefix="R$"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.custo_aquisicao"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -366,7 +370,8 @@
                           variant="outlined"
                           label="Margem Lucro Líquido"
                           suffix="%"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.margem_lucro_liquido"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -379,7 +384,8 @@
                           variant="outlined"
                           label="Preço de Venda"
                           prefix="R$"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.preco_venda"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -392,7 +398,8 @@
                           variant="outlined"
                           label="Preço de Venda Sugerido"
                           prefix="R$"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.preco_venda_sugerido"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -405,7 +412,8 @@
                           variant="outlined"
                           label="Preço de Garantia"
                           prefix="R$"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.preco_garantia"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -418,7 +426,8 @@
                           variant="outlined"
                           label="% Desconto"
                           suffix="%"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.perc_desconto"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -431,7 +440,8 @@
                           variant="outlined"
                           label="Comissão (%)"
                           suffix="%"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.comissao_perc"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -444,7 +454,8 @@
                           variant="outlined"
                           label="Comissão (R$)"
                           prefix="R$"
-                          v-mask-number
+                          type="text"
+                          inputmode="decimal"
                           hide-details="auto"
                           v-model="formsPreco.comissao_vlr"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
@@ -1067,6 +1078,120 @@
               </v-card-text>
             </v-card>
           </v-tabs-window-item>
+
+          <!-- ABA GRADE -->
+          <v-tabs-window-item value="grade">
+            <v-card elevation="0" class="background-secondary mt-10">
+              <v-card-text class="pa-4">
+                <div v-if="loadingGradeMatriz" class="d-flex justify-center py-8">
+                  <v-progress-circular indeterminate color="var(--text-color-laranja)" />
+                </div>
+
+                <div v-else-if="!gradeMatriz || !gradeMatriz.itens?.length">
+                  <v-alert type="info" variant="tonal">
+                    Nenhuma grade cadastrada para este produto.
+                  </v-alert>
+                </div>
+
+                <div v-else>
+                  <div class="d-flex align-center justify-space-between mb-4">
+                    <div>
+                      <div class="text-subtitle-1 font-weight-medium">Grade de Cores x Tamanhos</div>
+                      <div class="text-caption opacity-70">Edite as quantidades e salve as alterações.</div>
+                    </div>
+                    <v-btn
+                        class="text-none text-white"
+                        color="var(--text-color-laranja)"
+                        variant="flat"
+                        prepend-icon="mdi-content-save-outline"
+                        size="small"
+                        :loading="salvandoGradeMatriz"
+                        @click="salvarGradeMatriz"
+                    >
+                      Salvar Alterações
+                    </v-btn>
+                  </div>
+
+                  <div class="grade-matriz-table-wrap">
+                    <table class="grade-matriz-table">
+                      <thead>
+                        <tr>
+                          <th class="grade-matriz-table__corner">Cor \ Tamanho</th>
+                          <th v-for="tam in gradeMatriz.tamanhos" :key="`${tam.id_tamanho}_${tam.origem_tamanho}`" class="grade-matriz-table__header">
+                            {{ tam.descricao }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="cor in gradeMatriz.cores" :key="cor.id_cor">
+                          <td class="grade-matriz-table__cor">
+                            <span class="cor-dot" :style="{ background: getCorHexa(cor.id_cor) }" />
+                            {{ cor.descricao }}
+                          </td>
+                          <td v-for="tam in gradeMatriz.tamanhos" :key="`${cor.id_cor}_${tam.id_tamanho}`" class="grade-matriz-table__cell">
+                            <v-text-field
+                                density="compact"
+                                variant="outlined"
+                                hide-details="auto"
+                                type="number"
+                                min="0"
+                                :model-value="getQtdMatriz(cor.id_cor, tam.id_tamanho)"
+                                @update:model-value="(val) => setQtdMatriz(cor.id_cor, tam.id_tamanho, val)"
+                                class="grade-matriz-table__input"
+                                :theme="themeStore.darkMode ? 'dark' : 'light'"
+                            />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <v-divider class="my-6" />
+
+                  <div class="text-subtitle-1 font-weight-medium mb-3">Detalhes dos Itens da Grade</div>
+
+                  <v-data-table
+                      :headers="headersGradeDetalhes"
+                      :items="gradeItensDetalhes"
+                      :loading="loadingGradeMatriz"
+                      density="compact"
+                      class="elevation-0"
+                      :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      no-data-text="Nenhum item encontrado"
+                      items-per-page="-1"
+                      item-key="_idx"
+                  >
+                    <template #[`item._idx`]="{ item }">
+                      {{ item._idx }}
+                    </template>
+
+                    <template #[`item.id_cor`]="{ item }">
+                      <div class="d-flex align-center gap-2">
+                        <span class="cor-dot" :style="{ background: getCorHexa(item.id_cor) }" />
+                        {{ getCorDescricao(item.id_cor) }}
+                      </div>
+                    </template>
+
+                    <template #[`item.id_tamanho`]="{ item }">
+                      {{ item.tamanho_descricao || item.id_tamanho }}
+                    </template>
+
+                    <template #[`item.qtd`]="{ item }">
+                      {{ Number(item.qtd) }}
+                    </template>
+
+                    <template #[`item.codigo_grade`]="{ item }">
+                      {{ item.codigo_grade || '—' }}
+                    </template>
+
+                    <template #[`item.id_localizacao`]="{ item }">
+                      {{ item.id_localizacao || '—' }}
+                    </template>
+                  </v-data-table>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-tabs-window-item>
         </v-tabs-window>
       </v-sheet>
 
@@ -1556,6 +1681,125 @@ const salvarFormularioSimilar = async () => {
   cancelarFormularioSimilar();
 };
 
+/** ================ GRADE (MATRIZ) ================ **/
+
+const gradeMatriz = computed(() => produtosStore.gradeMatriz);
+const loadingGradeMatriz = ref(false);
+const salvandoGradeMatriz = ref(false);
+
+const gradeItensDetalhes = computed(() => {
+  const matriz = gradeMatriz.value;
+  if (!matriz?.itens?.length) return [];
+
+  return matriz.itens.map((item, index) => ({
+    ...item,
+    _idx: index + 1,
+    id_produto: matriz.id_produto || id,
+  }));
+});
+
+const qtdEditada = reactive({});
+
+function getQtdMatriz(idCor, idTam) {
+  const key = `${idCor}_${idTam}`;
+  if (qtdEditada[key] !== undefined) return qtdEditada[key];
+
+  const item = gradeMatriz.value?.itens?.find(
+    (i) => i.id_cor === idCor && i.id_tamanho === idTam
+  );
+  return item ? Number(item.qtd) : 0;
+}
+
+function setQtdMatriz(idCor, idTam, val) {
+  const key = `${idCor}_${idTam}`;
+  qtdEditada[key] = Number(val) || 0;
+}
+
+const coresHexaMap = {};
+
+function getCorHexa(idCor) {
+  if (coresHexaMap[idCor]) return coresHexaMap[idCor];
+  const coresFixas = ['#E53935', '#1E88E5', '#43A047', '#FDD835', '#8E24AA', '#00ACC1', '#FB8C00', '#546E7A'];
+  coresHexaMap[idCor] = coresFixas[idCor % coresFixas.length];
+  return coresHexaMap[idCor];
+}
+
+function getCorDescricao(idCor) {
+  const cor = gradeMatriz.value?.cores?.find((c) => c.id_cor === idCor);
+  return cor?.descricao || `Cor ${idCor}`;
+}
+
+const headersGradeDetalhes = [
+  { title: 'ID', key: '_idx', sortable: false, width: '60px' },
+  { title: 'Produto', key: 'id_produto' },
+  { title: 'Cor', key: 'id_cor', sortable: false },
+  { title: 'Tamanho', key: 'id_tamanho' },
+  { title: 'Quantidade', key: 'qtd' },
+  { title: 'Código Grade', key: 'codigo_grade' },
+  { title: 'Localização', key: 'id_localizacao' },
+];
+
+async function buscarGradeMatriz() {
+  loadingGradeMatriz.value = true;
+
+  const produto = forms.value;
+  const almoId = produto?.referenciados_produto_almoxarifado_por_produto?.[0]?.referencia_almoxarifado?.id;
+
+  if (almoId) {
+    await produtosStore.buscarGradeMatriz(idEmpresa?.id, id, almoId);
+  }
+
+  loadingGradeMatriz.value = false;
+}
+
+async function salvarGradeMatriz() {
+  const produto = forms.value;
+  const almoId = produto?.referenciados_produto_almoxarifado_por_produto?.[0]?.referencia_almoxarifado?.id;
+
+  if (!almoId) {
+    toast.warning('Produto não possui almoxarifado vinculado');
+    return;
+  }
+
+  const itens = [];
+  gradeMatriz.value?.itens?.forEach((item) => {
+    const key = `${item.id_cor}_${item.id_tamanho}`;
+    const novaQtd = qtdEditada[key] !== undefined ? qtdEditada[key] : Number(item.qtd);
+
+    itens.push({
+      id_cor: item.id_cor,
+      id_tamanho: item.id_tamanho,
+      origem_tamanho: item.origem_tamanho,
+      qtd: novaQtd,
+    });
+  });
+
+  if (!itens.length) {
+    toast.warning('Nenhum item na grade para salvar');
+    return;
+  }
+
+  salvandoGradeMatriz.value = true;
+
+  const payload = {
+    id_localizacao: gradeMatriz.value?.itens?.[0]?.id_localizacao || null,
+    itens,
+  };
+
+  const ok = await produtosStore.atualizarGradeMatriz(idEmpresa?.id, id, almoId, payload);
+
+  salvandoGradeMatriz.value = false;
+
+  if (!ok) {
+    toast.error(produtosStore.errorMessage || 'Erro ao salvar grade');
+    return;
+  }
+
+  Object.keys(qtdEditada).forEach((k) => delete qtdEditada[k]);
+  await buscarGradeMatriz();
+  toast.success('Grade atualizada com sucesso!');
+}
+
 /** ================ PREÇO ================ **/
 
 const formRefPreco = ref(null);
@@ -1938,6 +2182,12 @@ watchEffect(async () => {
     }
   }
 });
+
+watch(tab, (novaAba) => {
+  if (novaAba === 'grade' && forms.value?.utiliza_grade === 'S') {
+    buscarGradeMatriz();
+  }
+});
 </script>
 
 <style scoped>
@@ -1972,5 +2222,59 @@ watchEffect(async () => {
 
 .foto-r2-card:hover {
   transform: translateY(-3px);
+}
+
+.grade-matriz-table-wrap {
+  overflow-x: auto;
+}
+
+.grade-matriz-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.grade-matriz-table th,
+.grade-matriz-table td {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.grade-matriz-table__corner {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+  text-align: left !important;
+}
+
+.grade-matriz-table__header {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+}
+
+.grade-matriz-table__cor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  text-align: left !important;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.grade-matriz-table__cell {
+  padding: 2px !important;
+}
+
+.grade-matriz-table__input {
+  max-width: 70px;
+}
+
+.cor-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 </style>

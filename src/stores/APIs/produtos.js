@@ -85,6 +85,9 @@ export const useProdutosStore = defineStore('produtos', {
 
         cores: [],
         cor: null,
+
+        gradeMatriz: null,
+
         tamanhos: [
             {title: 'PP', value: 'PP'},
             {title: 'P', value: 'P'},
@@ -1162,8 +1165,38 @@ export const useProdutosStore = defineStore('produtos', {
         },
 
         /**
+         * BUSCAR PRODUTO POR CÓDIGO DE BARRAS (GTIN)
+         * @param {string} gtin - Código de barras do produto.
+         * @return {Promise<Object|null>}
+         */
+
+        async buscarProdutoPorCodigoBarras(gtin) {
+            if (!gtin) return null;
+
+            try {
+                const response = await apiPhp.get(`/estoque/produtos/referencia/${gtin}`);
+                return response.data?.data ?? response.data ?? null;
+            } catch (error) {
+                if (error.response?.status === 404) return null;
+                throw error;
+            }
+        },
+
+        /**
          * GRADE DE PRODUTOS
          */
+
+        async cadastrarGradeMatriz(matrizData, idEmp) {
+            this.loading = true;
+            try {
+                await apiPhp.post('/estoque/grades/matriz', matrizData);
+                await this.buscarGradeProduto(idEmp);
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            } finally {
+                this.loading = false;
+            }
+        },
 
         async cadastrarGradeProduto(gradeData, idEmp) {
             this.loading = true;
@@ -1232,6 +1265,44 @@ export const useProdutosStore = defineStore('produtos', {
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 return null;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR MATRIZ DE GRADE (cores x tamanhos)
+         * GET /estoque/grades/matriz/{idEmpresa}/{idProduto}/{idAlmoxarifado}
+         */
+        async buscarGradeMatriz(idEmpresa, idProduto, idAlmoxarifado) {
+            this.loading = true;
+            try {
+                const response = await apiPhp.get(`/estoque/grades/matriz/${idEmpresa}/${idProduto}/${idAlmoxarifado}`);
+                this.gradeMatriz = response.data?.data ?? response.data ?? null;
+                this.errorMessage = '';
+                return this.gradeMatriz;
+            } catch (error) {
+                this.gradeMatriz = null;
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                return null;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * ATUALIZAR MATRIZ DE GRADE
+         * PUT /estoque/grades/matriz/{idEmpresa}/{idProduto}/{idAlmoxarifado}
+         */
+        async atualizarGradeMatriz(idEmpresa, idProduto, idAlmoxarifado, data) {
+            this.loading = true;
+            try {
+                await apiPhp.put(`/estoque/grades/matriz/${idEmpresa}/${idProduto}/${idAlmoxarifado}`, data);
+                this.errorMessage = '';
+                return true;
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+                return false;
             } finally {
                 this.loading = false;
             }
