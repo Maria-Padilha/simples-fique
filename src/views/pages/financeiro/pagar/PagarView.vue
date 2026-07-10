@@ -268,15 +268,12 @@
                               v-model="formData.vlroriginal"
                               label="Valor Original *"
                               :rules="[rules.required, rules.currency]"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class="required-left-border"
                               prepend-inner-icon="mdi-currency-usd"
                               prefix="R$"
-                              :hint="formData.vlroriginal ? formatarMoeda(formData.vlroriginal) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -314,15 +311,12 @@
                           <v-text-field
                               v-model="formData.juros"
                               label="Juros"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class=""
                               prefix="R$"
                               prepend-inner-icon="mdi-percent"
-                              :hint="formData.juros ? formatarMoeda(formData.juros) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -331,15 +325,12 @@
                           <v-text-field
                               v-model="formData.multa"
                               label="Multa"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class=""
                               prefix="R$"
                               prepend-inner-icon="mdi-alert-circle"
-                              :hint="formData.multa ? formatarMoeda(formData.multa) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -348,15 +339,12 @@
                           <v-text-field
                               v-model="formData.desconto"
                               label="Desconto"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class=""
                               prefix="R$"
                               prepend-inner-icon="mdi-sale"
-                              :hint="formData.desconto ? formatarMoeda(formData.desconto) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -380,14 +368,11 @@
                                   <v-text-field
                                       v-model="formData.valor_primeira_parcela"
                                       label="Valor 1ª Parcela"
-                                      type="number"
-                                      step="0.01"
+                                      v-mask-decimal.br="2"
                                       variant="outlined"
                                       density="compact"
                                       prefix="R$"
                                       prepend-inner-icon="mdi-cash"
-                                      :hint="formData.valor_primeira_parcela ? formatarMoeda(formData.valor_primeira_parcela) : ''"
-                                      persistent-hint
                                   ></v-text-field>
                                 </v-col>
 
@@ -526,8 +511,7 @@
                                     <template v-slot:[`item.vlrparcela`]="{ item }">
                                       <v-text-field
                                           v-model="item.vlrparcela"
-                                          type="number"
-                                          step="0.01"
+                                          v-mask-decimal.br="2"
                                           variant="outlined"
                                           density="compact"
                                           hide-details
@@ -665,9 +649,8 @@
                                   </td>
                                   <td>
                                     <v-text-field
-                                        v-model.number="linha.valor"
-                                        type="number"
-                                        step="0.01"
+                                        v-model="linha.valor"
+                                        v-mask-decimal.br="2"
                                         variant="outlined"
                                         density="compact"
                                         prefix="R$"
@@ -1492,7 +1475,7 @@ const ccustoParametro = ref({
 const ccustosRateio = ref([])
 
 const totalRateadoValor = computed(() => {
-  return ccustosRateio.value.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0)
+  return ccustosRateio.value.reduce((s, r) => s + (parseDecimalBR(r.valor) || 0), 0)
 })
 
 const totalRateadoPercent = computed(() => {
@@ -1612,14 +1595,14 @@ const formData = reactive({
   id_planoconta: null,
   id_historicocontabil: null,
   observacao: '',
-  vlroriginal: null,
+  vlroriginal: '',
   qtdparcelas: 1,
   dtemissao: new Date().toISOString().split('T')[0], // Data atual
   // Campos simplificados
-  juros: 0,
-  multa: 0,
-  desconto: 0,
-  valor_primeira_parcela: 0,
+  juros: '',
+  multa: '',
+  desconto: '',
+  valor_primeira_parcela: '',
   venc_primeira_parcela: '',
   intervalo_parcelas: 30,
   // ID da media anexada (key retornada da API)
@@ -1738,6 +1721,16 @@ watch(fornecedorSearch, (val) => {
 
 
 
+// Helpers para formatação decimal BR (vírgula como separador decimal)
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 // Função para formatação monetária brasileira
 const formatarMoeda = (valor) => {
   if (!valor && valor !== 0) return 'R$ 0,00'
@@ -1774,7 +1767,7 @@ const rules = {
   required: (value) => !!value || 'Campo obrigatório',
   currency: (value) => {
     if (!value) return true
-    return !isNaN(parseFloat(value)) || 'Valor deve ser numérico'
+    return parseDecimalBR(value) !== null || 'Valor deve ser numérico'
   }
 }
 
@@ -1808,7 +1801,7 @@ const formValidoComCCusto = computed(() => {
 
   if (utilizaCCusto) {
     const temCCustoValido = ccustosRateio.value && ccustosRateio.value.some(cc => {
-      const valido = cc.id_ccusto && parseFloat(cc.valor) > 0
+      const valido = cc.id_ccusto && (parseDecimalBR(cc.valor) || 0) > 0
       if (valido) {
         console.log('Centro de custo válido encontrado:', cc.desccentrocusto, 'valor:', cc.valor)
       }
@@ -1854,7 +1847,7 @@ watch([() => formData.qtdparcelas, () => formData.vlroriginal], () => {
   parcelasCalculadas.value = false
 
   // Se for parcela única e tiver valor, gerar automaticamente
-  if (formData.qtdparcelas === 1 && formData.vlroriginal) {
+  if (formData.qtdparcelas === 1 && parseDecimalBR(formData.vlroriginal)) {
     // Usar timeout para garantir que a UI atualize
     setTimeout(() => {
       gerarParcelaUnica()
@@ -1865,7 +1858,7 @@ watch([() => formData.qtdparcelas, () => formData.vlroriginal], () => {
 // Watcher específico para gerar parcela única quando campos relevantes mudarem
 watch([() => formData.venc_primeira_parcela, () => formData.dtemissao, () => formData.valor_primeira_parcela], () => {
   // Se for parcela única e já tiver valor, atualizar automaticamente
-  if (formData.qtdparcelas === 1 && formData.vlroriginal && parcelas.value.length > 0) {
+  if (formData.qtdparcelas === 1 && parseDecimalBR(formData.vlroriginal) && parcelas.value.length > 0) {
     gerarParcelaUnica()
   }
 })
@@ -2022,7 +2015,7 @@ const onRateioValorChange = (index) => {
   const r = ccustosRateio.value[index]
   if (!r) return
 
-  const valorAtual = parseFloat(r.valor) || 0
+  const valorAtual = parseDecimalBR(r.valor) || 0
   r.porcentagem = ((valorAtual / total) * 100).toFixed(2)
 }
 
@@ -2035,7 +2028,7 @@ const onRateioPercentChange = (index) => {
   if (!r) return
 
   const porcAtual = parseFloat(r.porcentagem) || 0
-  r.valor = ((porcAtual * total) / 100).toFixed(2)
+  r.valor = formatDecimalBR((porcAtual * total) / 100)
 }
 
 // Recalcular todas as porcentagens baseado nos valores
@@ -2044,7 +2037,7 @@ const recalcularPorcentagens = () => {
   if (total === 0) return
 
   ccustosRateio.value.forEach(r => {
-    const valorNum = parseFloat(r.valor) || 0
+    const valorNum = parseDecimalBR(r.valor) || 0
     r.porcentagem = ((valorNum / total) * 100).toFixed(2)
   })
 }
@@ -2062,14 +2055,14 @@ const distribuirIgualmente = () => {
   ccustosRateio.value.forEach((r, index) => {
     // Para o último centro, ajustar para garantir que a soma seja exatamente o total
     if (index === count - 1) {
-      r.valor = (total - valorAcumulado).toFixed(2)
+      r.valor = formatDecimalBR(total - valorAcumulado)
     } else {
-      r.valor = valorPorCentro.toFixed(2)
-      valorAcumulado += parseFloat(r.valor)
+      r.valor = formatDecimalBR(valorPorCentro)
+      valorAcumulado += parseDecimalBR(r.valor) || 0
     }
 
     // Calcular porcentagem
-    r.porcentagem = ((parseFloat(r.valor) / total) * 100).toFixed(2)
+    r.porcentagem = (((parseDecimalBR(r.valor) || 0) / total) * 100).toFixed(2)
   })
 }
 
@@ -2119,7 +2112,7 @@ const editarContaPagar = async (item) => {
       formData.especie = dados.especie || formData.especie
       formData.id_tipodocumen = dados.id_tipodocumento || dados.id_tipodocumen || null
       formData.observacao = dados.observacao || ''
-      formData.vlroriginal = dados.vlroriginal || parseFloat(dados.vlrdocumento || 0) || formData.vlroriginal
+      formData.vlroriginal = formatDecimalBR(dados.vlroriginal || parseFloat(dados.vlrdocumento || 0) || '') || formData.vlroriginal
       formData.qtdparcelas = parseInt(dados.qtdparcelas || formData.qtdparcelas || 1)
       formData.dtemissao = dados.dtemissao || formData.dtemissao
       formData.id_media = (dados.id_media || (documento && documento.media && documento.media[0] && documento.media[0].id_media)) || formData.id_media
@@ -2253,7 +2246,7 @@ const editarContaPagar = async (item) => {
       try {
         const primeira = parcelas.value[0]
         if (primeira) {
-          formData.valor_primeira_parcela = parseFloat(primeira.vlrparcela) || 0
+          formData.valor_primeira_parcela = formatDecimalBR(parseFloat(primeira.vlrparcela) || 0)
           formData.venc_primeira_parcela = primeira.dtvencimento || ''
         }
       } catch (e) {
@@ -2281,7 +2274,7 @@ const editarContaPagar = async (item) => {
       // preencher os campos do card de cálculo com a primeira parcela encontrada
       if (parcelas.value && parcelas.value.length > 0) {
         const p0 = parcelas.value[0]
-        formData.valor_primeira_parcela = parseFloat(p0.vlrparcela) || 0
+        formData.valor_primeira_parcela = formatDecimalBR(parseFloat(p0.vlrparcela) || 0)
         formData.venc_primeira_parcela = p0.dtvencimento || ''
       }
       calcularTotalParcelas()
@@ -2321,7 +2314,7 @@ const editarContaPagar = async (item) => {
         ccustosRateio.value = ccustos.map(c => {
           const linha = {
             id_ccusto: Number(c.id_ccusto || c.id_ccusto_prev_lote || c.id),
-            valor: parseFloat(c.valor) || 0,
+            valor: formatDecimalBR(parseFloat(c.valor) || 0),
             desccentrocusto: c.desccentrocusto || '',
             porcentagem: 0
           }
@@ -2374,13 +2367,13 @@ const resetarForm = () => {
     id_red_ctb_for: null,
     id_planoconta: null,
     observacao: '',
-    vlroriginal: null,
+    vlroriginal: '',
     qtdparcelas: 1,
     dtemissao: new Date().toISOString().split('T')[0], // Data atual
-    juros: 0,
-    multa: 0,
-    desconto: 0,
-    valor_primeira_parcela: 0,
+    juros: '',
+    multa: '',
+    desconto: '',
+    valor_primeira_parcela: '',
     venc_primeira_parcela: '',
     intervalo_parcelas: 30,
     id_media: ''
@@ -2405,7 +2398,7 @@ const resetarForm = () => {
 
   // Gerar parcela única automaticamente após reset se tiver valor
   setTimeout(() => {
-    if (formData.qtdparcelas === 1 && formData.vlroriginal) {
+    if (formData.qtdparcelas === 1 && parseDecimalBR(formData.vlroriginal)) {
       gerarParcelaUnica()
     }
   }, 100)
@@ -2419,7 +2412,7 @@ const salvarContaPagar = async () => {
     const utilizaCCusto = ccustoParametro.value?.utiliza_ccusto?.trim?.() === 'S' || ccustoParametro.value?.utiliza_ccusto === 'S'
 
     if (utilizaCCusto) {
-      const temCCustoValido = ccustosRateio.value && ccustosRateio.value.some(cc => cc.id_ccusto && parseFloat(cc.valor) > 0)
+      const temCCustoValido = ccustosRateio.value && ccustosRateio.value.some(cc => cc.id_ccusto && (parseDecimalBR(cc.valor) || 0) > 0)
       if (!temCCustoValido) {
         console.warn('Bloqueando salvar: Centro de custo obrigatório não preenchido')
         mostrarMensagem('Centro de custo é obrigatório. Por favor, selecione um centro de custo com valor maior que zero.', 'warning')
@@ -2453,7 +2446,7 @@ const salvarContaPagar = async () => {
       id_tipodocumento: formData.id_tipodocumen,
       id_planoconta: formData.id_planoconta,
       observacao: formData.observacao,
-      vlroriginal: parseFloat(formData.vlroriginal),
+      vlroriginal: parseDecimalBR(formData.vlroriginal),
       origem: "PAG",
       qtdparcelas: parseInt(formData.qtdparcelas),
       dtemissao: formData.dtemissao
@@ -2463,11 +2456,11 @@ const salvarContaPagar = async () => {
     const parcelasFormatadas = parcelas.value.map((parcela, index) => ({
       id: String(parcela.nrparcela || (index + 1)),
       id_localcobranca: String(parcela.id_localcobranca || 1),
-      vlroriginalparcela: String(parseFloat(parcela.vlrparcela) || 0),
+      vlroriginalparcela: String(parseDecimalBR(parcela.vlrparcela) || 0),
       dtvencimento: parcela.dtvencimento || '',
-      perc_juros: String(parseFloat(formData.juros) || 0),
-      perc_desconto: String(parseFloat(formData.desconto) || 0),
-      perc_multa: String(parseFloat(formData.multa) || 0)
+      perc_juros: String(parseDecimalBR(formData.juros) || 0),
+      perc_desconto: String(parseDecimalBR(formData.desconto) || 0),
+      perc_multa: String(parseDecimalBR(formData.multa) || 0)
     }))
 
     // Usar key do Pinia para o payload
@@ -2478,7 +2471,7 @@ const salvarContaPagar = async () => {
         .filter(r => r.id_ccusto) // Só incluir linhas com centro selecionado
         .map(r => ({
           id_ccusto: r.id_ccusto,
-          valor: (parseFloat(r.valor) || 0).toFixed(2),
+          valor: (parseDecimalBR(r.valor) || 0).toFixed(2),
           perc_ccusto: (parseFloat(r.porcentagem) || 0).toFixed(2)
         }))
 
@@ -3083,13 +3076,13 @@ const confirmarImportacaoXML = async () => {
     formData.nrdocumento = dados.nfe.numero
     formData.serie = dados.nfe.serie
     formData.especie = dados.tipoNota || 'NFe'
-    formData.vlroriginal = valorTotal
+    formData.vlroriginal = formatDecimalBR(valorTotal)
     formData.qtdparcelas = opcoesImportXML.qtdParcelas
     formData.dtemissao = dados.nfe.dataEmissao ? dados.nfe.dataEmissao.split('T')[0] : ''
-    formData.desconto = dados.valores.valorDesconto || 0
+    formData.desconto = formatDecimalBR(dados.valores.valorDesconto || 0)
     formData.venc_primeira_parcela = opcoesImportXML.dataVencimento
     formData.intervalo_parcelas = opcoesImportXML.intervaloParcelas
-    formData.valor_primeira_parcela = valorTotal / opcoesImportXML.qtdParcelas
+    formData.valor_primeira_parcela = formatDecimalBR(valorTotal / opcoesImportXML.qtdParcelas)
 
     // Preencher tipo de documento com ID 1 (Nota fiscal) que vem da API /tipodocumento
     const tipoDocumentoNotaFiscal = (tiposDocumento.value || []).find(tipo => tipo.id === 1)
@@ -3382,8 +3375,8 @@ const calcularParcelas = async () => {
 
     // Preparar dados conforme payload esperado pelo backend (apenas para múltiplas parcelas)
     const dadosCalculo = {
-      vlrdocumento: parseFloat(formData.vlroriginal),
-      vlrprimeiraparcela: parseFloat(formData.valor_primeira_parcela) || 0,
+      vlrdocumento: parseDecimalBR(formData.vlroriginal),
+      vlrprimeiraparcela: parseDecimalBR(formData.valor_primeira_parcela) || 0,
       qtdparcelas: qtdParcelas,
       primeirovencimento: formData.venc_primeira_parcela || formData.dtemissao,
       intervalo: parseInt(formData.intervalo_parcelas) || 30
@@ -3438,8 +3431,8 @@ const calcularParcelas = async () => {
 
 // Função otimizada para gerar uma única parcela (sem API)
 const gerarParcelaUnica = () => {
-  const valorOriginal = parseFloat(formData.vlroriginal) || 0
-  const valorPrimeiraParcela = parseFloat(formData.valor_primeira_parcela) || 0
+  const valorOriginal = parseDecimalBR(formData.vlroriginal) || 0
+  const valorPrimeiraParcela = parseDecimalBR(formData.valor_primeira_parcela) || 0
   const dataVencimento = formData.venc_primeira_parcela || formData.dtemissao
 
   if (valorOriginal > 0) {
@@ -3475,8 +3468,8 @@ const gerarParcelaUnica = () => {
 // Função temporária para gerar parcelas (remover quando backend estiver pronto)
 const gerarParcelasTemporario = () => {
   const qtd = parseInt(formData.qtdparcelas) || 0
-  const valorOriginal = parseFloat(formData.vlroriginal) || 0
-  const valorPrimeiraParcela = parseFloat(formData.valor_primeira_parcela) || 0
+  const valorOriginal = parseDecimalBR(formData.vlroriginal) || 0
+  const valorPrimeiraParcela = parseDecimalBR(formData.valor_primeira_parcela) || 0
   const dataVencPrimeira = formData.venc_primeira_parcela || formData.dtemissao
 
   if (qtd > 0 && valorOriginal > 0) {

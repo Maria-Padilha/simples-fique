@@ -73,18 +73,6 @@
 
                       <v-col cols="12" md="3">
                         <v-text-field
-                            v-model="form.cargo"
-                            label="Cargo"
-                            placeholder="Ex: Garçom, Cozinheiro"
-                            maxlength="80"
-                            variant="outlined"
-                            density="compact"
-                            prepend-inner-icon="mdi-briefcase-outline"
-                        ></v-text-field>
-                      </v-col>
-
-                      <v-col cols="12" md="3">
-                        <v-text-field
                             v-model="form.data_admissao"
                             label="Data de admissão"
                             type="date"
@@ -174,10 +162,6 @@
               @edit-item="editarFuncionario"
               @confirm-delete="inativarFuncionario"
           >
-            <template v-slot:[`item.cargo`]="{ item }">
-              {{ item.cargo || '—' }}
-            </template>
-
             <template v-slot:[`item.acessa_sistema_terminal`]="{ item }">
               <v-chip :color="item.acessa_sistema_terminal ? 'info' : 'grey'" size="small" variant="tonal">
                 {{ item.acessa_sistema_terminal ? 'Acessa terminal' : 'Sem acesso' }}
@@ -225,7 +209,6 @@ const form = reactive({
   nome: '',
   cpf: '',
   telefone: '',
-  cargo: '',
   data_admissao: '',
   acessa_sistema_terminal: false,
   email_login: '',
@@ -237,7 +220,6 @@ const snackbar = reactive({ show: false, message: '', color: 'success' })
 const headers = [
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Nome', key: 'nome', sortable: true },
-  { title: 'Cargo', key: 'cargo', sortable: true },
   { title: 'Acesso', key: 'acessa_sistema_terminal', sortable: false },
   { title: 'Status', key: 'ativo', sortable: false },
   { title: 'Ações', key: 'actions', sortable: false }
@@ -270,12 +252,11 @@ const toggleFormulario = () => {
 const editarFuncionario = (item) => {
   editando.value = true
   Object.assign(form, {
-    id: item.id,
+    id: item.id_colabo ?? item.id,
     id_empresa: item.id_empresa,
     nome: item.nome,
     cpf: item.cpf || '',
     telefone: item.telefone || '',
-    cargo: item.cargo || '',
     data_admissao: item.data_admissao ? item.data_admissao.slice(0, 10) : '',
     acessa_sistema_terminal: !!item.acessa_sistema_terminal,
     email_login: item.email_login || '',
@@ -296,7 +277,6 @@ const resetarForm = () => {
     nome: '',
     cpf: '',
     telefone: '',
-    cargo: '',
     data_admissao: '',
     acessa_sistema_terminal: false,
     email_login: '',
@@ -319,7 +299,7 @@ const salvarFuncionario = async () => {
       nome: form.nome,
       cpf: form.cpf || null,
       telefone: form.telefone || null,
-      cargo: form.cargo || null,
+      id_cargo: null,
       data_admissao: form.data_admissao || null,
       acessa_sistema_terminal: form.acessa_sistema_terminal
     }
@@ -347,7 +327,7 @@ const salvarFuncionario = async () => {
 
 const inativarFuncionario = async (item) => {
   try {
-    const id = item?.id || item
+    const id = item?.id_colabo ?? item?.id ?? item
     await funcionariosStore.inativarFuncionario(id)
     mostrarMensagem('Funcionário inativado com sucesso!')
     buscarFuncionarios()

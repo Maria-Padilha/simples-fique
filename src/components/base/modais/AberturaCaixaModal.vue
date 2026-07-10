@@ -16,10 +16,9 @@
           </label>
           <v-text-field
             v-model="valorAbertura"
+            v-mask-decimal.br="2"
             variant="outlined"
             density="comfortable"
-            type="number"
-            step="0.01"
             placeholder="0,00"
             prefix="R$"
             hide-details
@@ -68,6 +67,11 @@
 <script setup>
 import { ref, watch } from 'vue';
 
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+
 // eslint-disable-next-line no-undef
 const props = defineProps({
   modelValue: {
@@ -80,7 +84,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'confirmar']);
 
 const dialogLocal = ref(props.modelValue);
-const valorAbertura = ref('0.00');
+const valorAbertura = ref('');
 const notaInicial = ref('');
 
 watch(() => props.modelValue, (newVal) => {
@@ -93,13 +97,13 @@ watch(dialogLocal, (newVal) => {
 
 const cancelar = () => {
   dialogLocal.value = false;
-  valorAbertura.value = '0.00';
+  valorAbertura.value = '';
   notaInicial.value = '';
 };
 
 const confirmarAbertura = () => {
   emit('confirmar', {
-    valor: parseFloat(valorAbertura.value),
+    valor: parseDecimalBR(valorAbertura.value),
     nota: notaInicial.value
   });
   dialogLocal.value = false;
