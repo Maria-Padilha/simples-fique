@@ -8,17 +8,6 @@
           <v-expansion-panel elevation="1" class="mb-5" title="Entrada de Nota" color="var(--bg-card)">
             <template #text>
               <v-row dense>
-                <v-col cols="12" md="12">
-                  <v-text-field
-                      density="compact"
-                      variant="outlined"
-                      label="Arquivo XML"
-                      hide-details="auto"
-                      v-model="forms.arquivoxml"
-                      readonly
-                  />
-                </v-col>
-
                 <!-- id_fornecedor -->
                 <v-col cols="12" md="4">
                   <v-autocomplete
@@ -27,19 +16,19 @@
                   />
                 </v-col>
 
-                <!-- id_nota -->
+                <!-- numero_nf -->
                 <v-col cols="12" md="1">
                   <v-text-field
                       density="compact" variant="outlined" label="Nota" hide-details="auto"
-                      v-model="forms.id_nota" readonly
+                      v-model="forms.numero_nf" readonly
                   />
                 </v-col>
 
-                <!-- id_serie -->
+                <!-- serie_nf -->
                 <v-col cols="12" md="1">
                   <v-text-field
                       density="compact" variant="outlined" label="Série" hide-details="auto"
-                      v-model="forms.id_serie" readonly
+                      v-model="forms.serie_nf" readonly
                   />
                 </v-col>
 
@@ -68,31 +57,59 @@
                 </v-col>
 
                 <!-- valores iniciais -->
-                <v-col cols="12" md="3">
+                <v-col cols="12" md="2">
                   <v-text-field
                       density="compact" variant="outlined" label="Espécie" hide-details="auto"
                       v-model="forms.especie" readonly
                   />
                 </v-col>
 
-                <v-col cols="12" md="3">
+                <v-col cols="12" md="2">
                   <v-text-field
-                      density="compact" variant="outlined" label="Valor Total Produtos" hide-details="auto"
-                      v-model="forms.vlr_total_produto" type="number" readonly
+                      density="compact" variant="outlined" label="Tipo" hide-details="auto"
+                      v-model="forms.tipo" maxlength="1" readonly
                   />
                 </v-col>
 
-                <v-col cols="12" md="3">
+                <v-col cols="12" md="2">
                   <v-text-field
-                      density="compact" variant="outlined" label="Valor NF" hide-details="auto" type="number"
-                      v-model="forms.vlr_nf" readonly
+                      density="compact" variant="outlined" label="Data Emissão" hide-details="auto"
+                      :model-value="formatarData(forms.dtemissao)" readonly
                   />
                 </v-col>
 
-                <v-col cols="12" md="3">
+                <v-col cols="12" md="2">
+                  <v-text-field
+                      density="compact" variant="outlined" label="Data Entrada" hide-details="auto"
+                      :model-value="formatarData(forms.dtentrada)" readonly
+                  />
+                </v-col>
+
+                <v-col cols="12" md="2">
                   <v-text-field
                       density="compact" variant="outlined" label="Situação" hide-details="auto"
                       v-model="forms.situacao" readonly
+                  />
+                </v-col>
+
+                <v-col cols="12" md="2">
+                  <v-text-field
+                      density="compact" variant="outlined" label="NF Estrangeira" hide-details="auto"
+                      v-model="forms.nf_estrangeira" readonly
+                  />
+                </v-col>
+
+                <v-col cols="12" md="3">
+                  <v-text-field
+                      density="compact" variant="outlined" label="Valor Total Produtos" hide-details="auto"
+                      :model-value="formatarMoeda(forms.vlr_total_produto)" readonly
+                  />
+                </v-col>
+
+                <v-col cols="12" md="3">
+                  <v-text-field
+                      density="compact" variant="outlined" label="Valor NF" hide-details="auto"
+                      :model-value="formatarMoeda(forms.vlr_nf)" readonly
                   />
                 </v-col>
 
@@ -125,127 +142,11 @@
                   />
                 </v-col>
 
-                <!-- Veículo -->
+                <!-- Veículo / transportadora -->
                 <v-col cols="12" md="2">
                   <v-text-field
                       density="compact" variant="outlined" label="Placa" hide-details="auto"
                       v-model="forms.placa_veiculo" readonly
-                  />
-                </v-col>
-
-                <!-- Origem / NF-e -->
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Número NFe" hide-details="auto"
-                      v-model="forms.nfe_numero" type="number" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Série NFe" hide-details="auto"
-                      v-model="forms.nfe_numero_serie" type="number" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Acesso NFe" hide-details="auto"
-                      v-model="forms.nfe_acesso" type="number" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Chave Origem" hide-details="auto"
-                      v-model="forms.nfe_chavedeacesso_origem" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Modelo NFe" hide-details="auto"
-                      v-model="forms.nfe_modelo" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Nº Lote" hide-details="auto"
-                      v-model="forms.nfe_nrlote" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Nº Recibo" hide-details="auto"
-                      v-model="forms.nfe_nrrecibo" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Status" hide-details="auto"
-                      v-model="forms.nfe_status" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Chave Acesso" hide-details="auto"
-                      v-model="forms.nfe_chavedeacesso" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="TP Emissão DANFE" hide-details="auto"
-                      v-model="forms.nfe_tp_emissao_danfe" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Protocolo Envio" hide-details="auto"
-                      v-model="forms.nfe_nrprotocolo_envio" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Prot. Inutilização" hide-details="auto"
-                      v-model="forms.nfe_nrprotocolo_inutil" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Prot. Cancelamento" hide-details="auto"
-                      v-model="forms.nfe_nrprotocolo_cancelamento" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Mensagem NFe/NFCe" hide-details="auto"
-                      v-model="forms.msg_nfe_nfce" readonly
-                  />
-                </v-col>
-
-                <!-- Fiscal -->
-                <v-col cols="12" md="4">
-                  <v-autocomplete
-                      density="compact" variant="outlined" label="Usuário Aprovou" hide-details="auto"
-                      v-model="forms.id_usuario_aprovou_fiscal" readonly
-                      :items="pessoas" item-title="nome_razao" item-value="id"
-                  />
-                </v-col>
-
-                <!-- extras -->
-                <v-col cols="12" md="2">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Tipo" hide-details="auto"
-                      v-model="forms.tipo" maxlength="1" readonly
                   />
                 </v-col>
 
@@ -258,37 +159,8 @@
 
                 <v-col cols="12" md="2">
                   <v-text-field
-                      density="compact" variant="outlined" label="NF Estrangeira" hide-details="auto"
-                      v-model="forms.nf_estrangeira" readonly
-                  />
-                </v-col>
-
-                <!-- Importação -->
-                <v-col cols="12" md="3">
-                  <v-text-field
-                      density="compact" variant="outlined" label="% ICMS Importação" hide-details="auto"
-                      type="number" v-model="forms.perc_icmsimp" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="3">
-                  <v-text-field
-                      density="compact" variant="outlined" label="Siscomex" hide-details="auto" type="number"
-                      v-model="forms.vlr_siscomex" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="3">
-                  <v-text-field
-                      density="compact" variant="outlined" label="AFRMM" hide-details="auto" type="number"
-                      v-model="forms.vlr_afrmm" readonly
-                  />
-                </v-col>
-
-                <v-col cols="12" md="3">
-                  <v-text-field
-                      density="compact" variant="outlined" label="NFe Impressa" hide-details="auto"
-                      v-model="forms.nfe_impressa" readonly
+                      density="compact" variant="outlined" label="Nota de Origem" hide-details="auto"
+                      v-model="forms.nf_origem" readonly
                   />
                 </v-col>
 
@@ -296,7 +168,7 @@
                 <v-col cols="12" md="3">
                   <v-switch
                       v-model="forms.gerou_financeiro"
-                      :label="`Gerou Financeiro? ${forms.gerou_financeiro ? 'Sim' : 'Não'}`"
+                      :label="`Gerou Financeiro? ${forms.gerou_financeiro === 'S' ? 'Sim' : 'Não'}`"
                       hide-details="auto" color="var(--text-color-laranja)" readonly
                   />
                 </v-col>
@@ -304,7 +176,7 @@
                 <v-col cols="12" md="3">
                   <v-switch
                       v-model="forms.gerou_estoque"
-                      :label="`Gerou Estoque? ${forms.gerou_estoque ? 'Sim' : 'Não'}`"
+                      :label="`Gerou Estoque? ${forms.gerou_estoque === 'S' ? 'Sim' : 'Não'}`"
                       hide-details="auto" color="var(--text-color-laranja)" readonly
                   />
                 </v-col>
@@ -312,16 +184,15 @@
                 <v-col cols="12" md="3">
                   <v-switch
                       v-model="forms.importacaoxml"
-                      :label="`Importação XML? ${forms.importacaoxml ? 'Sim' : 'Não'}`"
+                      :label="`Importação XML? ${forms.importacaoxml === 'S' ? 'Sim' : 'Não'}`"
                       hide-details="auto" color="var(--text-color-laranja)" readonly
                   />
                 </v-col>
 
-                <v-col cols="12" md="3">
-                  <v-switch
-                      v-model="forms.nf_origem"
-                      :label="`NF Origem? ${forms.nf_origem ? 'Sim' : 'Não'}`"
-                      hide-details="auto" color="var(--text-color-laranja)" readonly
+                <v-col cols="12" md="12">
+                  <v-textarea
+                      density="compact" variant="outlined" label="Observação" hide-details="auto"
+                      v-model="forms.observacao" rows="2" auto-grow readonly
                   />
                 </v-col>
               </v-row>
@@ -404,6 +275,11 @@
                                 type="number" v-model="forms.isento_ipi" readonly />
                 </v-col>
 
+                <v-col cols="12" md="2">
+                  <v-text-field density="compact" variant="outlined" label="Alíquota IPI" hide-details="auto"
+                                type="number" v-model="forms.aliquota_ipi" readonly />
+                </v-col>
+
                 <!-- Impostos diversos -->
                 <v-col cols="12" md="2">
                   <v-text-field
@@ -416,6 +292,13 @@
                   <v-text-field
                       density="compact" variant="outlined" label="Valor II" hide-details="auto" type="number"
                       v-model="forms.vlr_ii" readonly
+                  />
+                </v-col>
+
+                <v-col cols="12" md="2">
+                  <v-text-field
+                      density="compact" variant="outlined" label="Alíquota II" hide-details="auto" type="number"
+                      v-model="forms.aliquota_ii" readonly
                   />
                 </v-col>
 
@@ -443,8 +326,22 @@
 
                 <v-col cols="12" md="2">
                   <v-text-field
+                      density="compact" variant="outlined" label="Alíquota PIS" hide-details="auto" type="number"
+                      v-model="forms.aliquota_pis" readonly
+                  />
+                </v-col>
+
+                <v-col cols="12" md="2">
+                  <v-text-field
                       density="compact" variant="outlined" label="Cofins Produto" hide-details="auto" type="number"
                       v-model="forms.vlr_cofins_produto" readonly
+                  />
+                </v-col>
+
+                <v-col cols="12" md="2">
+                  <v-text-field
+                      density="compact" variant="outlined" label="Alíquota Cofins" hide-details="auto" type="number"
+                      v-model="forms.aliquota_cofins" readonly
                   />
                 </v-col>
 
@@ -511,20 +408,20 @@
             {{ formatarMoeda(item.vlr_unitario) }}
           </template>
 
-          <template v-slot:[`item.vlr_ipi_item`]="{ item }">
-            {{ formatarMoeda(item.vlr_ipi_item) }}
-          </template>
-
-          <template v-slot:[`item.vlr_icms_item`]="{ item }">
-            {{ formatarMoeda(item.vlr_icms_item) }}
+          <template v-slot:[`item.desconto_total_item`]="{ item }">
+            {{ formatarMoeda(item.desconto_total_item) }}
           </template>
 
           <template v-slot:[`item.vlr_total_item`]="{ item }">
             {{ formatarMoeda(item.vlr_total_item) }}
           </template>
 
-          <template v-slot:[`item.base_icms_item`]="{ item }">
-            {{ formatarMoeda(item.base_icms_item) }}
+          <template v-slot:[`item.vlr_frete_item`]="{ item }">
+            {{ formatarMoeda(item.vlr_frete_item) }}
+          </template>
+
+          <template v-slot:[`item.custo_medio`]="{ item }">
+            {{ formatarMoeda(item.custo_medio) }}
           </template>
         </tabela-padrao>
       </v-form>
@@ -554,17 +451,16 @@ const forms = reactive({});
 const produtos = ref([]);
 
 const headers = ref([
-  {title: 'Cod. Ref', key: 'id_seq'},
+  {title: 'Seq.', key: 'id_seq'},
   {title: 'Descrição do Produto', key: 'descprodutoxml'},
-  {title: 'Unidade', key: 'und'},
-  {title: 'Vlr. Unitário', key: 'vlr_unitario'},
-  {title: 'Valor IPI', key: 'vlr_ipi_item'},
-  {title: 'Valor ICMS', key: 'vlr_icms_item'},
   {title: 'Quantidade', key: 'quantidade'},
+  {title: 'Vlr. Unitário', key: 'vlr_unitario'},
+  {title: 'Desconto', key: 'desconto_total_item'},
   {title: 'Total', key: 'vlr_total_item'},
+  {title: 'Frete', key: 'vlr_frete_item'},
+  {title: 'Custo Médio', key: 'custo_medio'},
   {title: 'Cor', key: 'id_cor'},
   {title: 'Tamanho', key: 'id_tamanho'},
-  {title: 'Base ICMS', key: 'base_icms_item'},
 ]);
 
 const formatarMoeda = (valor) => {
@@ -576,15 +472,24 @@ const formatarMoeda = (valor) => {
   });
 };
 
+const formatarData = (valor) => {
+  if (!valor) return '';
+
+  const data = new Date(`${String(valor).slice(0, 10)}T00:00:00`);
+
+  return data.toLocaleDateString('pt-BR');
+};
+
 watchEffect(async () => {
   if (id) {
-    await produtosStore.buscarEntradaDfePorId(idEmpresa?.id ?? 1, id);
+    await Promise.all([
+      produtosStore.buscarEntradaDfePorId(idEmpresa?.id ?? 1, id),
+      produtosStore.buscarEntradaTributoPorId(id),
+      produtosStore.buscarEntradaItens(id),
+    ]);
 
-    console.log('verificando a entrada de nota: ', produtosStore.entradadfeItem);
-
-    Object.assign(forms, produtosStore.entradadfeItem?.data[0]);
-    produtos.value = produtosStore.entradadfeItem?.item ?? [];
-
+    Object.assign(forms, produtosStore.entradadfeItem ?? {}, produtosStore.entradaTributoItem ?? {});
+    produtos.value = produtosStore.entradaItens ?? [];
 
     if (pessoas.value.length === 0) {
       await pessoasStore.buscarTodasPessoas();

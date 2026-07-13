@@ -74,6 +74,8 @@ export const useProdutosStore = defineStore('produtos', {
 
         entradadfe: [],
         entradadfeItem: null,
+        entradaTributoItem: null,
+        entradaItens: [],
 
         deventrada: [],
 
@@ -847,13 +849,43 @@ export const useProdutosStore = defineStore('produtos', {
             this.loading = true;
 
             try {
-                const response = await apiPhp.get(`/estoque/entradas/${id}`);
+                const response = await apiPhp.get(`/estoque/entradas/${idEmpresa}/${id}`);
                 this.entradadfeItem = response.data?.data ?? response.data;
                 this.errorMessage = '';
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
             } finally {
                 this.loading = false;
+            }
+        },
+
+        /**
+         * BUSCAR TRIBUTAÇÃO DA ENTRADA DFE
+         * @param {number} idEntrada - ID da entrada dfe.
+         * @return {Promise<void>}
+         */
+
+        async buscarEntradaTributoPorId(idEntrada) {
+            try {
+                const response = await apiPhp.get(`/estoque/entrada-tributos/${idEntrada}`);
+                this.entradaTributoItem = response.data?.data ?? response.data;
+            } catch (error) {
+                this.entradaTributoItem = null;
+            }
+        },
+
+        /**
+         * BUSCAR ITENS DA ENTRADA DFE
+         * @param {number} idEntrada - ID da entrada dfe.
+         * @return {Promise<void>}
+         */
+
+        async buscarEntradaItens(idEntrada) {
+            try {
+                const response = await apiPhp.get('/estoque/entrada-itens', { params: { id_entrada: idEntrada } });
+                this.entradaItens = response.data?.data ?? response.data ?? [];
+            } catch (error) {
+                this.entradaItens = [];
             }
         },
 
@@ -866,7 +898,9 @@ export const useProdutosStore = defineStore('produtos', {
         async cadastrarEntradaDfe(entradadfeData, idEmpresa) {
             this.loading = true;
             try {
-                await apiPhp.post('/estoque/entradas', entradadfeData);
+                const response = await apiPhp.post('/estoque/entradas', entradadfeData);
+                this.entradadfeItem = response.data?.data ?? response.data ?? null;
+                this.errorMessage = '';
                 await this.buscarEntradasDfe(idEmpresa);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -876,15 +910,46 @@ export const useProdutosStore = defineStore('produtos', {
         },
 
         /**
-         * DELETAR ENTRADA DFE
+         * CADASTRAR TRIBUTAÇÃO DA ENTRADA DFE
+         * @param {object} tributoData - Dados fiscais da entrada (deve incluir id_entrada).
+         * @return {Promise<void>}
+         */
+
+        async cadastrarEntradaTributo(tributoData) {
+            try {
+                await apiPhp.post('/estoque/entrada-tributos', tributoData);
+                this.errorMessage = '';
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            }
+        },
+
+        /**
+         * CADASTRAR ITEM DA ENTRADA DFE
+         * @param {object} itemData - Dados do item (deve incluir id_entrada, id_produto, quantidade, vlr_unitario).
+         * @return {Promise<void>}
+         */
+
+        async cadastrarEntradaItem(itemData) {
+            try {
+                await apiPhp.post('/estoque/entrada-itens', itemData);
+                this.errorMessage = '';
+            } catch (error) {
+                this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
+            }
+        },
+
+        /**
+         * CANCELAR ENTRADA DFE
+         * A API não expõe DELETE para entradas — o cancelamento (situacao='C') é feito via /cancelar.
          * @param {number} idEmpresa - ID da Empresa.
-         * @param {number} id - ID da entrada dfe a ser deletada.
+         * @param {number} id - ID da entrada dfe a ser cancelada.
          * @return {Promise<void>}
          */
         async deletarEntradaDfe(idEmpresa, id) {
             this.loading = true;
             try {
-                await apiPhp.delete(`/estoque/entradas/${id}`);
+                await apiPhp.post(`/estoque/entradas/${idEmpresa}/${id}/cancelar`);
                 await this.buscarEntradasDfe(idEmpresa);
             } catch (error) {
                 this.errorMessage = error?.validationMessage || error?.response?.data?.erro || error?.response?.data?.message || error?.message || 'Erro desconhecido';
@@ -904,7 +969,7 @@ export const useProdutosStore = defineStore('produtos', {
         async atualizarEntradaDfe(idEmpresa, id, entradadfeData) {
             this.loading = true;
             try {
-                await apiPhp.put(`/estoque/entradas/${id}`, entradadfeData);
+                await apiPhp.put(`/estoque/entradas/${idEmpresa}/${id}`, entradadfeData);
                 await this.buscarEntradaDfePorId(idEmpresa, id);
                 await this.buscarEntradasDfe(idEmpresa);
             } catch (error) {

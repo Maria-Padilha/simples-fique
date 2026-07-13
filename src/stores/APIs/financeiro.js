@@ -1478,16 +1478,14 @@ export const useFinanceiroStore = defineStore('financeiro', {
 
     // ========== BAIXA DE PAGAMENTOS ==========
 
-    // Baixar pagamentos em lote
+    // Baixar um pagamento (POST /financeiro/baixa-pagars aceita um objeto único por chamada —
+    // para baixar várias parcelas, o chamador deve invocar este método uma vez por parcela)
     async baixarPagamentos(idEmpresa, dadosBaixa) {
       this.loading = true;
       this.error = null;
       try {
-        // Normalizar: extrair data[0] do formato THorse
-        const dadosBase = Array.isArray(dadosBaixa?.data) ? dadosBaixa.data[0] : dadosBaixa
-        const phpPayload = { ...dadosBase }
-        const res = await apiPhp.post('/financeiro/baixa-pagars', phpPayload)
-        return res.data
+        const res = await apiPhp.post('/financeiro/baixa-pagars', dadosBaixa)
+        return res.data?.data ?? res.data
       } catch (error) {
         this.error = error?.response?.data?.message || error?.message || 'Erro desconhecido';
         throw error;

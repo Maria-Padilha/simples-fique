@@ -252,6 +252,42 @@ export const useCCustoStore = defineStore('ccusto', {
       } finally {
         this.loading = false
       }
+    },
+
+    /**
+     * CRIAR LOTE DE PREVISÃO DE CENTRO DE CUSTO
+     * @param {Object} loteData - { valor, origem ("PAG"/"REC"), dtvencimento }
+     * @return {Promise<Object|null>} lote criado (com id) ou null em caso de erro
+     */
+    async criarCentroCustoPrevistoLote(loteData) {
+      try {
+        const res = await apiPhp.post('/financeiro/centro-custo-previsto-lotes', loteData)
+
+        this.errorMessage = ''
+        return res.data?.data ?? res.data
+      } catch (error) {
+        this.errorMessage = error.response?.data?.message || error.response?.data?.erro || 'Erro ao criar lote de previsão de centro de custo'
+        toast.error(this.errorMessage)
+        return null
+      }
+    },
+
+    /**
+     * CRIAR ITEM DE RATEIO NO LOTE DE PREVISÃO
+     * @param {Object} itemData - { id_prev_lote, id_reduzido_despesa, id_ccusto, valor }
+     * @return {Promise<Object|null>} item criado ou null em caso de erro
+     */
+    async criarCentroCustoPrevistoLoteItem(itemData) {
+      try {
+        const res = await apiPhp.post('/financeiro/centro-custo-previsto-lote-itens', itemData)
+
+        this.errorMessage = ''
+        return res.data?.data ?? res.data
+      } catch (error) {
+        this.errorMessage = error.response?.data?.message || error.response?.data?.erro || 'Erro ao criar item de rateio previsto'
+        toast.error(this.errorMessage)
+        return null
+      }
     }
   }
 })

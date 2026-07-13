@@ -588,13 +588,14 @@
                           </v-expand-transition>
                         </v-col>
 
-                        <!-- Rateio por Centro de Custo (select acima e tabela de centros selecionados) -->
-                        <v-col cols="12" v-if="parcelas.length > 0">
+                        <!-- Rateio por Centro de Custo (card com múltiplas linhas: centro de custo + reduzido de
+                             despesa + valor). Enviado como array `ccusto` em CriarPagContaRequest -->
+                        <v-col cols="12">
                           <v-card variant="outlined" class="background-secondary mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
                               <v-icon icon="mdi-swap-horizontal" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Rateio por Centro de Custo
-                              <v-spacer></v-spacer> 
+                              <v-spacer></v-spacer>
                               <v-btn
                                   size="small"
                                   color="var(--text-color-laranja)"
@@ -623,10 +624,11 @@
                               <v-table class="background-secondary" v-else density="compact">
                                 <thead>
                                 <tr>
-                                  <th style="width: 40%">Centro de Custo</th>
-                                  <th style="width: 25%">Valor (R$)</th>
-                                  <th style="width: 20%">Porcentagem (%)</th>
-                                  <th style="width: 15%; text-align: center">Ações</th>
+                                  <th style="width: 30%">Centro de Custo</th>
+                                  <th style="width: 30%">Reduzido de Despesa</th>
+                                  <th style="width: 20%">Valor (R$)</th>
+                                  <th style="width: 15%">Porcentagem (%)</th>
+                                  <th style="width: 5%; text-align: center">Ações</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -641,11 +643,21 @@
                                         variant="outlined"
                                         density="compact"
                                         hide-details
-                                        :class="ccustoParametro.utiliza_ccusto === 'S' ? 'required-left-border' : ''"
                                     />
-                                    <div v-if="linha.desccentrocusto" class="text-caption text-grey mt-1">
-                                      API: {{ linha.desccentrocusto }}
-                                    </div>
+                                  </td>
+                                  <td>
+                                    <v-text-field
+                                        :model-value="linha.descplanoconta"
+                                        label="Selecione *"
+                                        variant="outlined"
+                                        density="compact"
+                                        hide-details
+                                        readonly
+                                    >
+                                      <template #append-inner>
+                                        <PlanoContaMenu @selecionar="(p) => selecionarReduzidoRateio(index, p)" />
+                                      </template>
+                                    </v-text-field>
                                   </td>
                                   <td>
                                     <v-text-field
@@ -655,7 +667,6 @@
                                         density="compact"
                                         prefix="R$"
                                         hide-details
-                                        :class="ccustoParametro.utiliza_ccusto === 'S' ? 'required-left-border' : ''"
                                         @input="onRateioValorChange(index)"
                                     />
                                   </td>
@@ -685,6 +696,7 @@
                                 <tfoot>
                                 <tr class="font-weight-bold">
                                   <td>TOTAL</td>
+                                  <td></td>
                                   <td>{{ formatarMoeda(totalRateadoValor) }}</td>
                                   <td>{{ Number(totalRateadoPercent).toFixed(2) }}%</td>
                                   <td></td>
@@ -748,7 +760,7 @@
                     <v-btn
                         color="var(--text-color-laranja)"
                         :loading="loading"
-                        :disabled="!formValidoComCCusto"
+                        :disabled="!formValido"
                         @click="salvarContaPagar"
                         variant="flat"
                         class="text-white"
@@ -1417,13 +1429,13 @@ import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import BuscaAvancada from '@/components/base/padrao-paginas/BuscaAvancada.vue'
 import TipoDocumentoMenu from '@/components/base/menu/TipoDocumentoMenu.vue'
 import LocalCobrancaMenu from '@/components/base/menu/LocalCobrancaMenu.vue'
+import PlanoContaMenu from '@/components/base/menu/PlanoContaMenu.vue'
 import MediaSave from '@/components/base/media/MediaSave.vue'
 import MediaShow from '@/components/base/media/MediaShow.vue'
 import BuscaPadraoMenu from '@/components/base/menu/BuscaPadraoMenu.vue'
 import CadastrarModal from '@/components/base/modais/CadastrarModal.vue'
 // eslint-disable-next-line no-unused-vars
 import numeric from 'numeric'
-import apiPhp from '@/services/apiPhp'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 
 // ID do programa desta tela
@@ -1463,15 +1475,10 @@ const parcelasCalculadas = ref(false)
 // Flag para suprimir o watcher que limpa parcelas enquanto carregamos um documento existente
 const suppressParcelWatcher = ref(false)
 
-// Rateio por centro de custo — computed garante reatividade ao store
+// Centros de custo — computed garante reatividade ao store
 const centrosCusto = computed(() => ccustoStore.centrosCusto || [])
 
-// Parâmetro de centro de custo (obrigatoriedade)
-const ccustoParametro = ref({
-  utiliza_ccusto: 'N'
-})
-
-// Array direto de rateios (simplificado)
+// Rateio por Centro de Custo — card com múltiplas linhas (centro de custo + reduzido de despesa + valor)
 const ccustosRateio = ref([])
 
 const totalRateadoValor = computed(() => {
@@ -1788,39 +1795,6 @@ const totalParcelasFiltradas = computed(() => {
   }, 0)
 })
 
-// Validar se o formulário está realmente válido (inclui ccusto obrigatório)
-const formValidoComCCusto = computed(() => {
-  // Primeiro verificar se o formulário está válido
-  if (!formValido.value) {
-    console.log('Formulário inválido - preencha todos os campos obrigatórios')
-    return false
-  }
-
-  // Se centro de custo é obrigatório, verificar se foi selecionado com valor válido
-  const utilizaCCusto = ccustoParametro.value?.utiliza_ccusto?.trim?.() === 'S' || ccustoParametro.value?.utiliza_ccusto === 'S'
-
-  if (utilizaCCusto) {
-    const temCCustoValido = ccustosRateio.value && ccustosRateio.value.some(cc => {
-      const valido = cc.id_ccusto && (parseDecimalBR(cc.valor) || 0) > 0
-      if (valido) {
-        console.log('Centro de custo válido encontrado:', cc.desccentrocusto, 'valor:', cc.valor)
-      }
-      return valido
-    })
-
-    if (!temCCustoValido) {
-      console.log('Centro de custo é obrigatório e não foi selecionado ou sem valor válido')
-      return false
-    }
-
-    console.log('Todos os validações passadas - Centro de custo obrigatório OK, Formulário OK')
-    return true
-  }
-
-  console.log('Centro de custo não é obrigatório - apenas validação de formulário OK')
-  return true
-})
-
 // Ciclo de vida
 onMounted(async () => {
   // Carregar apenas dados auxiliares no mount
@@ -1863,23 +1837,6 @@ watch([() => formData.venc_primeira_parcela, () => formData.dtemissao, () => for
   }
 })
 
-// Inicializar rateios quando parcelas já foram calculadas
-watch(() => parcelasCalculadas.value, (val) => {
-  if (val && ccustosRateio.value.length === 0) {
-    // garantir que centros já foram carregados
-    if ((centrosCusto.value || []).length === 0) {
-      // tentar carregar novamente
-      ccustoStore.listarCCusto().then(() => {
-        inicializarRateio()
-      }).catch(() => {
-        inicializarRateio()
-      })
-    } else {
-      inicializarRateio()
-    }
-  }
-})
-
 // Métodos
 const carregarContasPagar = async (filtrosApi = null) => {
   try {
@@ -1916,37 +1873,8 @@ const carregarContasPagar = async (filtrosApi = null) => {
   }
 }
 
-// Carregar parâmetros de centro de custo
-const carregarCCustoParametro = async () => {
-  try {
-    console.log('Iniciando carregamento de ccustoparametro...')
-
-    const response = await apiPhp.get('/financeiro/centro-custo-parametros/parametro')
-
-    console.log('Resposta de ccustoparametro:', response)
-
-    if (Array.isArray(response.data) && response.data.length > 0) {
-      ccustoParametro.value = response.data[0]
-      console.log('Centro de custo parâmetro carregado com sucesso:', ccustoParametro.value)
-      console.log('utiliza_ccusto value:', ccustoParametro.value.utiliza_ccusto)
-    } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-      ccustoParametro.value = response.data
-      console.log('Centro de custo parâmetro carregado com sucesso:', ccustoParametro.value)
-      console.log('utiliza_ccusto value:', ccustoParametro.value.utiliza_ccusto)
-    } else {
-      console.warn('Nenhum parâmetro de centro de custo retornado, usando padrão N')
-      ccustoParametro.value = { utiliza_ccusto: 'N' }
-    }
-  } catch (error) {
-    console.error('Erro ao carregar parâmetro de centro de custo:', error)
-    ccustoParametro.value = { utiliza_ccusto: 'N' }
-  }
-}
-
 // Carregar dados auxiliares dos dropdowns
 const carregarDadosAuxiliares = async () => {
-  await carregarCCustoParametro()
-
   try {
     const tiposDoc = await financeiroStore.buscarTiposDocumento()
     tiposDocumento.value = tiposDoc
@@ -1983,28 +1911,29 @@ const carregarDadosAuxiliares = async () => {
   }
 }
 
-// Inicializar rateio com uma linha vazia
-const inicializarRateio = () => {
-  if (ccustosRateio.value.length === 0) {
-    adicionarCentro()
-  }
-}
+// ===== Rateio por Centro de Custo (card com múltiplas linhas) =====
 
-// Adicionar nova linha de rateio
 const adicionarCentro = () => {
   ccustosRateio.value.push({
     id_ccusto: null,
-    desccentrocusto: '',
+    id_reduzido_despesa: null,
+    descplanoconta: '',
     valor: 0,
     porcentagem: 0
   })
 }
 
-// Remover linha de rateio
-// eslint-disable-next-line no-unused-vars
 const removerCentro = (index) => {
   ccustosRateio.value.splice(index, 1)
   recalcularPorcentagens()
+}
+
+const selecionarReduzidoRateio = (index, planoConta) => {
+  const linha = ccustosRateio.value[index]
+  if (!linha) return
+
+  linha.id_reduzido_despesa = planoConta.id
+  linha.descplanoconta = planoConta.descconta || planoConta.descricao || ''
 }
 
 // Atualiza porcentagem ao alterar valor
@@ -2292,44 +2221,7 @@ const editarContaPagar = async (item) => {
       })
     }
 
-    // Rateios (centros de custo) — API returns `ccusto` as array of { id_ccusto, valor, desccentrocusto }
-    // A API retorna a estrutura: { data: [...], pagparcela: [...], media: [...], ccusto: [...] }
-    // O ccusto está no nível raiz do documento, NÃO dentro de data[0]
-
-    // Buscar ccusto no nível raiz do documento (estrutura correta da API)
-    const ccustos = documento?.ccusto || []
-
-    if (Array.isArray(ccustos) && ccustos.length > 0) {
-
-      // Ensure centrosCusto list is loaded
-      if ((centrosCusto.value || []).length === 0) {
-        try {
-          await ccustoStore.listarCCusto()
-        } catch (e) {
-          console.warn('Não foi possível carregar centros de custo ao editar documento', e)
-        }
-      } else
-
-          // Mapear ccustos diretamente para o array de rateio
-        ccustosRateio.value = ccustos.map(c => {
-          const linha = {
-            id_ccusto: Number(c.id_ccusto || c.id_ccusto_prev_lote || c.id),
-            valor: formatDecimalBR(parseFloat(c.valor) || 0),
-            desccentrocusto: c.desccentrocusto || '',
-            porcentagem: 0
-          }
-          return linha
-        })
-
-      // Aguardar nextTick para garantir reatividade
-      await nextTick()
-
-      // Calcular as porcentagens baseadas no total das parcelas
-      recalcularPorcentagens()
-
-    } else
-
-        // Media: API returns `media` as array (e.g. ["key"]) — persist first element into formData.id_media
+    // Media: API returns `media` as array (e.g. ["key"]) — persist first element into formData.id_media
     if (documento && Array.isArray(documento.media) && documento.media.length > 0) {
       formData.id_media = documento.media[0] || formData.id_media
     } else if (dados && Array.isArray(dados.media) && dados.media.length > 0) {
@@ -2389,7 +2281,7 @@ const resetarForm = () => {
   valorEntrada.value = 0
   parcelasCalculadas.value = false
 
-  // Limpar rateios
+  // Limpar rateio por centro de custo
   ccustosRateio.value = []
 
   if (formRef.value) {
@@ -2408,19 +2300,6 @@ const salvarContaPagar = async () => {
   try {
     loading.value = true
 
-    // Validar se centro de custo é obrigatório
-    const utilizaCCusto = ccustoParametro.value?.utiliza_ccusto?.trim?.() === 'S' || ccustoParametro.value?.utiliza_ccusto === 'S'
-
-    if (utilizaCCusto) {
-      const temCCustoValido = ccustosRateio.value && ccustosRateio.value.some(cc => cc.id_ccusto && (parseDecimalBR(cc.valor) || 0) > 0)
-      if (!temCCustoValido) {
-        console.warn('Bloqueando salvar: Centro de custo obrigatório não preenchido')
-        mostrarMensagem('Centro de custo é obrigatório. Por favor, selecione um centro de custo com valor maior que zero.', 'warning')
-        loading.value = false
-        return
-      }
-    }
-
     // Validar se há parcelas calculadas
     if (parcelas.value.length === 0) {
       mostrarMensagem('É necessário calcular as parcelas antes de salvar', 'warning')
@@ -2428,51 +2307,21 @@ const salvarContaPagar = async () => {
       return
     }
 
-    // Dados principais da conta a pagar
-    // Determinar nome do fornecedor a partir do id selecionado
-    const fornecedorObj = (pessoas.value || []).find(p => p.id === formData.id_fornecedor) || {}
-    const fornecedorNome = fornecedorObj.apelido_fantasia || fornecedorObj.nome_razao || fornecedorObj.nome || ''
-
-    const dadosPrincipais = {
-      fornecedor: fornecedorNome,
-      id_fornecedor: formData.id_fornecedor,
-      id_historico_ctb: formData.id_historicocontabil || null,
-      id_red_ctb_for: formData.id_red_ctb_for || null,
-      abreviatura: tipoDocumentoSelecionado.value,
-      id_empresa: idEmpresa.value,
-      nrdocumento: formData.nrdocumento,
-      serie: formData.serie,
-      especie: formData.especie,
-      id_tipodocumento: formData.id_tipodocumen,
-      id_planoconta: formData.id_planoconta,
-      observacao: formData.observacao,
-      vlroriginal: parseDecimalBR(formData.vlroriginal),
-      origem: "PAG",
-      qtdparcelas: parseInt(formData.qtdparcelas),
-      dtemissao: formData.dtemissao
+    // Reduzido de despesa é obrigatório em toda linha que tiver centro de custo selecionado
+    const linhaSemReduzido = ccustosRateio.value.find(r => r.id_ccusto && !r.id_reduzido_despesa)
+    if (linhaSemReduzido) {
+      mostrarMensagem('Selecione o Reduzido de Despesa de todos os centros de custo informados', 'warning')
+      loading.value = false
+      return
     }
 
-    // Preparar parcelas no formato esperado pelo THorse
-    const parcelasFormatadas = parcelas.value.map((parcela, index) => ({
-      id: String(parcela.nrparcela || (index + 1)),
-      id_localcobranca: String(parcela.id_localcobranca || 1),
-      vlroriginalparcela: String(parseDecimalBR(parcela.vlrparcela) || 0),
-      dtvencimento: parcela.dtvencimento || '',
-      perc_juros: String(parseDecimalBR(formData.juros) || 0),
-      perc_desconto: String(parseDecimalBR(formData.desconto) || 0),
-      perc_multa: String(parseDecimalBR(formData.multa) || 0)
-    }))
-
-    // Usar key do Pinia para o payload
-    const mediaValue = financeiroStore.getMediaKeyTemporaria() || null
-
-    // Montar array ccusto no formato solicitado: [{ id_ccusto, valor, perc_ccusto }]
+    // Montar array ccusto: [{ id_ccusto, id_reduzido_despesa, valor }]
     const ccustoArray = ccustosRateio.value
-        .filter(r => r.id_ccusto) // Só incluir linhas com centro selecionado
+        .filter(r => r.id_ccusto)
         .map(r => ({
           id_ccusto: r.id_ccusto,
-          valor: (parseDecimalBR(r.valor) || 0).toFixed(2),
-          perc_ccusto: (parseFloat(r.porcentagem) || 0).toFixed(2)
+          id_reduzido_despesa: r.id_reduzido_despesa,
+          valor: parseDecimalBR(r.valor) || 0
         }))
 
     // Validar soma do rateio (se houver rateios) contra o total das parcelas
@@ -2485,6 +2334,35 @@ const salvarContaPagar = async () => {
         return
       }
     }
+
+    // Dados principais da conta a pagar — campos aceitos por CriarPagContaRequest
+    const dadosPrincipais = {
+      id_fornecedor: formData.id_fornecedor,
+      vlroriginal: parseDecimalBR(formData.vlroriginal),
+      qtdparcelas: parseInt(formData.qtdparcelas),
+      dtemissao: formData.dtemissao,
+      intervalo_dias: parseInt(formData.intervalo_parcelas) || 30,
+      nrdocumento: formData.nrdocumento,
+      serie: formData.serie,
+      especie: formData.especie,
+      id_tipodocumento: formData.id_tipodocumen,
+      observacao: formData.observacao,
+      origem: "PAG"
+    }
+
+    // Preparar parcelas (campos numéricos, não string)
+    const parcelasFormatadas = parcelas.value.map((parcela, index) => ({
+      id: Number(parcela.nrparcela || (index + 1)),
+      id_localcobranca: Number(parcela.id_localcobranca || 1),
+      vlroriginalparcela: parseDecimalBR(parcela.vlrparcela) || 0,
+      dtvencimento: parcela.dtvencimento || '',
+      perc_juros: parseDecimalBR(formData.juros) || 0,
+      perc_desconto: parseDecimalBR(formData.desconto) || 0,
+      perc_multa: parseDecimalBR(formData.multa) || 0
+    }))
+
+    // Usar key do Pinia para o payload
+    const mediaValue = financeiroStore.getMediaKeyTemporaria() || null
 
     // Montar payload no formato flat (Laravel): campos principais + arrays relacionados
     const payloadCompleto = {

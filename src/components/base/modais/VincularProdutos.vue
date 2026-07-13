@@ -1,8 +1,8 @@
 <template>
-  <v-card class="w-[100%]" elevation="0" color="transparent">
+  <v-card class="w-[100%] relative" elevation="0" color="transparent">
     <v-card-item>
       <!-- Botão Confirmar Vinculação -->
-      <div v-if="produtoSelecionadoTemp" class="flex justify-end position-absolute z-10 right-0 mt-3 mr-4">
+      <div v-if="produtoSelecionadoTemp" class="flex justify-end absolute z-10 right-0 top-0 mt-3 mr-4">
         <v-btn color="green" variant="flat" size="small" prepend-icon="mdi-check" @click="confirmarVinculo">
           Vincular neste produto
         </v-btn>

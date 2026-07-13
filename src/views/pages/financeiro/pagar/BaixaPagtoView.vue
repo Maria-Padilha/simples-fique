@@ -378,6 +378,14 @@ const montarPayloadBaixa = async (tipo, dadosBaixa) => {
   const parfin = (await carregarParfinPagarSeNecessario()) || {}
   const local_lct = tipo === 'caixa' ? 'CAI' : 'BAN'
 
+  const campoHistorico = local_lct === 'CAI' ? 'pag_id_hist_bxa_caixa' : 'pag_id_hist_bxa_banco'
+  if (!parfin[campoHistorico]) {
+    mostrarMensagem(
+        `Histórico de baixa por ${tipo} não está configurado em Configurações > Contas a Pagar — o movimento será gravado sem histórico vinculado.`,
+        'warning'
+    )
+  }
+
   const data = (contasSelecionadas.value || []).map((item) => {
     const vlrparcela = round2(item?.saldo_devedor ?? item?.vlrparcela ?? 0)
     const vlrjuros = round2(item?.juros ?? 0)
@@ -389,8 +397,9 @@ const montarPayloadBaixa = async (tipo, dadosBaixa) => {
 
     return {
       // Identificadores (para a API saber qual parcela baixar)
+      id_pagparcela: item?.id_pagparcela ?? item?.id_parcela ?? item?.id ?? null,
       id: item?.id ?? null,
-      id_parcela: item?.id_parcela ?? item?.id ?? null,  // ← ADICIONADO
+      id_parcela: item?.id_parcela ?? item?.id ?? null,
       nrparcela: item?.nrparcela ?? null,
 
       // Campos do payload solicitado
@@ -402,7 +411,10 @@ const montarPayloadBaixa = async (tipo, dadosBaixa) => {
       vlrjuros,
       vlrmulta,
       vlrdesconto,
-      id_lote_ccusto: item?.id_lote_ccusto ?? item?.id_lote_ccusto_previsto ?? null,
+      // id_ccusto_prev_lote é o lote de previsão vinculado à parcela (ver Rateio Previsto de
+      // Centro de Custo em PagarView.vue); enviá-lo como id_lote_ccusto faz o backend gerar
+      // automaticamente o realizado de centro de custo junto com a baixa
+      id_lote_ccusto: item?.id_ccusto_prev_lote ?? null,
       pag_id_red_ctb_juros_pago: parfin?.pag_id_red_ctb_juros_pago ?? null,
       pag_id_red_ctb_multa_paga: parfin?.pag_id_red_ctb_multa_paga ?? null,
       id_reduzido_for: parfin?.pag_id_red_ctb_for ?? parfin?.id_reduzido_for ?? null,
@@ -410,9 +422,6 @@ const montarPayloadBaixa = async (tipo, dadosBaixa) => {
       id_reduzido_ctb_banco: dadosBaixa?.id_reduzido_ctb_banco ?? parfin?.pag_id_red_ctb_banco ?? null,
       id_caixa: tipo === 'caixa' ? (dadosBaixa?.codigoCaixa ?? null) : null,
       id_ccorrente: tipo === 'banco' ? (dadosBaixa?.codigoBanco ?? null) : null,
-      id_historico: local_lct === 'CAI'
-        ? (parfin?.pag_id_hist_bxa_caixa ?? null)
-        : (parfin?.pag_id_hist_bxa_banco ?? null),
       pag_id_hist_bxa_caixa: local_lct === 'CAI' ? (parfin?.pag_id_hist_bxa_caixa ?? null) : null,
       pag_id_hist_bxa_caixa_ctb: local_lct === 'CAI' ? (parfin?.pag_id_hist_bxa_caixa_ctb ?? null) : null,
       pag_id_hist_bxa_banco: local_lct === 'BAN' ? (parfin?.pag_id_hist_bxa_banco ?? null) : null,
@@ -435,16 +444,14 @@ const montarPayloadBaixa = async (tipo, dadosBaixa) => {
   const restoDoModal = { ...(dadosBaixa || {}) }
   delete restoDoModal.contasSelecionadas
 
-  const dataCompleto = data.map((parcela) => ({
+  // Retorna um array de objetos "flat" — POST /financeiro/baixa-pagars aceita um objeto único
+  // por chamada, então o chamador deve iterar e enviar um POST por parcela
+  return data.map((parcela) => ({
     tipo,
     baixadopor: tipo === 'caixa' ? 'CAI' : 'BAN',
     ...restoDoModal,
     ...parcela
   }))
-  
-  return {
-    data: dataCompleto 
-  }
 }
 
 // Headers da tabela - incluindo checkbox e colunas conforme solicitado
@@ -682,25 +689,42 @@ const confirmarBaixaPagamento = () => {
   dialogBaixa.aberto = true
 }
 
+// Envia um POST /financeiro/baixa-pagars por parcela (a API aceita um objeto único por chamada)
+// e retorna as respostas das baixas que foram registradas com sucesso
+const executarBaixaEmLote = async (payloads, rotulo) => {
+  const baixasRegistradas = []
+
+  for (const payloadParcela of payloads) {
+    try {
+      const resultado = await financeiroStore.baixarPagamentos(idEmpresa.value, payloadParcela)
+      baixasRegistradas.push(resultado)
+    } catch (error) {
+      console.error(`Erro ao baixar parcela ${payloadParcela.id_pagparcela} por ${rotulo}:`, error)
+      mostrarMensagem(
+          `Falha ao baixar a parcela ${payloadParcela.nrparcela ?? payloadParcela.id_pagparcela}: ${financeiroStore.error || error.message}`,
+          'warning'
+      )
+    }
+  }
+
+  return baixasRegistradas
+}
+
 // Executar baixa por caixa
 const executarBaixaCaixa = async (dadosBaixa) => {
   try {
     loadingBaixa.value = true
 
-    const payload = await montarPayloadBaixa('caixa', dadosBaixa)
+    const payloads = await montarPayloadBaixa('caixa', dadosBaixa)
+    const baixasRegistradas = await executarBaixaEmLote(payloads, 'caixa')
 
-    // Chamar API de baixa (local_lct = CAI)
-    await financeiroStore.baixarPagamentos(idEmpresa.value, payload)
-    
-    mostrarMensagem(`${contasSelecionadas.value.length} pagamento(s) baixado(s) por caixa com sucesso!`, 'success')
-    
-    // Limpar seleções e fechar dialog
-    limparSelecoes()
-    dialogBaixa.aberto = false
-    
-    // Recarregar dados
-    await carregarContasPagar(filtrosAvancados.value)
-    
+    if (baixasRegistradas.length > 0) {
+      mostrarMensagem(`${baixasRegistradas.length} de ${payloads.length} pagamento(s) baixado(s) por caixa com sucesso!`, 'success')
+      limparSelecoes()
+      dialogBaixa.aberto = false
+      await carregarContasPagar(filtrosAvancados.value)
+    }
+
   } catch (error) {
     console.error('Erro ao baixar pagamentos por caixa:', error)
     mostrarMensagem('Erro ao baixar pagamentos por caixa', 'error')
@@ -714,20 +738,16 @@ const executarBaixaBanco = async (dadosBaixa) => {
   try {
     loadingBaixa.value = true
 
-    const payload = await montarPayloadBaixa('banco', dadosBaixa)
+    const payloads = await montarPayloadBaixa('banco', dadosBaixa)
+    const baixasRegistradas = await executarBaixaEmLote(payloads, 'banco')
 
-    // Chamar API de baixa (local_lct = BAN)
-    await financeiroStore.baixarPagamentos(idEmpresa.value, payload)
-    
-    mostrarMensagem(`${contasSelecionadas.value.length} pagamento(s) baixado(s) por banco com sucesso!`, 'success')
-    
-    // Limpar seleções e fechar dialog
-    limparSelecoes()
-    dialogBaixa.aberto = false
-    
-    // Recarregar dados
-    await carregarContasPagar(filtrosAvancados.value)
-    
+    if (baixasRegistradas.length > 0) {
+      mostrarMensagem(`${baixasRegistradas.length} de ${payloads.length} pagamento(s) baixado(s) por banco com sucesso!`, 'success')
+      limparSelecoes()
+      dialogBaixa.aberto = false
+      await carregarContasPagar(filtrosAvancados.value)
+    }
+
   } catch (error) {
     console.error('Erro ao baixar pagamentos por banco:', error)
     mostrarMensagem('Erro ao baixar pagamentos por banco', 'error')

@@ -74,27 +74,44 @@ export const useFuncoesStore = defineStore("funcoes", {
 
             // Totais
             if (total?.ICMSTot) {
-                forms.vlr_total_produto = total.ICMSTot.vProd || null;
-                forms.vlr_nf = total.ICMSTot.vNF || null;
+                const t = total.ICMSTot;
 
-                forms.base_icms = total.ICMSTot.vBC || null;
-                forms.aliquota_icms = total.ICMSTot?.pICMS || null;
-                forms.vlr_icms = total.ICMSTot.vICMS || null;
+                forms.vlr_total_produto = t.vProd || null;
+                forms.vlr_nf = t.vNF || null;
 
-                forms.base_ipi = total.ICMSTot.vBCIPI || null;
-                forms.vlr_ipi = total.ICMSTot.vIPI || null;
+                forms.base_icms = t.vBC || null;
+                forms.vlr_icms = t.vICMS || null;
+                // pICMS não existe em <total><ICMSTot> (é só por item) — deriva da razão vICMS/vBC
+                forms.aliquota_icms = t.vBC && Number(t.vBC) > 0
+                    ? this.normalizarMoeda((Number(t.vICMS) / Number(t.vBC)) * 100)
+                    : null;
+                forms.isento_icms = t.vICMSDeson || null;
 
-                forms.vlr_desconto = total.ICMSTot.vDesc || null;
-                forms.vlr_frete = total.ICMSTot.vFrete || null;
-                forms.outras_despesas = total.ICMSTot.vOutro || null;
-                forms.vlr_ii = total.ICMSTot.vII || null;
-                forms.outras_despesas_foranf = total.ICMSTot.vOutro || null;
-                forms.vlr_pis_produto = total.ICMSTot.vPIS || null;
-                forms.vlr_seguro = total.ICMSTot.vSeg || null;
+                forms.base_icms_subst = t.vBCST || null;
+                forms.vlr_icms_subst = t.vST || t.vICMSST || null;
+
+                forms.vlr_ipi = t.vIPI || null;
+
+                forms.vlr_desconto = t.vDesc || null;
+                forms.vlr_frete = t.vFrete || null;
+                forms.outras_despesas = t.vOutro || null;
+                forms.outras_despesas_foranf = t.vOutro || null;
+                forms.vlr_ii = t.vII || null;
+                forms.vlr_pis_produto = t.vPIS || null;
+                forms.vlr_cofins_produto = t.vCOFINS || null;
+                forms.vlr_seguro = t.vSeg || null;
             }
 
             if (transp) {
                 forms.tipo_frete = transp?.modFrete || null;
+
+                // Volumes (<transp><vol>) — nem todo XML traz esse nó
+                if (transp?.vol) {
+                    forms.qtd_volume = transp.vol?.qVol || null;
+                    forms.especie_volume = transp.vol?.esp || null;
+                    forms.peso_bruto = transp.vol?.pesoB || null;
+                    forms.peso_liquido = transp.vol?.pesoL || null;
+                }
             }
 
             if (itens) {
@@ -208,6 +225,8 @@ export const useFuncoesStore = defineStore("funcoes", {
                 forms.vlr_cbs           = this.normalizarMoeda(itensPayload.reduce((a,i)=> a + (Number(i.vlr_cbs_item)||0), 0));
                 forms.vlr_ibsuf         = this.normalizarMoeda(itensPayload.reduce((a,i)=> a + (Number(i.vlr_ibsuf_item)||0), 0));
                 forms.vlr_ibsmun        = this.normalizarMoeda(itensPayload.reduce((a,i)=> a + (Number(i.vlr_ibsmun_item)||0), 0));
+                // <total><ICMSTot> não tem base do IPI — soma a base de cada item
+                forms.base_ipi          = this.normalizarMoeda(itensPayload.reduce((a,i)=> a + (Number(i.base_ipi_item)||0), 0));
             }
 
             // Observação
