@@ -394,7 +394,11 @@
           <template v-slot:[`item.dtvenctolimite`]="{ item }">
             {{ item.dtvenctolimite ? formatarData(item.dtvenctolimite) : '-' }}
           </template>
-        
+
+          <template v-slot:[`item.dtabertura`]="{ item }">
+            {{ item.dtabertura ? formatarData(item.dtabertura) : '-' }}
+          </template>
+
           <template v-slot:[`item.dhinc`]="{ item }">
             {{ item.dhinc ? formatarDataHora(item.dhinc) : '-' }}
           </template>
@@ -829,7 +833,7 @@ const headers = [
   { title: 'Banco', key: 'descbanco', sortable: true },
   { title: 'Limite', key: 'limite', sortable: true },
   { title: 'Venc. Limite', key: 'dtvenctolimite', sortable: true },
-  { title: 'Abertura', key: 'dtabertura', sortable: true },
+  { title: 'Data Abertura', key: 'dtabertura', sortable: true },
   { title: 'Cadastro', key: 'dhinc', sortable: true },
   { title: 'Ações', key: 'actions', sortable: false }
 ]
@@ -1180,12 +1184,17 @@ const editarConta = async (conta) => {
     Object.assign(formData, conta)
   }
 
-  // Normalizar datas para formato YYYY-MM-DD (type="date")
+  // Normalizar datas para formato YYYY-MM-DD (type="date").
+  // Extrai a parte "YYYY-MM-DD" diretamente da string em vez de rodar por
+  // new Date().toISOString(), que reconverte para UTC e pode deslocar a
+  // data em um dia para o fuso do Brasil.
   if (formData.dtabertura) {
-    formData.dtabertura = new Date(formData.dtabertura).toISOString().slice(0, 10)
+    const dataAbertura = String(formData.dtabertura).match(/^(\d{4}-\d{2}-\d{2})/)
+    formData.dtabertura = dataAbertura ? dataAbertura[1] : new Date(formData.dtabertura).toISOString().slice(0, 10)
   }
   if (formData.dtvenctolimite && formData.dtvenctolimite.length > 10) {
-    formData.dtvenctolimite = new Date(formData.dtvenctolimite).toISOString().slice(0, 10)
+    const dataVencto = String(formData.dtvenctolimite).match(/^(\d{4}-\d{2}-\d{2})/)
+    formData.dtvenctolimite = dataVencto ? dataVencto[1] : new Date(formData.dtvenctolimite).toISOString().slice(0, 10)
   }
 
   // Normalizar possíveis objetos de id que venham no objeto 'conta'
@@ -1362,9 +1371,12 @@ const formatarMoeda = (valor) => {
 
 const formatarData = (data) => {
   if (!data) return '-'
-  const d = typeof data === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data)
-    ? new Date(data + 'T00:00:00')
-    : new Date(data)
+  // Extrai só a parte "YYYY-MM-DD" e monta como meia-noite local — evita que
+  // um datetime UTC vindo da API (ex.: "2026-07-13T00:00:00.000Z") apareça
+  // como o dia anterior ao converter para o fuso do Brasil.
+  const partesData = typeof data === 'string' ? data.match(/^(\d{4}-\d{2}-\d{2})/) : null
+  const d = partesData ? new Date(`${partesData[1]}T00:00:00`) : new Date(data)
+  if (isNaN(d.getTime())) return '-'
   return d.toLocaleDateString('pt-BR')
 }
 

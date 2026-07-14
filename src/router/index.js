@@ -405,7 +405,7 @@ const routes = [
     {
         path: '/paginas/certificados',
         name: 'certificados',
-        component: () => import('@/views/pages/produtos/CertificadosView.vue')
+        component: () => import('@/views/pages/manutencao/CertificadosView.vue')
     },
 
     // páginas do pdv

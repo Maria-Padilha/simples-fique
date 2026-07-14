@@ -991,23 +991,23 @@ const aplicarPeriodo = (periodo) => {
       break
     
     case 'semana': {
-      // Primeiro dia da semana (domingo)
+      // Domingo a sábado da semana atual
       const primeiroDiaSemana = hoje.getDate() - hoje.getDay()
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana + 6)
       break
     }
-    
+
     case 'mes':
-      // Primeiro dia do mês
+      // Primeiro ao último dia do mês
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
       break
-    
+
     case 'ano':
-      // Primeiro dia do ano
+      // 1º de janeiro a 31 de dezembro
       dataInicio = new Date(hoje.getFullYear(), 0, 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), 11, 31)
       break
     
     case '7dias':
