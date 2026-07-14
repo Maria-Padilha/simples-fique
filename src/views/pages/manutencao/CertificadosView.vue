@@ -41,6 +41,19 @@
                 <v-card-text class="pa-4">
                   <v-form ref="formRef" v-model="formValido">
                     <v-row>
+                      <v-col cols="12">
+                        <v-text-field
+                            v-model="descricao"
+                            label="Descrição *"
+                            :rules="[rules.required]"
+                            variant="outlined"
+                            density="compact"
+                            class="custom-text-field required-left-border"
+                            prepend-inner-icon="mdi-text-short"
+                            placeholder="Ex: Certificado NF-e Matriz 2026"
+                        ></v-text-field>
+                      </v-col>
+
                       <v-col cols="12" sm="8">
                         <v-file-input
                             v-model="arquivoPfx"
@@ -317,6 +330,7 @@ const modalPreviewPDF = ref(false)
 const previewHTMLContent = ref('')
 
 // Campos do formulário de importação
+const descricao = ref('')
 const modelo = ref('A1')
 const arquivoPfx = ref(null)
 const senha = ref('')
@@ -343,6 +357,7 @@ const rules = {
 
 // Headers da tabela
 const headers = [
+  { title: 'Descrição', key: 'descricao', sortable: true },
   { title: 'Código', key: 'id_certificado', sortable: true },
   { title: 'Modelo', key: 'id_modelo', sortable: true },
   { title: 'Válido de', key: 'dtvalidade_ini', sortable: true },
@@ -392,6 +407,7 @@ const cancelarFormulario = () => {
 }
 
 const resetarForm = () => {
+  descricao.value = ''
   modelo.value = 'A1'
   arquivoPfx.value = null
   senha.value = ''
@@ -462,6 +478,7 @@ const salvarCertificado = async () => {
   const formData = new FormData()
   formData.append('arquivo_pfx', arquivoPfx.value)
   formData.append('senha_pfx', senha.value)
+  formData.append('descricao', descricao.value)
   formData.append('id_modelo', modelo.value)
   formData.append('situacao', calcularSituacao())
   formData.append('dias_alerta_venc', String(alertaDias.value))
