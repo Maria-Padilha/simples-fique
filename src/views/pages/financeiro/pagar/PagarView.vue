@@ -798,9 +798,21 @@
                 @edit-item="editarContaPagar"
                 @confirm-delete="excluirContaPagar"
                 expandable
-                expand-on-click
                 v-model:expanded="expandedRows"
+                @click-row="handleRowClick"
             >
+              <!-- Ícone de expandir/recolher — precisa passar por handleRowClick para
+                   disparar a mesma animação de fechamento do clique na linha; o botão
+                   nativo do Vuetify chama toggleExpand direto e pula a animação. -->
+              <template v-slot:[`item.data-table-expand`]="{ item }">
+                <v-btn
+                    :icon="expandedRows.includes(item.id) ? '$collapse' : '$expand'"
+                    size="small"
+                    variant="text"
+                    @click.stop="handleRowClick(item)"
+                ></v-btn>
+              </template>
+
               <!-- Coluna de Imagem -->
               <template v-slot:[`item.imagem`]="{ item }">
                 <MediaShow
@@ -882,63 +894,65 @@
               <template v-slot:expanded-row="{ item }">
                 <tr>
                   <td :colspan="headers.length + 1" class="pa-0">
-                    <div class="pa-4 background-card">
-                      <p class="text-sm font-semibold mb-2">
-                        Parcelas do Documento {{ item.nrdocumento }}
-                      </p>
+                    <v-expand-transition appear>
+                      <div v-if="!closingIds.has(item.id)" class="pa-4 background-card parcelas-expand">
+                        <p class="text-sm font-semibold mb-2">
+                          Parcelas do Documento {{ item.nrdocumento }}
+                        </p>
 
-                      <v-progress-linear v-if="loadingParcelas[item.id]" indeterminate color="primary" class="mb-2" />
+                        <v-progress-linear v-if="loadingParcelas[item.id]" indeterminate color="primary" class="mb-2" />
 
-                      <v-data-table
-                          v-if="!loadingParcelas[item.id]"
-                          :headers="headersParcelasExpand"
-                          :items="parcelasCache[item.id] || []"
-                          hide-default-footer
-                          density="compact"
-                          class="background-secondary rounded"
-                          no-data-text="Nenhuma parcela encontrada."
-                      >
-                        <template v-slot:[`item.dtvencimento`]="{ item: parcela }">
-                          <span v-if="parcela.dtvencimento">
-                            {{ new Date(parcela.dtvencimento).toLocaleDateString('pt-BR') }}
-                          </span>
-                          <span v-else class="text-grey">-</span>
-                        </template>
+                        <v-data-table
+                            v-if="!loadingParcelas[item.id]"
+                            :headers="headersParcelasExpand"
+                            :items="parcelasCache[item.id] || []"
+                            hide-default-footer
+                            density="compact"
+                            class="background-secondary rounded"
+                            no-data-text="Nenhuma parcela encontrada."
+                        >
+                          <template v-slot:[`item.dtvencimento`]="{ item: parcela }">
+                            <span v-if="parcela.dtvencimento">
+                              {{ new Date(parcela.dtvencimento).toLocaleDateString('pt-BR') }}
+                            </span>
+                            <span v-else class="text-grey">-</span>
+                          </template>
 
-                        <template v-slot:[`item.vlroriginalparcela`]="{ item: parcela }">
-                          <v-chip variant="tonal" color="primary" size="small">
-                            {{ formatarMoeda(parcela.vlroriginalparcela) }}
-                          </v-chip>
-                        </template>
+                          <template v-slot:[`item.vlroriginalparcela`]="{ item: parcela }">
+                            <v-chip variant="tonal" color="primary" size="small">
+                              {{ formatarMoeda(parcela.vlroriginalparcela) }}
+                            </v-chip>
+                          </template>
 
-                        <template v-slot:[`item.vlrquitado`]="{ item: parcela }">
-                          <span :class="parseFloat(parcela.vlrquitado) > 0 ? 'text-success font-weight-medium' : 'text-grey'">
-                            {{ formatarMoeda(parcela.vlrquitado) }}
-                          </span>
-                        </template>
+                          <template v-slot:[`item.vlrquitado`]="{ item: parcela }">
+                            <span :class="parseFloat(parcela.vlrquitado) > 0 ? 'text-success font-weight-medium' : 'text-grey'">
+                              {{ formatarMoeda(parcela.vlrquitado) }}
+                            </span>
+                          </template>
 
-                        <template v-slot:[`item.vlrliberadopagto`]="{ item: parcela }">
-                          <span :class="parseFloat(parcela.vlrliberadopagto) > 0 ? 'font-weight-medium' : 'text-grey'">
-                            {{ formatarMoeda(parcela.vlrliberadopagto) }}
-                          </span>
-                        </template>
+                          <template v-slot:[`item.vlrliberadopagto`]="{ item: parcela }">
+                            <span :class="parseFloat(parcela.vlrliberadopagto) > 0 ? 'font-weight-medium' : 'text-grey'">
+                              {{ formatarMoeda(parcela.vlrliberadopagto) }}
+                            </span>
+                          </template>
 
-                        <template v-slot:[`item.situacao`]="{ item: parcela }">
-                          <v-chip
-                              size="small" variant="tonal"
-                              :color="parcela.situacao === 'Q' ? 'success' : parcela.situacao === 'P' ? 'warning' : 'default'"
-                          >
-                            {{ parcela.situacao === 'Q' ? 'Quitada' : parcela.situacao === 'P' ? 'Parcial' : 'Aberta' }}
-                          </v-chip>
-                        </template>
+                          <template v-slot:[`item.situacao`]="{ item: parcela }">
+                            <v-chip
+                                size="small" variant="tonal"
+                                :color="parcela.situacao === 'Q' ? 'success' : parcela.situacao === 'P' ? 'warning' : 'default'"
+                            >
+                              {{ parcela.situacao === 'Q' ? 'Quitada' : parcela.situacao === 'P' ? 'Parcial' : 'Aberta' }}
+                            </v-chip>
+                          </template>
 
-                        <template v-slot:[`item.baixada`]="{ item: parcela }">
-                          <v-icon :color="parcela.baixada === 'S' ? 'success' : 'grey'" size="small">
-                            {{ parcela.baixada === 'S' ? 'mdi-check-circle' : 'mdi-circle-outline' }}
-                          </v-icon>
-                        </template>
-                      </v-data-table>
-                    </div>
+                          <template v-slot:[`item.baixada`]="{ item: parcela }">
+                            <v-icon :color="parcela.baixada === 'S' ? 'success' : 'grey'" size="small">
+                              {{ parcela.baixada === 'S' ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                            </v-icon>
+                          </template>
+                        </v-data-table>
+                      </div>
+                    </v-expand-transition>
                   </td>
                 </tr>
               </template>
@@ -1537,6 +1551,32 @@ const dialogExclusao = reactive({
 const expandedRows = ref([])
 const parcelasCache = ref({})
 const loadingParcelas = ref({})
+
+// Ids em processo de animação de fechamento. Enquanto um id está aqui, o item
+// continua em expandedRows (a linha não é desmontada) só que sua div interna
+// já dispara a transição de saída — a remoção real de expandedRows só ocorre
+// depois de a animação terminar. Sem isso, o Vuetify desmonta a linha inteira
+// no clique e a transição de fechamento nunca chega a ser exibida.
+const closingIds = reactive(new Set())
+const CLOSE_ANIMATION_MS = 400
+
+const handleRowClick = (item) => {
+  const id = item.id
+  if (closingIds.has(id)) return
+
+  const idx = expandedRows.value.indexOf(id)
+  if (idx === -1) {
+    expandedRows.value.push(id)
+    return
+  }
+
+  closingIds.add(id)
+  setTimeout(() => {
+    closingIds.delete(id)
+    const i = expandedRows.value.indexOf(id)
+    if (i !== -1) expandedRows.value.splice(i, 1)
+  }, CLOSE_ANIMATION_MS)
+}
 
 const headersParcelasExpand = [
   { title: 'Parcela', key: 'id_pagparcela', sortable: false },
@@ -3599,6 +3639,15 @@ const handleImprimir = ({ dados, filtros, nomeRelatorio }) => {
 </script>
 
 <style scoped>
+/* Transição de abertura/fechamento das Parcelas expandidas — sobrescreve a
+   duração padrão (0.3s) do v-expand-transition só para esta div específica,
+   sem afetar outros usos de v-expand-transition no app. */
+:deep(.parcelas-expand.expand-transition-enter-active),
+:deep(.parcelas-expand.expand-transition-leave-active) {
+  transition-duration: 0.4s !important;
+  transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
 .background-secondary {
   background-color: var(--bg-color-secondary);
   color: var(--text-color);

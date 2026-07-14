@@ -37,6 +37,7 @@
           v-model:selected="localSelected"
           :item-selectable="itemSelectable || undefined"
           @update:options="onUpdateOptions"
+          @click:row="(_, { item }) => emit('click-row', item)"
         >
           <!-- Slots dinâmicos para formatação customizada -->
           <template
@@ -335,7 +336,8 @@ const emit = defineEmits([
   'update:search',
   'update:expanded',
   'update:selected',
-  'update:options'
+  'update:options',
+  'click-row'
 ])
 
 // Reactive data
