@@ -96,7 +96,11 @@
     },
     "globals": {
       "particlesJS": "readonly",
-      "globalThis": "readonly"
+      "globalThis": "readonly",
+      "defineProps": "readonly",
+      "defineEmits": "readonly",
+      "defineExpose": "readonly",
+      "withDefaults": "readonly"
     },
     "ignorePatterns": [
       "src/components/particle/**",

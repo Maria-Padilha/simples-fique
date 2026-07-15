@@ -6,85 +6,50 @@
         <v-card-text class="pa-4">
           <BotaoExpandTransition
               :formulario-aberto="formularioAberto"
-              texto-abrir="Novo Cliente"
-              texto-fechar="Cancelar"
               @toggle="toggleFormulario"
-          />
+          >
+            <template #default>{{ formularioAberto ? 'Cancelar' : 'Novo Cliente' }}</template>
+          </BotaoExpandTransition>
 
           <v-expand-transition>
             <div v-if="formularioAberto">
               <v-card class="background-card mb-7" elevation="0">
                 <v-card-title class="text-h6 pa-4">
-                  <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2"></v-icon>
+                  <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2" size="23px"/>
                   {{ editando ? 'Editar Cliente' : 'Novo Cliente' }}
                 </v-card-title>
                 <v-card-text class="pa-4">
                   <v-form ref="formRef" v-model="formValido">
-                    <v-row>
-                      <v-col cols="12" md="4">
-                        <v-text-field
-                            v-model="form.nome"
-                            label="Nome *"
-                            :rules="[rules.required]"
-                            maxlength="150"
-                            variant="outlined"
-                            density="compact"
-                            prepend-inner-icon="mdi-account"
-                            class="required-left-border"
-                        ></v-text-field>
-                      </v-col>
+                    <FormPessoa
+                        ref="formPessoaRef"
+                        v-model="formPessoa"
+                        @pessoa-encontrada="handlePessoaEncontrada"
+                        @pessoa-nao-encontrada="handlePessoaNaoEncontrada"
+                    />
 
-                      <v-col cols="12" md="2">
-                        <v-select
-                            v-model="form.tipo_pessoa"
-                            :items="[{ title: 'Física', value: 'F' }, { title: 'Jurídica', value: 'J' }]"
-                            label="Tipo *"
-                            :rules="[rules.required]"
-                            variant="outlined"
-                            density="compact"
-                            prepend-inner-icon="mdi-account-circle"
-                            class="required-left-border"
-                        ></v-select>
-                      </v-col>
+                    <v-divider class="my-4"/>
+                    <div class="text-subtitle-2 font-weight-bold mb-3">
+                      <v-icon icon="mdi-account-details" class="mr-1" size="18px"/>
+                      Dados do Cliente
+                    </div>
 
-                      <v-col cols="12" md="3">
-                        <v-text-field
-                            v-model="form.cpf"
-                            :label="form.tipo_pessoa === 'J' ? 'CNPJ' : 'CPF'"
-                            :maxlength="form.tipo_pessoa === 'J' ? 18 : 14"
-                            variant="outlined"
-                            density="compact"
-                            prepend-inner-icon="mdi-card-account-details-outline"
-                        ></v-text-field>
-                      </v-col>
-
-                      <v-col cols="12" md="3">
-                        <v-text-field
-                            v-model="form.telefone"
-                            label="Telefone"
-                            maxlength="20"
-                            variant="outlined"
-                            density="compact"
-                            prepend-inner-icon="mdi-phone"
-                        ></v-text-field>
-                      </v-col>
-
+                    <v-row dense>
                       <v-col cols="12" md="3">
                         <v-select
-                            v-model="form.tpcliente"
+                            v-model="formCliente.tpcliente"
                             :items="[{ title: 'Consumidor', value: 'C' }, { title: 'Revendedor', value: 'R' }]"
                             label="Tipo de Cliente *"
                             :rules="[rules.required]"
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-tag-outline"
-                            class="required-left-border"
-                        ></v-select>
+                            class="custom-text-field required-left-border"
+                        />
                       </v-col>
 
                       <v-col cols="12" md="3">
                         <v-select
-                            v-model="form.contribuinte_icms"
+                            v-model="formCliente.contribuinte_icms"
                             :items="[
                               { title: 'Sim', value: 'S' },
                               { title: 'Não', value: 'N' },
@@ -95,26 +60,26 @@
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-receipt-text-outline"
-                            class="required-left-border"
-                        ></v-select>
+                            class="custom-text-field required-left-border"
+                        />
                       </v-col>
 
                       <v-col cols="12" md="3">
                         <v-select
-                            v-model="form.substituto_iss"
+                            v-model="formCliente.substituto_iss"
                             :items="[{ title: 'Sim', value: 'S' }, { title: 'Não', value: 'N' }]"
                             label="Substituto ISS *"
                             :rules="[rules.required]"
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-file-document-outline"
-                            class="required-left-border"
-                        ></v-select>
+                            class="custom-text-field required-left-border"
+                        />
                       </v-col>
 
                       <v-col cols="12" md="3">
                         <v-select
-                            v-model="form.id_vendedor"
+                            v-model="formCliente.id_vendedor"
                             :items="vendedores"
                             item-title="nome"
                             item-value="id_colabo"
@@ -123,46 +88,46 @@
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-account-tie"
-                        ></v-select>
+                        />
                       </v-col>
 
                       <v-col cols="12" md="3">
                         <v-text-field
-                            v-model="form.limitecredito"
+                            v-model="formCliente.limitecredito"
                             v-mask-decimal.br="2"
                             label="Limite de Crédito"
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-currency-brl"
-                        ></v-text-field>
+                        />
                       </v-col>
 
                       <v-col cols="12" md="3">
                         <v-text-field
-                            v-model="form.dtvencto_limite"
+                            v-model="formCliente.dtvencto_limite"
                             label="Vencimento do Limite"
                             type="date"
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-calendar"
-                        ></v-text-field>
+                        />
                       </v-col>
 
-                      <v-col cols="12" md="9">
+                      <v-col cols="12" md="6">
                         <v-text-field
-                            v-model="form.observacao"
+                            v-model="formCliente.observacao"
                             label="Observação"
                             maxlength="500"
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-note-text-outline"
-                        ></v-text-field>
+                        />
                       </v-col>
                     </v-row>
                   </v-form>
                 </v-card-text>
                 <v-card-actions class="pa-4">
-                  <v-spacer></v-spacer>
+                  <v-spacer/>
                   <v-btn color="grey" variant="text" @click="cancelarFormulario">Cancelar</v-btn>
                   <v-btn
                       color="var(--text-color-laranja)"
@@ -170,7 +135,8 @@
                       :disabled="!formValido"
                       @click="salvarCliente"
                       variant="flat"
-                      class="text-white">
+                      class="text-white"
+                  >
                     {{ editando ? 'Atualizar' : 'Salvar' }}
                   </v-btn>
                 </v-card-actions>
@@ -179,7 +145,7 @@
           </v-expand-transition>
 
           <TabelaPadrao
-              :formulario-aberto="formularioAberto"
+              v-if="!formularioAberto"
               :headers="headers"
               :items="clientes"
               :loading="loading"
@@ -192,7 +158,7 @@
               delete-title="Inativar"
               delete-tooltip="Inativar"
               delete-dialog-title="Inativar cliente"
-              delete-dialog-message="O cliente não é removido — a Pessoa vinculada ficará inativa."
+              delete-dialog-message="O cliente será inativado."
               delete-item-display-field="nome"
               @edit-item="editarCliente"
               @confirm-delete="inativarCliente"
@@ -229,14 +195,17 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
-import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
+import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
+import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
+import FormPessoa from '@/components/base/padrao-paginas/FormPessoa.vue'
 import { useClientesStore } from '@/stores/APIs/clientes'
 import { useFuncionariosStore } from '@/stores/APIs/funcionarios'
+import { usePessoasStore } from '@/stores/APIs/pessoas'
 
 const clientesStore = useClientesStore()
 const funcionariosStore = useFuncionariosStore()
+const pessoasStore = usePessoasStore()
 
 const clientes = computed(() => clientesStore.clientes)
 const loading = computed(() => clientesStore.loading)
@@ -244,16 +213,32 @@ const vendedores = computed(() => funcionariosStore.funcionarios)
 const search = ref('')
 
 const formularioAberto = ref(false)
+const editando = ref(false)
 const formValido = ref(false)
 const formRef = ref(null)
-const editando = ref(false)
+const formPessoaRef = ref(null)
 
-const form = reactive({
-  id_cliente: null,
-  nome: '',
+const formPessoa = reactive({
+  id: null,
   tipo_pessoa: 'F',
-  cpf: '',
+  nome_razao: '',
+  apelido_fantasia: '',
+  cpf_cnpj: '',
+  rg_inscricao: '',
   telefone: '',
+  celular: '',
+  whats: '',
+  website: '',
+  instagram: '',
+  facebook: '',
+  twitter_x: '',
+  tik_tok: '',
+  telegram: '',
+  enderecos: [],
+})
+
+const formCliente = reactive({
+  id_cliente: null,
   tpcliente: 'C',
   contribuinte_icms: 'N',
   substituto_iss: 'N',
@@ -262,10 +247,26 @@ const form = reactive({
   limitecredito: '',
   dtvencto_limite: null,
   observacao: null,
-  id_red_ctb_cli: null,
   nrsuframa: null,
   insc_mun_subst_iss: null
 })
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+
+const headers = [
+  { title: 'ID', key: 'id_cliente', sortable: true },
+  { title: 'Nome', key: 'nome', sortable: true },
+  { title: 'Tipo', key: 'tipo_pessoa', sortable: true },
+  { title: 'CPF/CNPJ', key: 'cpf_cnpj', sortable: false },
+  { title: 'Tipo Cliente', key: 'tpcliente', sortable: false },
+  { title: 'Contribuinte ICMS', key: 'contribuinte_icms', sortable: false },
+  { title: 'Status', key: 'ativo', sortable: false },
+  { title: 'Ações', key: 'actions', sortable: false }
+]
+
+const rules = {
+  required: (v) => !!v || 'Campo obrigatório'
+}
 
 const parseDecimalBR = (str) => {
   if (!str && str !== 0) return null
@@ -277,68 +278,26 @@ const formatDecimalBR = (num) => {
   return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-const snackbar = reactive({ show: false, message: '', color: 'success' })
-
-const headers = [
-  { title: 'ID', key: 'id_cliente', sortable: true },
-  { title: 'Nome', key: 'nome', sortable: true },
-  { title: 'Tipo', key: 'tipo_pessoa', sortable: true },
-  { title: 'CPF/CNPJ', key: 'cpf', sortable: false },
-  { title: 'Tipo Cliente', key: 'tpcliente', sortable: false },
-  { title: 'Contribuinte ICMS', key: 'contribuinte_icms', sortable: false },
-  { title: 'Status', key: 'ativo', sortable: false },
-  { title: 'Ações', key: 'actions', sortable: false }
-]
-
-const rules = {
-  required: (v) => !!v || 'Campo obrigatório'
-}
-
 const toggleFormulario = () => {
   if (formularioAberto.value) {
     cancelarFormulario()
-  } else {
-    editando.value = false
-    resetarForm()
-    formularioAberto.value = true
+    return
   }
-}
-
-const editarCliente = (item) => {
-  editando.value = true
-  Object.assign(form, {
-    id_cliente: item.id_cliente,
-    nome: item.nome || '',
-    tipo_pessoa: item.tipo_pessoa || 'F',
-    cpf: item.cpf || '',
-    telefone: item.telefone || '',
-    tpcliente: item.tpcliente || 'C',
-    contribuinte_icms: item.contribuinte_icms || 'N',
-    substituto_iss: item.substituto_iss || 'N',
-    id_vendedor: item.id_vendedor || null,
-    id_tabela_preco: item.id_tabela_preco || null,
-    limitecredito: formatDecimalBR(item.limitecredito),
-    dtvencto_limite: item.dtvencto_limite ? item.dtvencto_limite.slice(0, 10) : null,
-    observacao: item.observacao || null,
-    id_red_ctb_cli: item.id_red_ctb_cli || null,
-    nrsuframa: item.nrsuframa || null,
-    insc_mun_subst_iss: item.insc_mun_subst_iss || null
-  })
+  editando.value = false
+  resetarForm()
   formularioAberto.value = true
 }
 
 const cancelarFormulario = () => {
   formularioAberto.value = false
+  editando.value = false
   resetarForm()
 }
 
 const resetarForm = () => {
-  Object.assign(form, {
+  formPessoaRef.value?.resetarForm()
+  Object.assign(formCliente, {
     id_cliente: null,
-    nome: '',
-    tipo_pessoa: 'F',
-    cpf: '',
-    telefone: '',
     tpcliente: 'C',
     contribuinte_icms: 'N',
     substituto_iss: 'N',
@@ -347,53 +306,135 @@ const resetarForm = () => {
     limitecredito: '',
     dtvencto_limite: null,
     observacao: null,
-    id_red_ctb_cli: null,
     nrsuframa: null,
     insc_mun_subst_iss: null
   })
   if (formRef.value) formRef.value.resetValidation()
 }
 
-const mostrarMensagem = (message, color = 'success') => {
-  snackbar.message = message
-  snackbar.color = color
-  snackbar.show = true
+const handlePessoaEncontrada = (pessoa) => {
+  const cli = pessoa.dados_cliente
+  editando.value = !!cli
+  Object.assign(formCliente, {
+    id_cliente: cli?.id_cliente ?? cli?.id ?? null,
+    tpcliente: cli?.tpcliente ?? 'C',
+    contribuinte_icms: cli?.contribuinte_icms ?? 'N',
+    substituto_iss: cli?.substituto_iss ?? 'N',
+    id_vendedor: cli?.id_vendedor ?? null,
+    id_tabela_preco: cli?.id_tabela_preco ?? null,
+    limitecredito: cli?.limitecredito ? formatDecimalBR(cli.limitecredito) : '',
+    dtvencto_limite: cli?.dtvencto_limite ? cli.dtvencto_limite.slice(0, 10) : null,
+    observacao: cli?.observacao ?? null,
+    nrsuframa: cli?.nrsuframa ?? null,
+    insc_mun_subst_iss: cli?.insc_mun_subst_iss ?? null
+  })
+}
+
+const handlePessoaNaoEncontrada = () => {
+  editando.value = false
+  Object.assign(formCliente, {
+    id_cliente: null,
+    tpcliente: 'C',
+    contribuinte_icms: 'N',
+    substituto_iss: 'N',
+    id_vendedor: null,
+    id_tabela_preco: null,
+    limitecredito: '',
+    dtvencto_limite: null,
+    observacao: null,
+    nrsuframa: null,
+    insc_mun_subst_iss: null
+  })
+}
+
+const editarCliente = async (item) => {
+  editando.value = true
+  formularioAberto.value = true
+
+  const resultado = await pessoasStore.buscarpessoaId(item.id_pessoa)
+  if (resultado) {
+    formPessoaRef.value?.preencherPessoa(resultado.pessoa, resultado.endereco)
+    const cli = resultado.dadosCliente || {}
+    Object.assign(formCliente, {
+      id_cliente: cli.id_cliente ?? item.id_cliente ?? null,
+      tpcliente: cli.tpcliente ?? item.tpcliente ?? 'C',
+      contribuinte_icms: cli.contribuinte_icms ?? item.contribuinte_icms ?? 'N',
+      substituto_iss: cli.substituto_iss ?? item.substituto_iss ?? 'N',
+      id_vendedor: cli.id_vendedor ?? item.id_vendedor ?? null,
+      id_tabela_preco: cli.id_tabela_preco ?? item.id_tabela_preco ?? null,
+      limitecredito: formatDecimalBR(cli.limitecredito ?? item.limitecredito),
+      dtvencto_limite: (cli.dtvencto_limite ?? item.dtvencto_limite) ? (cli.dtvencto_limite ?? item.dtvencto_limite).slice(0, 10) : null,
+      observacao: cli.observacao ?? item.observacao ?? null,
+      nrsuframa: cli.nrsuframa ?? item.nrsuframa ?? null,
+      insc_mun_subst_iss: cli.insc_mun_subst_iss ?? item.insc_mun_subst_iss ?? null
+    })
+  }
 }
 
 const salvarCliente = async () => {
-  if (!formRef.value?.validate()) return
+  const valid = await formRef.value?.validate()
+  if (valid && !valid.valid) return
+
   try {
-    const payload = {
-      nome: form.nome,
-      tipo_pessoa: form.tipo_pessoa,
-      cpf: form.cpf || null,
-      telefone: form.telefone || null,
-      tpcliente: form.tpcliente,
-      contribuinte_icms: form.contribuinte_icms,
-      substituto_iss: form.substituto_iss,
-      id_vendedor: form.id_vendedor || null,
-      id_tabela_preco: form.id_tabela_preco || null,
-      limitecredito: parseDecimalBR(form.limitecredito),
-      dtvencto_limite: form.dtvencto_limite || null,
-      observacao: form.observacao || null,
-      id_red_ctb_cli: form.id_red_ctb_cli || null,
-      nrsuframa: form.nrsuframa || null,
-      insc_mun_subst_iss: form.insc_mun_subst_iss || null
+    const pessoaNova = !formPessoa.id
+    const payloadEntity = {
+      tpcliente: formCliente.tpcliente,
+      contribuinte_icms: formCliente.contribuinte_icms,
+      substituto_iss: formCliente.substituto_iss,
+      id_vendedor: formCliente.id_vendedor || null,
+      id_tabela_preco: formCliente.id_tabela_preco || null,
+      limitecredito: parseDecimalBR(formCliente.limitecredito),
+      dtvencto_limite: formCliente.dtvencto_limite || null,
+      observacao: formCliente.observacao || null,
+      nrsuframa: formCliente.nrsuframa || null,
+      insc_mun_subst_iss: formCliente.insc_mun_subst_iss || null
     }
 
     if (editando.value) {
-      await clientesStore.atualizarCliente(form.id_cliente, payload)
-      mostrarMensagem('Cliente atualizado com sucesso!')
-    } else {
+      if (formPessoa.id) {
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa }, true, snackbar)
+      }
+      await clientesStore.atualizarCliente(formCliente.id_cliente, payloadEntity)
+      snackbar.message = 'Cliente atualizado com sucesso!'
+    } else if (pessoaNova) {
+      const payload = {
+        tipo_pessoa: formPessoa.tipo_pessoa,
+        nome_razao: formPessoa.nome_razao,
+        apelido_fantasia: formPessoa.apelido_fantasia,
+        cpf_cnpj: (formPessoa.cpf_cnpj || '').replace(/\D/g, ''),
+        rg_inscricao: formPessoa.rg_inscricao || null,
+        telefone: (formPessoa.telefone || '').replace(/\D/g, '') || null,
+        celular: (formPessoa.celular || '').replace(/\D/g, '') || null,
+        whats: (formPessoa.whats || '').replace(/\D/g, '') || null,
+        website: formPessoa.website || null,
+        instagram: formPessoa.instagram || null,
+        facebook: formPessoa.facebook || null,
+        twitter_x: formPessoa.twitter_x || null,
+        tik_tok: formPessoa.tik_tok || null,
+        telegram: formPessoa.telegram || null,
+        endereco: (formPessoa.enderecos || []).map((end) => {
+          const copy = { ...end }
+          delete copy._buscandoCep
+          return copy
+        }),
+        ...payloadEntity
+      }
       await clientesStore.criarCliente(payload)
-      mostrarMensagem('Cliente cadastrado com sucesso!')
+      snackbar.message = 'Cliente cadastrado com sucesso!'
+    } else {
+      await clientesStore.criarCliente({ id_pessoa: formPessoa.id, ...payloadEntity })
+      snackbar.message = 'Cliente cadastrado com sucesso!'
     }
 
+    snackbar.color = 'success'
+    snackbar.show = true
     await clientesStore.buscarClientes()
     cancelarFormulario()
   } catch (e) {
     console.error(e)
-    mostrarMensagem(e.response?.data?.erro || 'Erro ao salvar cliente.', 'error')
+    snackbar.message = e.response?.data?.erro || 'Erro ao salvar cliente.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 
@@ -401,11 +442,15 @@ const inativarCliente = async (item) => {
   try {
     const id = item?.id_cliente ?? item?.id ?? item
     await clientesStore.inativarCliente(id)
-    mostrarMensagem('Cliente inativado com sucesso!')
+    snackbar.message = 'Cliente inativado com sucesso!'
+    snackbar.color = 'success'
+    snackbar.show = true
     await clientesStore.buscarClientes()
   } catch (e) {
     console.error(e)
-    mostrarMensagem(e.response?.data?.erro || 'Erro ao inativar cliente.', 'error')
+    snackbar.message = e.response?.data?.erro || 'Erro ao inativar cliente.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 

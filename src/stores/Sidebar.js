@@ -98,11 +98,6 @@ export const useSidebarStore = defineStore('sidebar', () => {
                     route: '/paginas/manutencao/clientes'
                 },
                 {
-                    text: 'Pessoas',
-                    icon: 'mdi-account-multiple',
-                    route: '/paginas/manutencao/pessoas'
-                },
-                {
                     text: 'Usuários',
                     icon: 'mdi-account-cog',
                     route: '/paginas/manutencao/usuarios'
@@ -117,9 +112,10 @@ export const useSidebarStore = defineStore('sidebar', () => {
                     icon: 'mdi-account-multiple',
                     route: '/paginas/manutencao/grupousuario'
                 },
-                {text: 'Contadores', route: '/paginas/manutencao/contadores'},
-                {text: 'Fornecedores', route: '/paginas/manutencao/fornecedores'},
-                {text: 'Transportadoras', route: '/paginas/manutencao/transportadoras'},
+                {text: 'Contadores', icon: 'mdi-calculator', route: '/paginas/manutencao/contadores'},
+                {text: 'Fornecedores', icon: 'mdi-truck', route: '/paginas/manutencao/fornecedores'},
+                {text: 'Transportadoras', icon: 'mdi-truck-delivery', route: '/paginas/manutencao/transportadoras'},
+                {text: 'Representantes', icon: 'mdi-account-tie', route: '/paginas/manutencao/representantes'},
                 {
                     text: 'Fórmulas',
                     icon: 'mdi-function-variant',

@@ -18,6 +18,10 @@ import InventarioView from "@/views/pages/inventario/InventarioView.vue";
 import ContagemInventarioView from "@/views/pages/inventario/ContagemInventarioView.vue";
 import ClientesView from '@/views/pages/manutencao/ClientesView.vue';
 import EmpresaView from '@/views/pages/manutencao/EmpresaView.vue';
+import FornecedoresView from '@/views/pages/manutencao/FornecedoresView.vue';
+import ContadoresView from '@/views/pages/manutencao/ContadoresView.vue';
+import TransportadoresView from '@/views/pages/manutencao/TransportadoresView.vue';
+import RepresentantesView from '@/views/pages/manutencao/RepresentantesView.vue';
 import LancamentoColabView from '@/views/pages/financeiro/pagar/LancamentoColabView.vue';
 import PlanoContaView from '@/views/pages/fiscal/PlanoContaView.vue';
 import DebitoRealView from '@/views/pages/financeiro/pagar/DebitoRealView.vue';
@@ -86,14 +90,29 @@ const routes = [
         component: ClientesView
     },
     {
-        path: '/paginas/manutencao/pessoas',
-        name: 'manutencao_pessoas',
-        component: () => import('@/views/pages/manutencao/PessoasView.vue')
-    },
-    {
         path: '/paginas/manutencao/empresas',
         name: 'manutencao_empresas',
         component: EmpresaView
+    },
+    {
+        path: '/paginas/manutencao/fornecedores',
+        name: 'manutencao_fornecedores',
+        component: FornecedoresView
+    },
+    {
+        path: '/paginas/manutencao/contadores',
+        name: 'manutencao_contadores',
+        component: ContadoresView
+    },
+    {
+        path: '/paginas/manutencao/transportadoras',
+        name: 'manutencao_transportadoras',
+        component: TransportadoresView
+    },
+    {
+        path: '/paginas/manutencao/representantes',
+        name: 'manutencao_representantes',
+        component: RepresentantesView
     },
     {
         path: '/paginas/manutencao/mensagens-tributos',
