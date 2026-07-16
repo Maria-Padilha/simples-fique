@@ -267,13 +267,35 @@
                 variant="flat"
                 class="text-white mr-4"
                 prepend-icon="mdi-sync"
+                :loading="carregandoConfigTerminal"
+                :disabled="carregandoConfigTerminal"
                 @click="sincronizarProdutosTerminal"
             >
               Sincronizar produtos
             </v-btn>
           </v-toolbar>
 
+          <v-progress-linear
+              v-if="carregandoConfigTerminal"
+              indeterminate
+              color="var(--text-color-laranja)"
+              height="3"
+          />
+
           <v-card-text v-if="terminalConfigurando" class="config-content pa-0">
+            <v-overlay
+                :model-value="carregandoConfigTerminal"
+                contained
+                persistent
+                scrim="rgba(0, 0, 0, 0.35)"
+                class="align-center justify-center"
+            >
+              <div class="d-flex flex-column align-center">
+                <v-progress-circular indeterminate size="48" width="4" color="var(--text-color-laranja)" />
+                <span class="mt-3 text-body-2" style="color: #fff;">Carregando configuração do terminal...</span>
+              </div>
+            </v-overlay>
+
             <section class="config-hero">
               <div>
                 <h1 class="text-capitalize">{{ terminalConfigurando.descricao }}</h1>
@@ -1055,7 +1077,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 import LogCupomFiscalDetalheModal from "@/components/base/modais/LogCupomFiscalDetalheModal.vue";
-import api from '@/services/api'
+import apiPhp from '@/services/apiPhp'
 
 const formularioAberto = ref(false)
 const editando = ref(false)
@@ -1064,6 +1086,7 @@ const formRef = ref(null)
 const search = ref('')
 const loading = ref(false)
 const dialogConfigTotem = ref(false)
+const carregandoConfigTerminal = ref(false)
 const terminalConfigurandoId = ref(null)
 const aba = ref('ambientes')
 const verSenha = ref(false)
@@ -1327,7 +1350,7 @@ const normalizarTerminal = t => ({
 const carregarTotems = async () => {
   loading.value = true
   try {
-    const { data } = await api.get('/api/v1/admin/terminais-venda', { headers: headers_auth() })
+    const { data } = await apiPhp.get('/admin/terminais-venda', { headers: headers_auth() })
     totems.value = (Array.isArray(data) ? data : data.data ?? []).map(normalizarTerminal)
   } catch {
     mostrarMensagem('Erro ao carregar terminais.', 'error')
@@ -1337,54 +1360,60 @@ const carregarTotems = async () => {
 }
 
 const carregarConfigTerminal = async terminalId => {
-  const h = { headers: headers_auth() }
+  carregandoConfigTerminal.value = true
 
-  const safe = promise => promise.catch(() => ({ data: [] }))
+  try {
+    const h = { headers: headers_auth() }
 
-  const [respAmbientes, respMenus, respProdutos, respVinculados, respGrupos, respMesas, respFuncVinculados, respFuncDisponiveis] = await Promise.all([
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/ambientes`, h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/menus`, h)),
-    safe(api.get('/api/v1/admin/produtos-catalogo', h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/produtos-vinculados`, h)),
-    safe(api.get('/api/v1/estoque/grupos', h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/mesas`, h)),
-    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/funcionarios`, h)),
-    safe(api.get('/api/v1/manutencao/funcionarios', h))
-  ])
+    const safe = promise => promise.catch(() => ({ data: [] }))
 
-  mesas.value = respMesas.data?.data ?? respMesas.data ?? []
-  funcionariosVinculados.value = respFuncVinculados.data?.data ?? respFuncVinculados.data ?? []
+    const [respAmbientes, respMenus, respProdutos, respVinculados, respGrupos, respMesas, respFuncVinculados, respFuncDisponiveis] = await Promise.all([
+      safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/ambientes`, h)),
+      safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/menus`, h)),
+      safe(apiPhp.get('/admin/produtos-catalogo', h)),
+      safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/produtos-vinculados`, h)),
+      safe(apiPhp.get('/estoque/grupos', h)),
+      safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/mesas`, h)),
+      safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/funcionarios`, h)),
+      safe(apiPhp.get('/manutencao/funcionarios', h))
+    ])
 
-  const todosFuncionarios = respFuncDisponiveis.data?.data ?? respFuncDisponiveis.data ?? []
-  funcionariosDisponiveis.value = (Array.isArray(todosFuncionarios) ? todosFuncionarios : [])
-      .filter(f => f.acessa_sistema_terminal && f.ativo)
+    mesas.value = respMesas.data?.data ?? respMesas.data ?? []
+    funcionariosVinculados.value = respFuncVinculados.data?.data ?? respFuncVinculados.data ?? []
 
-  ambientes.value = respAmbientes.data?.data ?? respAmbientes.data ?? []
-  menus.value = respMenus.data?.data ?? respMenus.data ?? []
+    const todosFuncionarios = respFuncDisponiveis.data?.data ?? respFuncDisponiveis.data ?? []
+    funcionariosDisponiveis.value = (Array.isArray(todosFuncionarios) ? todosFuncionarios : [])
+        .filter(f => f.acessa_sistema_terminal && f.ativo)
 
-  const rawGrupos = respGrupos.data?.data ?? respGrupos.data ?? []
-  grupos.value = Array.isArray(rawGrupos) ? rawGrupos : []
-  const gruposMap = Object.fromEntries(grupos.value.map(g => [g.id, g.descgrupo]))
+    ambientes.value = respAmbientes.data?.data ?? respAmbientes.data ?? []
+    menus.value = respMenus.data?.data ?? respMenus.data ?? []
 
-  const rawProdutos = respProdutos.data?.data ?? respProdutos.data ?? []
-  produtos.value = (Array.isArray(rawProdutos) ? rawProdutos : []).map(p => ({
-    id: p.id,
-    nome: p.descproduto,
-    codigo: p.codigo,
-    grupo: gruposMap[p.id_grupo] || '',
-    emoji: '🛒',
-    preco: parseFloat(p.preco_venda) || 0,
-    ativo: p.ativo !== false,
-    emite_ticket_padrao: false
-  }))
+    const rawGrupos = respGrupos.data?.data ?? respGrupos.data ?? []
+    grupos.value = Array.isArray(rawGrupos) ? rawGrupos : []
+    const gruposMap = Object.fromEntries(grupos.value.map(g => [g.id, g.descgrupo]))
 
-  menuProdutos.value = (respVinculados.data?.data ?? respVinculados.data ?? []).map(v => ({
-    ...v,
-    produto: v.produto ? { ...v.produto, emoji: '🛒', grupo: '' } : null,
-    menu: menus.value.find(m => m.id === v.menu_id) || null
-  }))
+    const rawProdutos = respProdutos.data?.data ?? respProdutos.data ?? []
+    produtos.value = (Array.isArray(rawProdutos) ? rawProdutos : []).map(p => ({
+      id: p.id,
+      nome: p.descproduto,
+      codigo: p.codigo,
+      grupo: gruposMap[p.id_grupo] || '',
+      emoji: '🛒',
+      preco: parseFloat(p.preco_venda) || 0,
+      ativo: p.ativo !== false,
+      emite_ticket_padrao: false
+    }))
 
-  await carregarLogsCupomFiscal(terminalId)
+    menuProdutos.value = (respVinculados.data?.data ?? respVinculados.data ?? []).map(v => ({
+      ...v,
+      produto: v.produto ? { ...v.produto, emoji: '🛒', grupo: '' } : null,
+      menu: menus.value.find(m => m.id === v.menu_id) || null
+    }))
+
+    await carregarLogsCupomFiscal(terminalId)
+  } finally {
+    carregandoConfigTerminal.value = false
+  }
 }
 
 const carregarLogsCupomFiscal = async terminalId => {
@@ -1392,7 +1421,7 @@ const carregarLogsCupomFiscal = async terminalId => {
 
   logsCupomFiscalCarregando.value = true
   try {
-    const { data } = await api.get(`/api/v1/admin/terminais-venda/${terminalId}/logs-cupom-fiscal`, { headers: headers_auth() })
+    const { data } = await apiPhp.get(`/admin/terminais-venda/${terminalId}/logs-cupom-fiscal`, { headers: headers_auth() })
     logsCupomFiscal.value = data?.data ?? []
   } catch {
     mostrarMensagem('Erro ao carregar logs de cupom fiscal.', 'error')
@@ -1438,7 +1467,7 @@ const salvarConfigOperacional = async () => {
       payload.senha_operacional = terminal.senha_terminal
     }
 
-    await api.put(`/api/v1/admin/terminais-venda/${terminal.id}`, payload, { headers: headers_auth() })
+    await apiPhp.put(`/admin/terminais-venda/${terminal.id}`, payload, { headers: headers_auth() })
     await carregarTotems()
     mostrarMensagem('Dados operacionais atualizados com sucesso.', 'success')
   } catch (error) {
@@ -1524,23 +1553,23 @@ const salvarTotem = async () => {
     const h = { headers: headers_auth() }
 
     if (editando.value) {
-      await api.put(`/api/v1/admin/terminais-venda/${formData.id}`, payload, h)
+      await apiPhp.put(`/admin/terminais-venda/${formData.id}`, payload, h)
       mostrarMensagem('Terminal atualizado com sucesso.', 'success')
     } else {
-      const { data: novoTerminal } = await api.post('/api/v1/admin/terminais-venda', payload, h)
+      const { data: novoTerminal } = await apiPhp.post('/admin/terminais-venda', payload, h)
       const terminalId = novoTerminal?.data?.id ?? novoTerminal?.id
 
       if (terminalId) {
-        const respAmbiente = await api.post(
-          `/api/v1/admin/terminais-venda/${terminalId}/ambientes`,
+        const respAmbiente = await apiPhp.post(
+          `/admin/terminais-venda/${terminalId}/ambientes`,
           { nome: 'Ambiente Padrão', tipo: 'geral', controla_comandas: true, exibe_painel_chamados: true },
           h
         )
         const ambienteId = respAmbiente.data?.data?.id ?? respAmbiente.data?.id
 
         if (ambienteId) {
-          await api.post(
-            `/api/v1/admin/terminais-venda/${terminalId}/menus`,
+          await apiPhp.post(
+            `/admin/terminais-venda/${terminalId}/menus`,
             { ambiente_id: ambienteId, nome: 'Menu Geral', icone: '📋', ativo: true },
             h
           )
@@ -1564,7 +1593,7 @@ const salvarTotem = async () => {
 const excluirTotem = async item => {
   loading.value = true
   try {
-    await api.delete(`/api/v1/admin/terminais-venda/${item.id}`, { headers: headers_auth() })
+    await apiPhp.delete(`/admin/terminais-venda/${item.id}`, { headers: headers_auth() })
     await carregarTotems()
     mostrarMensagem('Terminal excluído.', 'success')
   } catch (error) {
@@ -1615,8 +1644,8 @@ const salvarAmbiente = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/ambientes`,
+    await apiPhp.post(
+      `/admin/terminais-venda/${terminalConfigurandoId.value}/ambientes`,
       {
         nome: ambienteForm.nome,
         tipo: ambienteForm.tipo,
@@ -1636,7 +1665,7 @@ const salvarAmbiente = async () => {
 
 const removerAmbiente = async ambiente => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-ambientes/${ambiente.id}`, { headers: headers_auth() })
+    await apiPhp.delete(`/admin/terminais-venda-ambientes/${ambiente.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Ambiente removido.', 'success')
   } catch (error) {
@@ -1669,8 +1698,8 @@ const salvarMenu = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/menus`,
+    await apiPhp.post(
+      `/admin/terminais-venda/${terminalConfigurandoId.value}/menus`,
       {
         ambiente_id: menuForm.ambiente_id,
         nome: menuForm.nome,
@@ -1690,7 +1719,7 @@ const salvarMenu = async () => {
 
 const removerMenu = async menu => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-menus/${menu.id}`, { headers: headers_auth() })
+    await apiPhp.delete(`/admin/terminais-venda-menus/${menu.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Menu removido.', 'success')
   } catch (error) {
@@ -1728,8 +1757,8 @@ const vincularProduto = async () => {
   try {
     await Promise.all(
       produtoForm.produto_id.map(id =>
-        api.post(
-          `/api/v1/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
+        apiPhp.post(
+          `/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
           {
             produto_id: id,
             ambiente_preparo_id: produtoForm.ambiente_preparo_id,
@@ -1773,8 +1802,8 @@ const vincularGrupoProdutos = async () => {
 
   try {
     await Promise.all(novos.map(p =>
-      api.post(
-        `/api/v1/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
+      apiPhp.post(
+        `/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
         { produto_id: p.id, ambiente_preparo_id: produtoForm.ambiente_preparo_id, emite_ticket: p.emite_ticket_padrao },
         { headers: headers_auth() }
       )
@@ -1789,7 +1818,7 @@ const vincularGrupoProdutos = async () => {
 
 const removerProdutoVinculado = async vinculo => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-menu-produtos/${vinculo.id}`, { headers: headers_auth() })
+    await apiPhp.delete(`/admin/terminais-venda-menu-produtos/${vinculo.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Produto removido do menu.', 'success')
   } catch (error) {
@@ -1823,8 +1852,8 @@ const salvarMesa = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/mesas`,
+    await apiPhp.post(
+      `/admin/terminais-venda/${terminalConfigurandoId.value}/mesas`,
       {
         numero: mesaForm.numero,
         nome: mesaForm.nome || null,
@@ -1844,7 +1873,7 @@ const salvarMesa = async () => {
 
 const removerMesa = async mesa => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-mesas/${mesa.id}`, { headers: headers_auth() })
+    await apiPhp.delete(`/admin/terminais-venda-mesas/${mesa.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Mesa removida.', 'success')
   } catch (error) {
@@ -1870,8 +1899,8 @@ const vincularFuncionario = async () => {
   }
 
   try {
-    await api.post(
-      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/funcionarios`,
+    await apiPhp.post(
+      `/admin/terminais-venda/${terminalConfigurandoId.value}/funcionarios`,
       {
         funcionario_id: funcionarioVincularForm.funcionario_id,
         papel: funcionarioVincularForm.papel || null
@@ -1889,7 +1918,7 @@ const vincularFuncionario = async () => {
 
 const removerVinculoFuncionario = async vinculo => {
   try {
-    await api.delete(`/api/v1/admin/terminais-venda-funcionarios/${vinculo.id}`, { headers: headers_auth() })
+    await apiPhp.delete(`/admin/terminais-venda-funcionarios/${vinculo.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Funcionário desvinculado do terminal.', 'success')
   } catch (error) {
@@ -2079,6 +2108,8 @@ onMounted(() => {
 .config-content {
   background: var(--bg-color) !important;
   color: var(--text-color) !important;
+  position: relative;
+  min-height: 200px;
 }
 
 .config-hero {
