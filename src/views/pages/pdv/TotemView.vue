@@ -425,7 +425,8 @@
                         color="var(--text-color-laranja)"
                         variant="flat"
                         class="text-white"
-                        @click="carregarConfigTerminal(terminalConfigurandoId)"
+                        :loading="loading"
+                        @click="salvarConfigOperacional"
                     >
                       Atualizar dados
                     </v-btn>
@@ -438,6 +439,7 @@
                   <v-tab value="produtos">Produtos Vinculados ao menu</v-tab>
                   <v-tab value="mesas">Mesas</v-tab>
                   <v-tab value="funcionarios">Funcionários</v-tab>
+                  <v-tab value="logs">Logs Cupom Fiscal</v-tab>
                 </v-tabs>
 
                 <v-tabs-window v-model="aba">
@@ -966,12 +968,81 @@
                       </div>
                     </v-card>
                   </v-tabs-window-item>
+
+                  <v-tabs-window-item value="logs">
+                    <!-- LOGS CUPOM FISCAL -->
+                    <v-card class="config-section" elevation="0">
+                      <div class="d-flex justify-space-between align-start flex-wrap ga-3 mb-3">
+                        <div>
+                          <h2>6. Logs Cupom Fiscal</h2>
+                          <p class="section-subtitle">
+                            Cupons fiscais rejeitados pela SEFAZ por dados/XML incorretos — a venda já foi
+                            concluída normalmente, mas o cupom fica pendente aqui até ser corrigido e reenviado.
+                          </p>
+                        </div>
+
+                        <v-btn
+                            variant="tonal"
+                            prepend-icon="mdi-refresh"
+                            :loading="logsCupomFiscalCarregando"
+                            @click="carregarLogsCupomFiscal(terminalConfigurandoId)"
+                        >
+                          Atualizar
+                        </v-btn>
+                      </div>
+
+                      <v-data-table
+                          :headers="logsCupomFiscalHeaders"
+                          :items="logsCupomFiscal"
+                          :loading="logsCupomFiscalCarregando"
+                          item-value="id"
+                          class="background-card rounded-lg"
+                      >
+                        <template v-slot:[`item.status`]="{ item }">
+                          <v-chip :color="item.status === 'aprovado' ? 'green' : 'red'" size="small">
+                            {{ item.status === 'aprovado' ? 'Aprovado' : 'Erro' }}
+                          </v-chip>
+                        </template>
+
+                        <template v-slot:[`item.mensagem_erro`]="{ item }">
+                          <span class="text-truncate d-inline-block" style="max-width: 320px;">
+                            {{ item.mensagem_erro }}
+                          </span>
+                        </template>
+
+                        <template v-slot:[`item.updated_at`]="{ item }">
+                          {{ formatarData(item.updated_at) }}
+                        </template>
+
+                        <template v-slot:[`item.actions`]="{ item }">
+                          <v-btn
+                              size="small"
+                              variant="text"
+                              color="var(--text-color-laranja)"
+                              @click="abrirDetalheLogCupomFiscal(item)"
+                          >
+                            Detalhes
+                          </v-btn>
+                        </template>
+                      </v-data-table>
+
+                      <div v-if="!logsCupomFiscal.length && !logsCupomFiscalCarregando" class="empty-box">
+                        Nenhum log de erro de cupom fiscal para este terminal.
+                      </div>
+                    </v-card>
+                  </v-tabs-window-item>
                 </v-tabs-window>
               </main>
             </section>
           </v-card-text>
         </v-card>
       </v-dialog>
+
+      <log-cupom-fiscal-detalhe-modal
+          v-model="dialogDetalheLogCupomFiscal"
+          :log="logSelecionado"
+          @atualizado="logCupomFiscalAtualizado"
+      />
 
       <v-snackbar v-model="snackbar.show" :color="snackbar.color">
         {{ snackbar.text }}
@@ -983,9 +1054,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
-import { useTotemStore } from '@/stores/APIs/totem'
-
-const totemStore = useTotemStore()
+import LogCupomFiscalDetalheModal from "@/components/base/modais/LogCupomFiscalDetalheModal.vue";
+import api from '@/services/api'
 
 const formularioAberto = ref(false)
 const editando = ref(false)
@@ -1004,29 +1074,32 @@ const snackbar = reactive({
   color: 'success'
 })
 
-const totems = computed(() => totemStore.terminais)
-const ambientes = computed(() => totemStore.ambientes)
-const menus = computed(() => totemStore.menus)
-const menuProdutos = computed(() => totemStore.produtosVinculados)
-const produtos = computed(() => {
-  const gruposMap = Object.fromEntries(totemStore.grupos.map(g => [g.id, g.descgrupo]))
-  return totemStore.produtosCatalogo.map(p => ({
-    id: p.id,
-    nome: p.descproduto,
-    codigo: p.codigo,
-    grupo: gruposMap[p.id_grupo] || '',
-    emoji: '🛒',
-    preco: parseFloat(p.preco_venda) || 0,
-    ativo: p.ativo !== false,
-    emite_ticket_padrao: false
-  }))
+const headers_auth = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token')}`
 })
-const grupos = computed(() => totemStore.grupos)
-const mesas = computed(() => totemStore.mesas)
-const funcionariosVinculados = computed(() => totemStore.funcionariosVinculados)
-const funcionariosDisponiveis = computed(() =>
-  totemStore.funcionariosTodos.filter(f => f.acessa_sistema_terminal && f.ativo)
-)
+
+const totems = ref([])
+const ambientes = ref([])
+const menus = ref([])
+const menuProdutos = ref([])
+const produtos = ref([])
+const grupos = ref([])
+const mesas = ref([])
+const funcionariosVinculados = ref([])
+const funcionariosDisponiveis = ref([])
+const logsCupomFiscal = ref([])
+const logsCupomFiscalCarregando = ref(false)
+const dialogDetalheLogCupomFiscal = ref(false)
+const logSelecionado = ref(null)
+
+const logsCupomFiscalHeaders = [
+  { title: 'Data', key: 'updated_at' },
+  { title: 'Status', key: 'status' },
+  { title: 'cStat', key: 'cstat' },
+  { title: 'Mensagem', key: 'mensagem_erro' },
+  { title: 'Tentativas', key: 'tentativas' },
+  { title: 'Ações', key: 'actions', sortable: false }
+]
 
 const formData = reactive({
   id: null,
@@ -1254,8 +1327,8 @@ const normalizarTerminal = t => ({
 const carregarTotems = async () => {
   loading.value = true
   try {
-    await totemStore.listarTerminais()
-    totemStore.terminais = totemStore.terminais.map(normalizarTerminal)
+    const { data } = await api.get('/api/v1/admin/terminais-venda', { headers: headers_auth() })
+    totems.value = (Array.isArray(data) ? data : data.data ?? []).map(normalizarTerminal)
   } catch {
     mostrarMensagem('Erro ao carregar terminais.', 'error')
   } finally {
@@ -1264,7 +1337,116 @@ const carregarTotems = async () => {
 }
 
 const carregarConfigTerminal = async terminalId => {
-  await totemStore.carregarConfigTerminal(terminalId)
+  const h = { headers: headers_auth() }
+
+  const safe = promise => promise.catch(() => ({ data: [] }))
+
+  const [respAmbientes, respMenus, respProdutos, respVinculados, respGrupos, respMesas, respFuncVinculados, respFuncDisponiveis] = await Promise.all([
+    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/ambientes`, h)),
+    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/menus`, h)),
+    safe(api.get('/api/v1/admin/produtos-catalogo', h)),
+    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/produtos-vinculados`, h)),
+    safe(api.get('/api/v1/estoque/grupos', h)),
+    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/mesas`, h)),
+    safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/funcionarios`, h)),
+    safe(api.get('/api/v1/manutencao/funcionarios', h))
+  ])
+
+  mesas.value = respMesas.data?.data ?? respMesas.data ?? []
+  funcionariosVinculados.value = respFuncVinculados.data?.data ?? respFuncVinculados.data ?? []
+
+  const todosFuncionarios = respFuncDisponiveis.data?.data ?? respFuncDisponiveis.data ?? []
+  funcionariosDisponiveis.value = (Array.isArray(todosFuncionarios) ? todosFuncionarios : [])
+      .filter(f => f.acessa_sistema_terminal && f.ativo)
+
+  ambientes.value = respAmbientes.data?.data ?? respAmbientes.data ?? []
+  menus.value = respMenus.data?.data ?? respMenus.data ?? []
+
+  const rawGrupos = respGrupos.data?.data ?? respGrupos.data ?? []
+  grupos.value = Array.isArray(rawGrupos) ? rawGrupos : []
+  const gruposMap = Object.fromEntries(grupos.value.map(g => [g.id, g.descgrupo]))
+
+  const rawProdutos = respProdutos.data?.data ?? respProdutos.data ?? []
+  produtos.value = (Array.isArray(rawProdutos) ? rawProdutos : []).map(p => ({
+    id: p.id,
+    nome: p.descproduto,
+    codigo: p.codigo,
+    grupo: gruposMap[p.id_grupo] || '',
+    emoji: '🛒',
+    preco: parseFloat(p.preco_venda) || 0,
+    ativo: p.ativo !== false,
+    emite_ticket_padrao: false
+  }))
+
+  menuProdutos.value = (respVinculados.data?.data ?? respVinculados.data ?? []).map(v => ({
+    ...v,
+    produto: v.produto ? { ...v.produto, emoji: '🛒', grupo: '' } : null,
+    menu: menus.value.find(m => m.id === v.menu_id) || null
+  }))
+
+  await carregarLogsCupomFiscal(terminalId)
+}
+
+const carregarLogsCupomFiscal = async terminalId => {
+  if (!terminalId) return
+
+  logsCupomFiscalCarregando.value = true
+  try {
+    const { data } = await api.get(`/api/v1/admin/terminais-venda/${terminalId}/logs-cupom-fiscal`, { headers: headers_auth() })
+    logsCupomFiscal.value = data?.data ?? []
+  } catch {
+    mostrarMensagem('Erro ao carregar logs de cupom fiscal.', 'error')
+  } finally {
+    logsCupomFiscalCarregando.value = false
+  }
+}
+
+const abrirDetalheLogCupomFiscal = item => {
+  logSelecionado.value = item
+  dialogDetalheLogCupomFiscal.value = true
+}
+
+const logCupomFiscalAtualizado = logAtualizado => {
+  if (!logAtualizado) return
+
+  const idx = logsCupomFiscal.value.findIndex(l => l.id === logAtualizado.id)
+  if (idx !== -1) logsCupomFiscal.value[idx] = logAtualizado
+
+  // Erros ficam no topo, aprovados vão para o final da fila — mesmo critério do backend.
+  logsCupomFiscal.value = [...logsCupomFiscal.value].sort(
+      (a, b) => (a.status === 'aprovado' ? 1 : 0) - (b.status === 'aprovado' ? 1 : 0)
+  )
+}
+
+const salvarConfigOperacional = async () => {
+  const terminal = terminalConfigurando.value
+  if (!terminal) return
+
+  loading.value = true
+  try {
+    const payload = {
+      nome: terminal.descricao,
+      codigo: terminal.codigo,
+      status: terminal.ativo ? 'ativo' : 'inativo',
+      permite_sincronizacao: terminal.permite_sincronizacao,
+      emite_cupom_fiscal: terminal.emite_cupom_fiscal,
+      emite_ticket: terminal.emite_ticket,
+      modo_ticket: terminal.modo_ticket
+    }
+
+    if (terminal.senha_terminal) {
+      payload.senha_operacional = terminal.senha_terminal
+    }
+
+    await api.put(`/api/v1/admin/terminais-venda/${terminal.id}`, payload, { headers: headers_auth() })
+    await carregarTotems()
+    mostrarMensagem('Dados operacionais atualizados com sucesso.', 'success')
+  } catch (error) {
+    const msg = error.response?.data?.erro || error.response?.data?.message || 'Erro ao atualizar dados operacionais.'
+    mostrarMensagem(msg, 'error')
+  } finally {
+    loading.value = false
+  }
 }
 
 const toggleFormulario = () => {
@@ -1323,40 +1505,50 @@ const salvarTotem = async () => {
   loading.value = true
 
   try {
-    const dadosParaSalvar = {
-      ...formData,
-      codigo: gerarCodigoTerminal(formData.codigo || formData.descricao)
+    const payload = {
+      nome: formData.descricao,
+      codigo: gerarCodigoTerminal(formData.codigo || formData.descricao),
+      status: formData.ativo ? 'ativo' : 'inativo',
+      permite_sincronizacao: formData.permite_sincronizacao,
+      emite_cupom_fiscal: formData.emite_cupom_fiscal,
+      emite_ticket: formData.emite_ticket,
+      modo_ticket: formData.modo_ticket,
+      valor_couvert_padrao: formData.valor_couvert_padrao || 0,
+      percentual_taxa_servico_padrao: formData.percentual_taxa_servico_padrao || 0,
     }
 
-    const resposta = await totemStore.salvarTerminal(dadosParaSalvar)
+    if (formData.senha_terminal) {
+      payload.senha_operacional = formData.senha_terminal
+    }
 
-    if (!editando.value && resposta) {
-      const terminalId = resposta?.data?.id ?? resposta?.id
+    const h = { headers: headers_auth() }
+
+    if (editando.value) {
+      await api.put(`/api/v1/admin/terminais-venda/${formData.id}`, payload, h)
+      mostrarMensagem('Terminal atualizado com sucesso.', 'success')
+    } else {
+      const { data: novoTerminal } = await api.post('/api/v1/admin/terminais-venda', payload, h)
+      const terminalId = novoTerminal?.data?.id ?? novoTerminal?.id
 
       if (terminalId) {
-        const respAmbiente = await totemStore.salvarAmbiente(terminalId, {
-          nome: 'Ambiente Padrão',
-          tipo: 'geral',
-          controla_comandas: true,
-          exibe_painel_chamados: true
-        })
-        const ambienteId = respAmbiente?.data?.id ?? respAmbiente?.id
+        const respAmbiente = await api.post(
+          `/api/v1/admin/terminais-venda/${terminalId}/ambientes`,
+          { nome: 'Ambiente Padrão', tipo: 'geral', controla_comandas: true, exibe_painel_chamados: true },
+          h
+        )
+        const ambienteId = respAmbiente.data?.data?.id ?? respAmbiente.data?.id
 
         if (ambienteId) {
-          await totemStore.salvarMenu(terminalId, {
-            ambiente_id: ambienteId,
-            nome: 'Menu Geral',
-            icone: '📋',
-            ativo: true
-          })
+          await api.post(
+            `/api/v1/admin/terminais-venda/${terminalId}/menus`,
+            { ambiente_id: ambienteId, nome: 'Menu Geral', icone: '📋', ativo: true },
+            h
+          )
         }
       }
-    }
 
-    mostrarMensagem(
-      editando.value ? 'Terminal atualizado com sucesso.' : 'Terminal cadastrado com sucesso.',
-      'success'
-    )
+      mostrarMensagem('Terminal cadastrado com sucesso.', 'success')
+    }
 
     await carregarTotems()
     cancelarFormulario()
@@ -1372,11 +1564,9 @@ const salvarTotem = async () => {
 const excluirTotem = async item => {
   loading.value = true
   try {
-    const ok = await totemStore.excluirTerminal(item.id)
-    if (ok) {
-      await carregarTotems()
-      mostrarMensagem('Terminal excluído.', 'success')
-    }
+    await api.delete(`/api/v1/admin/terminais-venda/${item.id}`, { headers: headers_auth() })
+    await carregarTotems()
+    mostrarMensagem('Terminal excluído.', 'success')
   } catch (error) {
     const msg = error.response?.data?.erro || 'Erro ao excluir terminal.'
     mostrarMensagem(msg, 'error')
@@ -1425,12 +1615,16 @@ const salvarAmbiente = async () => {
   }
 
   try {
-    await totemStore.salvarAmbiente(terminalConfigurandoId.value, {
-      nome: ambienteForm.nome,
-      tipo: ambienteForm.tipo,
-      controla_comandas: ambienteForm.controla_comandas,
-      exibe_painel_chamados: ambienteForm.exibe_painel_chamados
-    })
+    await api.post(
+      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/ambientes`,
+      {
+        nome: ambienteForm.nome,
+        tipo: ambienteForm.tipo,
+        controla_comandas: ambienteForm.controla_comandas,
+        exibe_painel_chamados: ambienteForm.exibe_painel_chamados
+      },
+      { headers: headers_auth() }
+    )
     resetAmbienteForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Ambiente cadastrado.', 'success')
@@ -1442,7 +1636,7 @@ const salvarAmbiente = async () => {
 
 const removerAmbiente = async ambiente => {
   try {
-    await totemStore.removerAmbiente(ambiente.id)
+    await api.delete(`/api/v1/admin/terminais-venda-ambientes/${ambiente.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Ambiente removido.', 'success')
   } catch (error) {
@@ -1475,12 +1669,16 @@ const salvarMenu = async () => {
   }
 
   try {
-    await totemStore.salvarMenu(terminalConfigurandoId.value, {
-      ambiente_id: menuForm.ambiente_id,
-      nome: menuForm.nome,
-      icone: menuForm.icone || null,
-      ativo: menuForm.ativo
-    })
+    await api.post(
+      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/menus`,
+      {
+        ambiente_id: menuForm.ambiente_id,
+        nome: menuForm.nome,
+        icone: menuForm.icone || null,
+        ativo: menuForm.ativo
+      },
+      { headers: headers_auth() }
+    )
     resetMenuForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Menu cadastrado.', 'success')
@@ -1492,7 +1690,7 @@ const salvarMenu = async () => {
 
 const removerMenu = async menu => {
   try {
-    await totemStore.removerMenu(menu.id)
+    await api.delete(`/api/v1/admin/terminais-venda-menus/${menu.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Menu removido.', 'success')
   } catch (error) {
@@ -1528,16 +1726,20 @@ const vincularProduto = async () => {
   }
 
   try {
-    const qty = produtoForm.produto_id.length
     await Promise.all(
       produtoForm.produto_id.map(id =>
-        totemStore.vincularProduto(produtoForm.menu_id, {
-          produto_id: id,
-          ambiente_preparo_id: produtoForm.ambiente_preparo_id,
-          emite_ticket: produtoForm.emite_ticket
-        })
+        api.post(
+          `/api/v1/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
+          {
+            produto_id: id,
+            ambiente_preparo_id: produtoForm.ambiente_preparo_id,
+            emite_ticket: produtoForm.emite_ticket
+          },
+          { headers: headers_auth() }
+        )
       )
     )
+    const qty = produtoForm.produto_id.length
     produtoForm.produto_id = []
     produtoForm.emite_ticket = false
     await carregarConfigTerminal(terminalConfigurandoId.value)
@@ -1570,14 +1772,13 @@ const vincularGrupoProdutos = async () => {
   }
 
   try {
-    await totemStore.vincularGrupo(
-      produtoForm.menu_id,
-      novos.map(p => ({
-        produto_id: p.id,
-        ambiente_preparo_id: produtoForm.ambiente_preparo_id,
-        emite_ticket: p.emite_ticket_padrao
-      }))
-    )
+    await Promise.all(novos.map(p =>
+      api.post(
+        `/api/v1/admin/terminais-venda-menus/${produtoForm.menu_id}/produtos`,
+        { produto_id: p.id, ambiente_preparo_id: produtoForm.ambiente_preparo_id, emite_ticket: p.emite_ticket_padrao },
+        { headers: headers_auth() }
+      )
+    ))
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem(`${novos.length} produtos vinculados.`, 'success')
   } catch (error) {
@@ -1588,7 +1789,7 @@ const vincularGrupoProdutos = async () => {
 
 const removerProdutoVinculado = async vinculo => {
   try {
-    await totemStore.removerProdutoVinculado(vinculo.id)
+    await api.delete(`/api/v1/admin/terminais-venda-menu-produtos/${vinculo.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Produto removido do menu.', 'success')
   } catch (error) {
@@ -1622,12 +1823,16 @@ const salvarMesa = async () => {
   }
 
   try {
-    await totemStore.salvarMesa(terminalConfigurandoId.value, {
-      numero: mesaForm.numero,
-      nome: mesaForm.nome || null,
-      capacidade: mesaForm.capacidade || 1,
-      ambiente_id: mesaForm.ambiente_id
-    })
+    await api.post(
+      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/mesas`,
+      {
+        numero: mesaForm.numero,
+        nome: mesaForm.nome || null,
+        capacidade: mesaForm.capacidade || 1,
+        ambiente_id: mesaForm.ambiente_id
+      },
+      { headers: headers_auth() }
+    )
     resetMesaForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Mesa cadastrada.', 'success')
@@ -1639,7 +1844,7 @@ const salvarMesa = async () => {
 
 const removerMesa = async mesa => {
   try {
-    await totemStore.removerMesa(mesa.id)
+    await api.delete(`/api/v1/admin/terminais-venda-mesas/${mesa.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Mesa removida.', 'success')
   } catch (error) {
@@ -1665,10 +1870,14 @@ const vincularFuncionario = async () => {
   }
 
   try {
-    await totemStore.vincularFuncionario(terminalConfigurandoId.value, {
-      funcionario_id: funcionarioVincularForm.funcionario_id,
-      papel: funcionarioVincularForm.papel || null
-    })
+    await api.post(
+      `/api/v1/admin/terminais-venda/${terminalConfigurandoId.value}/funcionarios`,
+      {
+        funcionario_id: funcionarioVincularForm.funcionario_id,
+        papel: funcionarioVincularForm.papel || null
+      },
+      { headers: headers_auth() }
+    )
     resetFuncionarioVincularForm()
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Funcionário vinculado ao terminal.', 'success')
@@ -1680,7 +1889,7 @@ const vincularFuncionario = async () => {
 
 const removerVinculoFuncionario = async vinculo => {
   try {
-    await totemStore.removerFuncionario(vinculo.id)
+    await api.delete(`/api/v1/admin/terminais-venda-funcionarios/${vinculo.id}`, { headers: headers_auth() })
     await carregarConfigTerminal(terminalConfigurandoId.value)
     mostrarMensagem('Funcionário desvinculado do terminal.', 'success')
   } catch (error) {
