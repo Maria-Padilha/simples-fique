@@ -90,13 +90,12 @@
                               v-model="formData.valor"
                               label="Valor *"
                               :rules="[rules.required, rules.valorPositivo]"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               prepend-inner-icon="mdi-currency-usd"
                               prefix="R$"
                               class="required-left-border"
-                              type="number"
-                              step="0.01"
                           ></v-text-field>
                         </v-col>
 
@@ -300,9 +299,8 @@
                                     </td>
                                     <td>
                                       <v-text-field
-                                          v-model.number="linha.valor"
-                                          type="number"
-                                          step="0.01"
+                                          v-model="linha.valor"
+                                          v-mask-decimal.br="2"
                                           variant="outlined"
                                           density="compact"
                                           prefix="R$"
@@ -675,6 +673,16 @@ import PdfPreviewModal from '@/components/base/modais/PdfPreviewModal.vue'
 import AcessoNegadoModal from '@/components/base/modais/AcessoNegadoModal.vue'
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 
+// Helpers de formatação decimal BR
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 // ID do programa desta tela (Rotina Encerramento de Caixa)
 const ID_PROGRAMA = 'FFIN204E'
 
@@ -739,7 +747,7 @@ const formData = reactive({
   id_caixahist: null,
   id_hist_contabil: null,
   dtlancamento: new Date().toISOString().split('T')[0],
-  valor: 0,
+  valor: '',
   tipo: '+', // + = Entrada, - = Saída
   id_tipopagrec: null,
   origem: 'M', // M = Manual
@@ -754,7 +762,8 @@ const rules = {
   },
   valorPositivo: (value) => {
     if (value === null || value === undefined || value === '') return 'Campo obrigatório'
-    if (parseFloat(value) <= 0) return 'Valor deve ser maior que zero'
+    const parsed = parseDecimalBR(value)
+    if (!parsed || parsed <= 0) return 'Valor deve ser maior que zero'
     return true
   }
 }
@@ -820,7 +829,7 @@ const saldoFinal = computed(() => {
 })
 
 const totalRateadoValor = computed(() => {
-  return ccustosRateio.value.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0)
+  return ccustosRateio.value.reduce((s, r) => s + (parseDecimalBR(r.valor) || 0), 0)
 })
 
 const totalRateadoPercent = computed(() => {
@@ -887,23 +896,23 @@ const aplicarPeriodo = (periodo) => {
       break
 
     case 'semana': {
-      // Primeiro dia da semana (domingo)
+      // Domingo a sábado da semana atual
       const primeiroDiaSemana = hoje.getDate() - hoje.getDay()
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana + 6)
       break
     }
 
     case 'mes':
-      // Primeiro dia do mês
+      // Primeiro ao último dia do mês
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
       break
 
     case 'ano':
-      // Primeiro dia do ano
+      // 1º de janeiro a 31 de dezembro
       dataInicio = new Date(hoje.getFullYear(), 0, 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), 11, 31)
       break
 
     case '7dias':
@@ -958,7 +967,7 @@ const limparFormulario = () => {
     id_caixahist: null,
     id_hist_contabil: null,
     dtlancamento: new Date().toISOString().split('T')[0],
-    valor: 0,
+    valor: '',
     tipo: '+',
     id_tipopagrec: null,
     origem: 'M',
@@ -1028,7 +1037,7 @@ const adicionarCentro = () => {
   ccustosRateio.value.push({
     id_ccusto: null,
     desccentrocusto: '',
-    valor: 0,
+    valor: '',
     porcentagem: 0
   })
 }
@@ -1039,39 +1048,39 @@ const removerCentro = (index) => {
 }
 
 const onRateioValorChange = (index) => {
-  const total = parseFloat(formData.valor) || 0
+  const total = parseDecimalBR(formData.valor) || 0
   if (total === 0) return
 
   const r = ccustosRateio.value[index]
   if (!r) return
 
-  const valorAtual = parseFloat(r.valor) || 0
+  const valorAtual = parseDecimalBR(r.valor) || 0
   r.porcentagem = ((valorAtual / total) * 100).toFixed(2)
 }
 
 const onRateioPercentChange = (index) => {
-  const total = parseFloat(formData.valor) || 0
+  const total = parseDecimalBR(formData.valor) || 0
   if (total === 0) return
 
   const r = ccustosRateio.value[index]
   if (!r) return
 
   const porcAtual = parseFloat(r.porcentagem) || 0
-  r.valor = ((porcAtual * total) / 100).toFixed(2)
+  r.valor = formatDecimalBR((porcAtual * total) / 100)
 }
 
 const recalcularPorcentagens = () => {
-  const total = parseFloat(formData.valor) || 0
+  const total = parseDecimalBR(formData.valor) || 0
   if (total === 0) return
 
   ccustosRateio.value.forEach(r => {
-    const valorNum = parseFloat(r.valor) || 0
+    const valorNum = parseDecimalBR(r.valor) || 0
     r.porcentagem = ((valorNum / total) * 100).toFixed(2)
   })
 }
 
 const distribuirIgualmente = () => {
-  const total = parseFloat(formData.valor) || 0
+  const total = parseDecimalBR(formData.valor) || 0
   const count = ccustosRateio.value.length || 1
 
   if (count === 0 || total === 0) return
@@ -1082,14 +1091,14 @@ const distribuirIgualmente = () => {
   ccustosRateio.value.forEach((r, index) => {
     // Para o último centro, ajustar para garantir que a soma seja exatamente o total
     if (index === count - 1) {
-      r.valor = (total - valorAcumulado).toFixed(2)
+      r.valor = formatDecimalBR(total - valorAcumulado)
     } else {
-      r.valor = valorPorCentro.toFixed(2)
-      valorAcumulado += parseFloat(r.valor)
+      r.valor = formatDecimalBR(valorPorCentro)
+      valorAcumulado += parseDecimalBR(r.valor) || 0
     }
 
     // Calcular porcentagem
-    r.porcentagem = ((parseFloat(r.valor) / total) * 100).toFixed(2)
+    r.porcentagem = (((parseDecimalBR(r.valor) || 0) / total) * 100).toFixed(2)
   })
 }
 
@@ -1309,14 +1318,14 @@ const salvarLancamento = async () => {
         .filter(r => r.id_ccusto) // Só incluir linhas com centro selecionado
         .map(r => ({
           id_ccusto: r.id_ccusto,
-          valor: (parseFloat(r.valor) || 0).toFixed(2),
+          valor: (parseDecimalBR(r.valor) || 0).toFixed(2),
           perc_ccusto: (parseFloat(r.porcentagem) || 0).toFixed(2)
         }))
 
     // Validar soma do rateio (se houver rateios) contra o valor do lançamento
     if (ccustoArray.length > 0) {
       const totalRateado = parseFloat(totalRateadoValor.value) || 0
-      const valorLancamento = parseFloat(formData.valor) || 0
+      const valorLancamento = parseDecimalBR(formData.valor) || 0
       if (Math.abs(totalRateado - valorLancamento) > 0.01) {
         mostrarMensagem('Total do rateio por centro de custo não corresponde ao valor do lançamento', 'warning')
         loading.value = false
@@ -1327,7 +1336,7 @@ const salvarLancamento = async () => {
     const payload = {
       tipo: formData.tipo,
       dtlancamento: formData.dtlancamento,
-      valor: parseFloat(formData.valor),
+      valor: parseDecimalBR(formData.valor),
       origem: formData.origem,
       observacao: formData.observacao || null,
       id_tipopagrec: formData.id_tipopagrec,

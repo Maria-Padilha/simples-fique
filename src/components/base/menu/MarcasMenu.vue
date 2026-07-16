@@ -57,7 +57,7 @@
 <script setup>
 import BuscaPadraoMenu from "@/components/base/menu/BuscaPadraoMenu.vue";
 import CadastrarModal from "@/components/base/modais/CadastrarModal.vue";
-import {ref, computed, defineEmits, watch, watchEffect} from "vue";
+import {ref, computed, defineEmits, watch, onMounted} from "vue";
 import {useProdutosStore} from "@/stores/APIs/produtos";
 import { toast } from "vue3-toastify";
 
@@ -72,7 +72,7 @@ const marca = ref("");
 const marcaStore = useProdutosStore();
 const marcas = computed(() => marcaStore.marcas);
 
-watchEffect(() => {
+onMounted(() => {
   if (marcas.value.length === 0) {
     marcaStore.buscarMarcas("", 15);
   }
@@ -108,11 +108,7 @@ const cadastrarmarca = async () => {
   }
 
   await marcaStore.cadastrarMarca({
-    data: [
-      {
-        descmarca: marca.value
-      }
-    ]
+    descmarca: marca.value
   })
 
   if (!marcaStore.errorMessage) cadastrarModal.value = false;

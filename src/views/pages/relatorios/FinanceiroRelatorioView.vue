@@ -319,6 +319,7 @@
       </div>
     </template>
   </top-all-pages>
+  <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
 </template>
 
 <script setup>
@@ -326,7 +327,6 @@ import { ref, reactive, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
 import { useCCustoStore } from '@/stores/APIs/ccusto'
 import { useFinanceiroStore } from '@/stores/APIs/financeiro'
-import { toast } from 'vue3-toastify'
 import { TEMPLATE_CENTRO_CUSTO } from '@/components/impressos/centrodecusto.js'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 
@@ -338,6 +338,11 @@ const escapeHtml = (text) => {
 const themeStore = useThemeStore()
 const ccustoStore = useCCustoStore()
 const financeiroStore = useFinanceiroStore()
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+const mostrarMensagem = (msg, color = 'success') => {
+  snackbar.message = msg; snackbar.color = color; snackbar.show = true
+}
 
 const modalCentroCustoAberto = ref(false)
 const modalPagarAberto = ref(false)
@@ -356,55 +361,44 @@ const idEmpresa = ref(null)
 onMounted(async () => {
   const stored = localStorage.getItem('idempresa') || localStorage.getItem('empresa_id')
   idEmpresa.value = stored || 1
-  console.log('🏢 ID Empresa:', idEmpresa.value)
   
   // Carregar todos os dados em paralelo na montagem
-  console.log('📥 Carregando dados iniciais...')
   
   try {
     // Carregar centros de custo
-    console.log('1️⃣ Carregando centros de custo...')
     await ccustoStore.listarCCusto()
     centrosCusto.value = (ccustoStore.centrosCusto || []).map(cc => ({
       id: cc.id,
       nome: cc.desccentrocusto || cc.nome || cc.descricao || `Centro ${cc.id}`
     }))
-    console.log('✅ Centros de custo:', centrosCusto.value.length)
     
     // Carregar fornecedores
-    console.log('2️⃣ Carregando fornecedores...')
     const fornecedoresResponse = await financeiroStore.buscarPessoasFornecedores('', idEmpresa.value)
     const fornecedoresData = fornecedoresResponse?.data || fornecedoresResponse || []
     fornecedores.value = (fornecedoresData || []).map(f => ({
       label: f.nome_razao || f.descpessoa || f.nome || f.razaosocial || f.NOME || f.DESCPESSOA || `Fornecedor ${f.id || f.ID}`,
       value: f.id || f.ID || f.id_pessoa || f.ID_PESSOA
     }))
-    console.log('✅ Fornecedores:', fornecedores.value.length)
     
     // Carregar clientes
-    console.log('3️⃣ Carregando clientes...')
     const clientesResponse = await financeiroStore.buscarPessoasClientes('', idEmpresa.value)
     const clientesData = clientesResponse?.data || clientesResponse || []
     clientes.value = (clientesData || []).map(c => ({
       label: c.nome_razao || c.descpessoa || c.nome || c.razaosocial || c.NOME || c.DESCPESSOA || `Cliente ${c.id || c.ID}`,
       value: c.id || c.ID || c.id_pessoa || c.ID_PESSOA
     }))
-    console.log('✅ Clientes:', clientes.value.length)
     
     // Carregar locais de cobrança
-    console.log('4️⃣ Carregando locais de cobrança...')
     const locaisResponse = await financeiroStore.buscarLocaisCobranca()
     const locaisData = locaisResponse?.data || locaisResponse || []
     locaisCobranca.value = (locaisData || []).map(l => ({
       label: l.desclocalcobranca || l.desclocal || l.nome || l.descricao || l.NOME || l.DESCLOCAL || `Local ${l.id || l.ID}`,
       value: l.id || l.ID || l.id_localcobranca || l.ID_LOCALCOBRANCA
     }))
-    console.log('✅ Locais de cobrança:', locaisCobranca.value.length)
     
-    console.log('✅ Todos os dados carregados com sucesso!')
   } catch (error) {
-    console.error('❌ Erro ao carregar dados iniciais:', error)
-    toast.error('Erro ao carregar dados: ' + error.message)
+    console.error('Erro ao carregar dados iniciais:', error)
+    mostrarMensagem('Erro ao carregar dados: ' + error.message, 'error')
   }
 })
 
@@ -580,7 +574,7 @@ const TEMPLATE_TITULOS = `<!DOCTYPE html>
         }
 
         .valor-negativo {
-            color: #d32f2f;
+            color: rgb(var(--v-theme-error));
             font-weight: 500;
         }
 
@@ -630,7 +624,7 @@ const TEMPLATE_TITULOS = `<!DOCTYPE html>
         }
 
         .table-resumo .saida td:last-child {
-            color: #d32f2f;
+            color: rgb(var(--v-theme-error));
         }
 
         .footer-note {
@@ -731,13 +725,9 @@ const TEMPLATE_TITULOS = `<!DOCTYPE html>
 // Função auxiliar para abrir impressão com template HTML
 const abrirImpressao = (tipoRelatorio, dados, filtros) => {
   try {
-    console.log('🖨️ Iniciando impressão:', tipoRelatorio)
-    console.log('📊 Dados recebidos:', dados)
-    console.log('🔧 Filtros:', filtros)
     
     if (!dados || dados.length === 0) {
-      console.warn('⚠️ Nenhum dado para exibir')
-      toast.warning('Nenhum dado encontrado para exibir')
+      mostrarMensagem('Nenhum dado encontrado para exibir', 'warning')
       return
     }
     
@@ -749,7 +739,6 @@ const abrirImpressao = (tipoRelatorio, dados, filtros) => {
     const operador = localStorage.getItem('usuario_nome') || 'Sistema'
     const logo = localStorage.getItem('empresa_logo') || '/logo.png'
     
-    console.log('📝 Empresa:', empresa, 'Operador:', operador, 'Logo:', logo)
     
     // Formatar datas
     const formatarData = (data) => {
@@ -792,8 +781,6 @@ const abrirImpressao = (tipoRelatorio, dados, filtros) => {
       }
     })
     
-    console.log('✅ Títulos processados:', titulos.length)
-    console.log('🔧 Logo URL:', logo)
     
     // Substituir variáveis no template
     const tipoContraparte = tipoRelatorio.includes('Pagar') ? 'Fornecedor' : 'Cliente'
@@ -831,42 +818,35 @@ const abrirImpressao = (tipoRelatorio, dados, filtros) => {
     
     html = html.replace(/{{LINHAS_TITULOS}}/g, linhasTitulos)
     
-    console.log('🖥️ Abrindo janela de impressão...')
     
     // Abrir em nova janela com print
     const janela = window.open('', '_blank', 'width=1000,height=800')
     
     if (!janela) {
-      console.error('❌ Pop-up foi bloqueado pelo navegador!')
-      toast.error('Pop-up foi bloqueado. Verifique as configurações do navegador.')
+      console.error('Pop-up foi bloqueado pelo navegador!')
+      mostrarMensagem('Pop-up foi bloqueado. Verifique as configurações do navegador.', 'error')
       return
     }
-    
+
     janela.document.write(html)
     janela.document.close()
-    
-    console.log('✅ Impressão aberta com sucesso!')
-    
+
     // Aguardar carregamento e abrir print
     setTimeout(() => {
       janela.print()
     }, 500)
   } catch (err) {
-    console.error('❌ Erro ao abrir impressão:', err)
-    console.error('Stack:', err.stack)
-    toast.error('Erro ao abrir impressão: ' + err.message)
+    console.error('Erro ao abrir impressão:', err)
+    mostrarMensagem('Erro ao abrir impressão: ' + err.message, 'error')
   }
 }
 
 // Função para abrir impressão de Centro de Custo (mesma lógica da PrevisaoDebitosView)
 const abrirImpressaoCentroCusto = (previsao, filtros) => {
   try {
-    console.log('🖨️ Iniciando impressão: Previsão Centro de Custo')
-    console.log('📊 Previsão recebida:', (previsao || []).length)
     
     if (!previsao || previsao.length === 0) {
-      console.warn('⚠️ Nenhum dado para exibir')
-      toast.warning('Nenhum dado encontrado para exibir')
+      mostrarMensagem('Nenhum dado encontrado para exibir', 'warning')
       return
     }
     
@@ -879,7 +859,6 @@ const abrirImpressaoCentroCusto = (previsao, filtros) => {
     const operador = localStorage.getItem('usuario_nome') || 'Sistema'
     const logo = localStorage.getItem('empresa_logo') || '/logo.png'
     
-    console.log('📝 Empresa:', empresa, 'Operador:', operador)
     
     // Formatar data para exibição
     const formatarData = (data) => {
@@ -922,7 +901,6 @@ const abrirImpressaoCentroCusto = (previsao, filtros) => {
       }
     })
     
-    console.log('📅 Dias com cobrança:', diasComCobranca.length)
     
     // 3. Mapear dados para formato de previsões (mesma lógica da PrevisaoDebitosView)
     const previsoesProcessadas = previsao.map(item => {
@@ -985,8 +963,6 @@ const abrirImpressaoCentroCusto = (previsao, filtros) => {
     
     const totalGeral = previsoesProcessadas.reduce((sum, item) => sum + (item.total || 0), 0)
     
-    console.log('📊 Centros de custo agrupados:', centrosCustoAgrupados.length)
-    console.log('💰 Total geral:', totalGeral)
     
     // 5.1. Determinar classe de tamanho baseada na quantidade de colunas
     const numColunas = diasComCobranca.length
@@ -998,7 +974,6 @@ const abrirImpressaoCentroCusto = (previsao, filtros) => {
     } else if (numColunas > 7) {
       colsClass = 'cols-medium'
     }
-    console.log(`📐 Colunas: ${numColunas}, Classe: ${colsClass}`)
     
     // 6. Função para dividir array em grupos de N elementos
     const dividirEmGrupos = (array, tamanho) => {
@@ -1013,7 +988,6 @@ const abrirImpressaoCentroCusto = (previsao, filtros) => {
     const DIAS_POR_TABELA = 15
     const gruposDeDias = dividirEmGrupos(diasComCobranca, DIAS_POR_TABELA)
     
-    console.log(`📅 Total de dias: ${diasComCobranca.length}, Grupos de ${DIAS_POR_TABELA}: ${gruposDeDias.length}`)
     
     // Função para limpar nome do centro de custo (remove "Ativo" repetido, etc)
     const limparNomeCCusto = (nome) => {
@@ -1208,60 +1182,52 @@ const abrirImpressaoCentroCusto = (previsao, filtros) => {
     html = html.replace(/{{totalDias}}/g, diasComCobranca.length)
     html = html.replace(/{{SECAO_GRAFICO}}/g, secaoGrafico)
     
-    console.log('🖥️ Abrindo janela de impressão...')
     
     // Abrir em nova janela com print
     const janela = window.open('', '_blank', 'width=1200,height=800')
     
     if (!janela) {
-      console.error('❌ Pop-up foi bloqueado pelo navegador!')
-      toast.error('Pop-up foi bloqueado. Verifique as configurações do navegador.')
+      console.error('Pop-up foi bloqueado pelo navegador!')
+      mostrarMensagem('Pop-up foi bloqueado. Verifique as configurações do navegador.', 'error')
       return
     }
-    
+
     janela.document.write(html)
     janela.document.close()
-    
-    console.log('✅ Impressão aberta com sucesso!')
-    
+
     // Aguardar carregamento do Chart.js e abrir print
     setTimeout(() => {
       janela.print()
     }, 1000)
   } catch (err) {
-    console.error('❌ Erro ao abrir impressão:', err)
-    console.error('Stack:', err.stack)
-    toast.error('Erro ao abrir impressão: ' + err.message)
+    console.error('Erro ao abrir impressão:', err)
+    mostrarMensagem('Erro ao abrir impressão: ' + err.message, 'error')
   }
 }
 
 const gerarRelatorioCentroCusto = async () => {
   if (!filtrosCentroCusto.dtini || !filtrosCentroCusto.dtfim) {
-    toast.error('Informe as datas de início e fim')
+    mostrarMensagem('Informe as datas de início e fim', 'error')
     return
   }
 
   gerando.value = true
   try {
-    console.log('📊 Gerando relatório Previsão Centro de Custo:', filtrosCentroCusto)
-    
     // Buscar dados de previsão de débitos
     const previsao = await ccustoStore.buscarPrevisaoDebitos({
       idEmpresa: idEmpresa.value,
       dtini: filtrosCentroCusto.dtini,
       dtfim: filtrosCentroCusto.dtfim
     })
-    
-    console.log('✅ Previsão encontrada:', (previsao || []).length)
-    
+
     // Abrir impressão com os dados
     abrirImpressaoCentroCusto(previsao, filtrosCentroCusto)
-    
-    toast.success('Relatório gerado com sucesso!')
+
+    mostrarMensagem('Relatório gerado com sucesso!')
     modalCentroCustoAberto.value = false
   } catch (error) {
-    console.error('❌ Erro ao gerar relatório:', error)
-    toast.error('Erro ao gerar relatório')
+    console.error('Erro ao gerar relatório:', error)
+    mostrarMensagem('Erro ao gerar relatório', 'error')
   } finally {
     gerando.value = false
   }
@@ -1269,37 +1235,34 @@ const gerarRelatorioCentroCusto = async () => {
 
 const gerarRelatorioTitulosPagar = async () => {
   if (!filtrosPagar.dtini || !filtrosPagar.dtfim) {
-    toast.error('Informe as datas de início e fim')
+    mostrarMensagem('Informe as datas de início e fim', 'error')
     return
   }
 
   gerando.value = true
   try {
-    console.log('📊 Gerando relatório Títulos a Pagar:', filtrosPagar)
-    
     const filtros = {
       tpperiodo: filtrosPagar.tpperiodo,
       dtini: filtrosPagar.dtini,
       dtfim: filtrosPagar.dtfim
     }
-    
+
     if (filtrosPagar.idfornecedor) {
       filtros.idfornecedor = filtrosPagar.idfornecedor
     }
     if (filtrosPagar.idlocalcobranca) {
       filtros.idlocalcobranca = filtrosPagar.idlocalcobranca
     }
-    
+
     const resultado = await financeiroStore.buscarContasPagar(idEmpresa.value, filtros)
-    console.log('✅ Resultado Títulos a Pagar:', resultado)
-    
+
     // Abrir impressão com os dados
     abrirImpressao('Títulos a Pagar', resultado, filtrosPagar)
-    
+
     modalPagarAberto.value = false
   } catch (error) {
-    console.error('❌ Erro ao gerar relatório:', error)
-    toast.error('Erro ao gerar relatório')
+    console.error('Erro ao gerar relatório:', error)
+    mostrarMensagem('Erro ao gerar relatório', 'error')
   } finally {
     gerando.value = false
   }
@@ -1307,37 +1270,34 @@ const gerarRelatorioTitulosPagar = async () => {
 
 const gerarRelatorioTitulosReceber = async () => {
   if (!filtrosReceber.dtini || !filtrosReceber.dtfim) {
-    toast.error('Informe as datas de início e fim')
+    mostrarMensagem('Informe as datas de início e fim', 'error')
     return
   }
 
   gerando.value = true
   try {
-    console.log('📊 Gerando relatório Títulos a Receber:', filtrosReceber)
-    
     const filtros = {
       tpperiodo: filtrosReceber.tpperiodo,
       dtini: filtrosReceber.dtini,
       dtfim: filtrosReceber.dtfim
     }
-    
+
     if (filtrosReceber.idCliente) {
       filtros.idCliente = filtrosReceber.idCliente
     }
     if (filtrosReceber.idlocalcobranca) {
       filtros.idlocalcobranca = filtrosReceber.idlocalcobranca
     }
-    
+
     const resultado = await financeiroStore.buscarContasReceber(idEmpresa.value, filtros)
-    console.log('✅ Resultado Títulos a Receber:', resultado)
-    
+
     // Abrir impressão com os dados
     abrirImpressao('Títulos a Receber', resultado, filtrosReceber)
-    
+
     modalReceberAberto.value = false
   } catch (error) {
-    console.error('❌ Erro ao gerar relatório:', error)
-    toast.error('Erro ao gerar relatório')
+    console.error('Erro ao gerar relatório:', error)
+    mostrarMensagem('Erro ao gerar relatório', 'error')
   } finally {
     gerando.value = false
   }
@@ -1346,22 +1306,17 @@ const gerarRelatorioTitulosReceber = async () => {
 // Função para abrir impressão de Débitos Realizados
 const abrirImpressaoDebitosRealizados = (debitosResponse, filtros) => {
   try {
-    console.log('🖨️ Iniciando impressão: Débitos Realizados')
-    console.log('📊 Resposta recebida:', debitosResponse)
     
     // Verificar se deve quebrar página por centro de custo
     const quebraPaginaPorCCusto = filtros.quebraPagina || false
-    console.log('📄 Quebra de página por CCusto:', quebraPaginaPorCCusto)
     
     // Extrair array de dados (API pode retornar { data: [...] } ou diretamente [...])
     const debitos = debitosResponse?.data || debitosResponse || []
     const debitosArray = Array.isArray(debitos) ? debitos : []
     
-    console.log('📊 Débitos processados:', debitosArray.length)
     
     if (!debitosArray || debitosArray.length === 0) {
-      console.warn('⚠️ Nenhum dado para exibir')
-      toast.warning('Nenhum dado encontrado para exibir')
+      mostrarMensagem('Nenhum dado encontrado para exibir', 'warning')
       return
     }
     
@@ -1374,7 +1329,6 @@ const abrirImpressaoDebitosRealizados = (debitosResponse, filtros) => {
     const operador = localStorage.getItem('usuario_nome') || 'Sistema'
     const logo = localStorage.getItem('empresa_logo') || '/logo.png'
     
-    console.log('📝 Empresa:', empresa, 'Operador:', operador)
     
     // Formatar data para exibição
     const formatarData = (data) => {
@@ -1417,7 +1371,6 @@ const abrirImpressaoDebitosRealizados = (debitosResponse, filtros) => {
       }
     })
     
-    console.log('📅 Dias com débito:', diasComDebito.length)
     
     // 3. Mapear dados para formato de débitos
     const debitosProcessados = debitosArray.map(item => {
@@ -1476,8 +1429,6 @@ const abrirImpressaoDebitosRealizados = (debitosResponse, filtros) => {
     // 5. Calcular totais
     const totalGeral = debitosProcessados.reduce((sum, item) => sum + (item.total || 0), 0)
     
-    console.log('📊 Centros de custo agrupados:', centrosCustoAgrupados.length)
-    console.log('💰 Total geral:', totalGeral)
     
     // 5.1. Determinar classe de tamanho baseada na quantidade de colunas
     const numColunas = diasComDebito.length
@@ -1503,7 +1454,6 @@ const abrirImpressaoDebitosRealizados = (debitosResponse, filtros) => {
     const DIAS_POR_TABELA = 15
     const gruposDeDias = dividirEmGrupos(diasComDebito, DIAS_POR_TABELA)
     
-    console.log(`📅 Total de dias: ${diasComDebito.length}, Grupos de ${DIAS_POR_TABELA}: ${gruposDeDias.length}`)
     
     // Função para limpar nome do centro de custo
     const limparNomeCCusto = (nome) => {
@@ -1686,60 +1636,52 @@ const abrirImpressaoDebitosRealizados = (debitosResponse, filtros) => {
     html = html.replace(/{{totalDespesas}}/g, totalDespesasConsolidadas)
     html = html.replace(/{{SECAO_GRAFICO}}/g, secaoGrafico)
     
-    console.log('🖥️ Abrindo janela de impressão...')
     
     // Abrir em nova janela com print
     const janela = window.open('', '_blank', 'width=1200,height=800')
     
     if (!janela) {
-      console.error('❌ Pop-up foi bloqueado pelo navegador!')
-      toast.error('Pop-up foi bloqueado. Verifique as configurações do navegador.')
+      console.error('Pop-up foi bloqueado pelo navegador!')
+      mostrarMensagem('Pop-up foi bloqueado. Verifique as configurações do navegador.', 'error')
       return
     }
-    
+
     janela.document.write(html)
     janela.document.close()
-    
-    console.log('✅ Impressão aberta com sucesso!')
-    
+
     // Aguardar carregamento do Chart.js e abrir print
     setTimeout(() => {
       janela.print()
     }, 1000)
   } catch (err) {
-    console.error('❌ Erro ao abrir impressão:', err)
-    console.error('Stack:', err.stack)
-    toast.error('Erro ao abrir impressão: ' + err.message)
+    console.error('Erro ao abrir impressão:', err)
+    mostrarMensagem('Erro ao abrir impressão: ' + err.message, 'error')
   }
 }
 
 const gerarRelatorioDebitosRealizados = async () => {
   if (!filtrosDebitosRealizados.dtini || !filtrosDebitosRealizados.dtfim) {
-    toast.error('Informe as datas de início e fim')
+    mostrarMensagem('Informe as datas de início e fim', 'error')
     return
   }
 
   gerando.value = true
   try {
-    console.log('📊 Gerando relatório Débitos Realizados:', filtrosDebitosRealizados)
-    
     // Buscar dados de débitos realizados
     const debitos = await ccustoStore.buscarDebitosRealizados(
       idEmpresa.value,
       filtrosDebitosRealizados.dtini,
       filtrosDebitosRealizados.dtfim
     )
-    
-    console.log('✅ Débitos encontrados:', (debitos || []).length)
-    
+
     // Abrir impressão com os dados
     abrirImpressaoDebitosRealizados(debitos, filtrosDebitosRealizados)
-    
-    toast.success('Relatório gerado com sucesso!')
+
+    mostrarMensagem('Relatório gerado com sucesso!')
     modalDebitosRealizadosAberto.value = false
   } catch (error) {
-    console.error('❌ Erro ao gerar relatório:', error)
-    toast.error('Erro ao gerar relatório')
+    console.error('Erro ao gerar relatório:', error)
+    mostrarMensagem('Erro ao gerar relatório', 'error')
   } finally {
     gerando.value = false
   }

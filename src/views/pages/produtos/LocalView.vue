@@ -133,7 +133,7 @@
             :loading="loading"
             v-model:modal-excluir="modalExcluir"
         >
-          <template #item>{{itemSelecionado?.descclasse}}</template>
+          <template #item>{{itemSelecionado?.descricao}}</template>
         </excluir-modal>
       </v-card>
     </template>
@@ -141,17 +141,20 @@
 </template>
 
 <script setup>
-import {reactive, ref, computed, watchEffect} from "vue";
+import {reactive, ref, computed, onMounted} from "vue";
+import {toast} from "vue3-toastify";
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 import BotaoExpandTransition from "@/components/base/padrao-paginas/BotaoExpandTransition.vue";
 import FormsExpandTransition from "@/components/base/padrao-paginas/FormsExpandTransition.vue";
 import TabelaPadrao from "@/components/base/padrao-paginas/TabelaPadrao.vue";
 import {useProdutosStore} from "@/stores/APIs/produtos";
+import {useEstoqueStore} from "@/stores/APIs/estoque";
 import {useThemeStore} from "@/stores/config-temas/theme";
 import AlmoxarifadoMenu from "@/components/base/menu/AlmoxarifadoMenu.vue";
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 
 const localizacoesStore = useProdutosStore();
+const almoxStore = useEstoqueStore();
 const themeStore = useThemeStore();
 
 const idEmpresa = JSON.parse(localStorage.getItem('empresaSelecionada'));
@@ -245,9 +248,8 @@ const selecionarAlmoxarifado = (alm) => {
  * SALVANDO ITEM
  */
 const salvarFormulario = async () => {
-  if (formRef.value && !(await formRef.value.validate())) {
-    return;
-  }
+  const { valid } = await formRef.value.validate()
+  if (!valid) return
 
   if (editando.value) {
     await localizacoesStore.atualizarLocalizacao(idEmpresa?.id, itemSelecionado.value, {
@@ -260,6 +262,8 @@ const salvarFormulario = async () => {
       coluna: forms.coluna
     });
     cancelarFormulario();
+    formularioAberto.value = false;
+    toast.success("Localização atualizada com sucesso!");
     return;
   }
 
@@ -273,6 +277,8 @@ const salvarFormulario = async () => {
     coluna: forms.coluna
   }, idEmpresa?.id)
   cancelarFormulario();
+  formularioAberto.value = false;
+  toast.success("Localização cadastrada com sucesso!");
 };
 
 /**
@@ -282,6 +288,8 @@ const editarItem = (item) => {
   editando.value = true
   itemSelecionado.value = item.id;
   Object.assign(forms, item)
+  const alm = almoxStore.almoxarifados.find(a => a.id === item.id_almoxarifado)
+  descalmx.value = alm?.descalmoxarifado || item.id_almoxarifado
   formularioAberto.value = true
 };
 
@@ -305,14 +313,15 @@ const confirmarExclusao = async () => {
 
   await localizacoesStore.deletarLocalizacao(idEmpresa?.id, itemSelecionado.value?.id);
   cancelarModalExcluir();
+  toast.success("Localização excluída com sucesso!");
 };
 
 /**
  * Carregar dados das APIs
  */
-watchEffect(async () => {
+onMounted(() => {
   if (localizacoesStore.localizacoes.length === 0) {
-    await localizacoesStore.buscarLocalizacoes(idEmpresa?.id);
+    localizacoesStore.buscarLocalizacoes(idEmpresa?.id);
   }
 })
 </script>

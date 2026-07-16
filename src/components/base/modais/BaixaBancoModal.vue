@@ -84,54 +84,50 @@
               <v-row dense>
                 <v-col cols="6" md="3">
                   <v-text-field
-                    v-model="formData.vlrNormal_display"
+                    v-model="formData.vlrNormal"
+                    v-mask-decimal.br="2"
                     label="Vlr Normal"
                     variant="outlined"
                     density="compact"
                     prefix="R$"
                     class="campo-valor"
                     :class="{ 'campo-valor-dark': themeStore.darkMode }"
-                    @update:model-value="(val) => updateCurrencyField('vlrNormal', val)"
-                    @blur="() => formatCurrencyField('vlrNormal')"
                   />
                 </v-col>
                 <v-col cols="6" md="3">
                   <v-text-field
-                    v-model="formData.juros_display"
+                    v-model="formData.juros"
+                    v-mask-decimal.br="2"
                     label="Juros"
                     variant="outlined"
                     density="compact"
                     prefix="R$"
                     class="campo-valor"
                     :class="{ 'campo-valor-dark': themeStore.darkMode }"
-                    @update:model-value="(val) => updateCurrencyField('juros', val)"
-                    @blur="() => formatCurrencyField('juros')"
                   />
                 </v-col>
                 <v-col cols="6" md="3">
                   <v-text-field
-                    v-model="formData.multa_display"
+                    v-model="formData.multa"
+                    v-mask-decimal.br="2"
                     label="Multa"
                     variant="outlined"
                     density="compact"
                     prefix="R$"
                     class="campo-valor"
                     :class="{ 'campo-valor-dark': themeStore.darkMode }"
-                    @update:model-value="(val) => updateCurrencyField('multa', val)"
-                    @blur="() => formatCurrencyField('multa')"
                   />
                 </v-col>
                 <v-col cols="6" md="3">
                   <v-text-field
-                    v-model="formData.desconto_display"
+                    v-model="formData.desconto"
+                    v-mask-decimal.br="2"
                     label="Desconto"
                     variant="outlined"
                     density="compact"
                     prefix="R$"
                     class="campo-valor"
                     :class="{ 'campo-valor-dark': themeStore.darkMode }"
-                    @update:model-value="(val) => updateCurrencyField('desconto', val)"
-                    @blur="() => formatCurrencyField('desconto')"
                   />
                 </v-col>
               </v-row>
@@ -253,14 +249,10 @@ const formData = reactive({
   titular: '',
   cedente: '',
   observacao: '',
-  vlrNormal: 0,
-  vlrNormal_display: 'R$ 0,00',
-  juros: 0,
-  juros_display: 'R$ 0,00',
-  multa: 0,
-  multa_display: 'R$ 0,00',
-  desconto: 0,
-  desconto_display: 'R$ 0,00',
+  vlrNormal: '',
+  juros: '',
+  multa: '',
+  desconto: '',
   dtPagamento: new Date().toISOString().substr(0, 10)
 })
 
@@ -269,9 +261,23 @@ const rules = {
   required: (value) => !!value || 'Campo obrigatório'
 }
 
+// Helpers de moeda BR
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 // Computed
 const totalAPagar = computed(() => {
-  return formData.vlrNormal + formData.juros + formData.multa - formData.desconto
+  return (parseDecimalBR(formData.vlrNormal) || 0)
+    + (parseDecimalBR(formData.juros) || 0)
+    + (parseDecimalBR(formData.multa) || 0)
+    - (parseDecimalBR(formData.desconto) || 0)
 })
 
 const totalComp = computed(() => {
@@ -286,8 +292,7 @@ const vlrRestante = computed(() => {
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     // Inicializar com valor total quando abrir modal
-    formData.vlrNormal = props.valorTotal
-    formData.vlrNormal_display = formatCurrencyBR(props.valorTotal)
+    formData.vlrNormal = formatDecimalBR(props.valorTotal)
   }
 })
 
@@ -346,43 +351,19 @@ const selecionarConta = (id) => {
   }
 }
 
-// Funções de formatação
+// Funções de formatação (para exibição nos totais)
 const formatarMoeda = (valor) => {
   if (!valor && valor !== 0) return 'R$ 0,00'
-  
+
   const numero = parseFloat(valor)
   if (isNaN(numero)) return 'R$ 0,00'
-  
+
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(numero)
-}
-
-const formatCurrencyBR = (value) => {
-  const numero = Number(value) || 0
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numero)
-}
-
-const parseCurrencyBR = (str) => {
-  if (str === null || str === undefined) return 0
-  if (typeof str === 'number') return str
-  const s = String(str)
-  const cleaned = s.replace(/R\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.')
-  const n = parseFloat(cleaned.replace(/[^[0-9\-.]/g, ''))
-  return isNaN(n) ? 0 : n
-}
-
-// Handlers
-const updateCurrencyField = (field, val) => {
-  formData[field + '_display'] = val
-  formData[field] = parseCurrencyBR(val)
-}
-
-const formatCurrencyField = (field) => {
-  formData[field + '_display'] = formatCurrencyBR(formData[field])
 }
 
 const confirmarBaixa = () => {
@@ -397,15 +378,15 @@ const confirmarBaixa = () => {
     titular: formData.titular,
     cedente: formData.cedente,
     observacao: formData.observacao,
-    vlrNormal: formData.vlrNormal,
-    juros: formData.juros,
-    multa: formData.multa,
-    desconto: formData.desconto,
+    vlrNormal: parseDecimalBR(formData.vlrNormal),
+    juros: parseDecimalBR(formData.juros),
+    multa: parseDecimalBR(formData.multa),
+    desconto: parseDecimalBR(formData.desconto),
     total: totalAPagar.value,
     dtPagamento: formData.dtPagamento,
     contasSelecionadas: props.contasSelecionadas
   }
-  
+
   emit('confirmar', dadosBaixa)
 }
 </script>

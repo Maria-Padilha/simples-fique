@@ -64,6 +64,7 @@ import {useProdutosStore} from "@/stores/APIs/produtos";
 import {usePessoasStore} from "@/stores/APIs/pessoas";
 import {useLocalizacaoStore} from "@/stores/APIs/localizacao";
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
+import {toast} from "vue3-toastify";
 
 const localizacaoStore = useLocalizacaoStore();
 const produtosStore = useProdutosStore();
@@ -83,8 +84,8 @@ const headers = ref([
   {title: 'ID', key: 'id'},
   {title: 'Fornecedor', key: 'nome_razao'},
   {title: 'C.F.O.P', key: 'id_cfop'},
-  {title: 'Nota', key: 'id_nota'},
-  {title: 'Série', key: 'id_serie'},
+  {title: 'Nota', key: 'numero_nf'},
+  {title: 'Série', key: 'serie_nf'},
   {title: 'Importação XML', key: 'importacaoxml'},
   {title: 'Valor NF', key: 'vlr_nf'},
   {title: 'Ações', key: 'acoes', sortable: false},
@@ -108,6 +109,13 @@ const cancelarModal = () => {
 
 const deletarEntrada = async () => {
   await produtosStore.deletarEntradaDfe(idEmpresa?.id ?? 1, itemSelecionado.value.id);
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  toast.success("Entrada cancelada com sucesso!");
   abrirModal.value = false;
   itemSelecionado.value = {};
 };

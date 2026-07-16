@@ -81,7 +81,7 @@
 <script setup>
 import BuscaPadraoMenu from "@/components/base/menu/BuscaPadraoMenu.vue";
 import CadastrarModal from "@/components/base/modais/CadastrarModal.vue";
-import {ref, computed, defineEmits, watch, watchEffect} from "vue";
+import {ref, computed, defineEmits, watch, onMounted} from "vue";
 import {useProdutosStore} from "@/stores/APIs/produtos";
 import { toast } from "vue3-toastify";
 
@@ -100,7 +100,7 @@ const garantias = computed(() => garantiaStore.garantias);
 const tipoGarantia = computed(() => garantiaStore.tiposGarantiasObj);
 const loading = computed(() => garantiaStore.loading)
 
-watchEffect(() => {
+onMounted(() => {
   if (garantias.value.length === 0) {
     garantiaStore.buscarGarantias("", 15);
   }
@@ -138,13 +138,9 @@ const cadastrargarantia = async () => {
   }
 
   await garantiaStore.cadastrarGarantia({
-    data: [
-      {
-        descgarantia: garantia.value,
-        tipo: tipo.value,
-        quantidade: quantidade.value
-      }
-    ]
+    descgarantia: garantia.value,
+    tipo: tipo.value,
+    quantidade: quantidade.value
   })
 
   if (!garantiaStore.errorMessage) cadastrarModal.value = false;

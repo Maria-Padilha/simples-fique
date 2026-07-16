@@ -5,11 +5,13 @@
       <v-sheet class="bg-transparent">
         <v-tabs v-model="tab" color="var(--text-color-laranja)">
           <v-tab value="one">Produtos</v-tab>
+          <v-tab value="preco">Preço</v-tab>
           <v-tab value="tributo">Tributo</v-tab>
           <v-tab value="emb">Embalagem</v-tab>
           <v-tab value="for">Fornecedor</v-tab>
           <v-tab value="sim">Produtos Similares</v-tab>
           <v-tab value="img">Imagens</v-tab>
+          <v-tab v-if="forms.utiliza_grade === 'S'" value="grade">Grade</v-tab>
         </v-tabs>
 
         <v-tabs-window v-model="tab">
@@ -315,6 +317,201 @@
             </v-form>
           </v-tabs-window-item>
 
+          <v-tabs-window-item value="preco">
+            <v-card elevation="0" class="background-secondary mt-10">
+              <v-card-text class="pa-4">
+                <v-form ref="formRefPreco">
+                  <v-row>
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Custo de Compra"
+                          prefix="R$"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.custo_compra"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Custo Médio"
+                          prefix="R$"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.custo_medio"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Custo de Aquisição"
+                          prefix="R$"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.custo_aquisicao"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Margem Lucro Líquido"
+                          suffix="%"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.margem_lucro_liquido"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Preço de Venda"
+                          prefix="R$"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.preco_venda"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Preço de Venda Sugerido"
+                          prefix="R$"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.preco_venda_sugerido"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Preço de Garantia"
+                          prefix="R$"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.preco_garantia"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="% Desconto"
+                          suffix="%"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.perc_desconto"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Comissão (%)"
+                          suffix="%"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.comissao_perc"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Comissão (R$)"
+                          prefix="R$"
+                          type="text"
+                          inputmode="decimal"
+                          hide-details="auto"
+                          v-model="formsPreco.comissao_vlr"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Quantidade Mínima"
+                          type="number"
+                          min="0"
+                          hide-details="auto"
+                          v-model="formsPreco.quantidade_minima"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3">
+                      <v-text-field
+                          density="compact"
+                          variant="outlined"
+                          label="Fator"
+                          type="number"
+                          min="0"
+                          hide-details="auto"
+                          v-model="formsPreco.fator"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" md="3" class="d-flex align-center">
+                      <v-switch
+                          hide-details="auto"
+                          :label="`Permite Estoque Negativo? ${formsPreco.permite_estoque_negativo === 'S' ? 'Sim' : 'Não'}`"
+                          v-model="permiteEstoqueNegativo"
+                          color="var(--text-color-laranja)"
+                      />
+                    </v-col>
+                  </v-row>
+
+                  <div class="d-flex justify-end mt-6">
+                    <v-btn
+                        class="text-none text-white" color="var(--text-color-laranja)" variant="flat"
+                        @click="salvarPreco" :loading="produtosStore.loading"
+                        prepend-icon="mdi-content-save-outline"
+                    >
+                      Salvar Preço
+                    </v-btn>
+                  </div>
+                </v-form>
+              </v-card-text>
+            </v-card>
+          </v-tabs-window-item>
+
           <v-tabs-window-item value="tributo">
             <v-card elevation="0" class="background-secondary mt-10">
               <v-card-text class="pa-4">
@@ -364,12 +561,10 @@
 
                       <v-col cols="12" md="4">
                         <v-autocomplete
-                            :readonly="formsTributo.incidenciafisca !== '02'"
+                            :readonly="formsTributo.incidenciafiscal !== '02'"
                             density="compact"
                             variant="outlined"
                             label="CEST"
-                            type="number"
-                            min="0"
                             hide-details="auto"
                             :items="cests"
                             item-title="descricao"
@@ -415,7 +610,7 @@
                   :search="search"
                   @update:search="(value) => search = value"
                   search-label="Pesquisar Items"
-                  item-key="id"
+                  item-key="id_produto"
                   no-data-icon="mdi-database-off"
                   no-data-text="Nenhum item encontrado"
 
@@ -632,7 +827,7 @@
                   :search="search"
                   @update:search="(value) => search = value"
                   search-label="Pesquisar Items"
-                  item-key="id"
+                  item-key="id_pessoa"
                   no-data-icon="mdi-database-off"
                   no-data-text="Nenhum item encontrado"
 
@@ -825,7 +1020,7 @@
                   <v-row v-if="!loadingFotos && fotosR2.length > 0">
                     <v-col
                         v-for="foto in fotosR2"
-                        :key="foto.key"
+                        :key="foto.id"
                         cols="12"
                         sm="6"
                         md="4"
@@ -840,7 +1035,16 @@
                             :src="foto.url"
                             height="150"
                             cover
-                        />
+                        >
+                          <v-btn
+                              icon="mdi-delete"
+                              size="small"
+                              color="error"
+                              variant="flat"
+                              class="ma-2"
+                              @click.stop="excluirFotoSalva(foto.id)"
+                          />
+                        </v-img>
 
                         <v-card-text class="pa-3">
                           <div class="text-caption text-truncate">
@@ -874,6 +1078,414 @@
               </v-card-text>
             </v-card>
           </v-tabs-window-item>
+
+          <!-- ABA GRADE -->
+          <v-tabs-window-item value="grade">
+            <v-card elevation="0" class="background-secondary mt-10">
+              <v-card-text class="pa-4">
+                <div v-if="loadingGradeMatriz" class="d-flex justify-center py-8">
+                  <v-progress-circular indeterminate color="var(--text-color-laranja)" />
+                </div>
+
+                <template v-else>
+                  <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-3">
+                    <v-autocomplete
+                        density="compact"
+                        variant="outlined"
+                        label="Localização"
+                        item-title="descricao"
+                        item-value="id"
+                        :items="locais"
+                        v-model="gradeLocalizacao"
+                        hide-details="auto"
+                        style="max-width: 320px;"
+                    />
+
+                    <v-btn
+                        class="text-none text-white"
+                        color="var(--text-color-laranja)"
+                        variant="flat"
+                        prepend-icon="mdi-content-save-outline"
+                        size="small"
+                        :loading="salvandoGradeMatriz"
+                        @click="salvarGradeMatriz"
+                    >
+                      Salvar Alterações
+                    </v-btn>
+                  </div>
+
+                  <v-sheet class="grade-erp" rounded="lg" border>
+                    <div class="grade-erp__top mb-6">
+                      <div>
+                        <div class="text-subtitle-1 font-weight-medium">Grade de Cores x Tamanhos</div>
+                        <div class="text-caption opacity-70">Adicione cores e tamanhos e informe as quantidades.</div>
+                      </div>
+
+                      <v-chip size="small" variant="flat" color="var(--text-color-laranja)" class="text-white">
+                        Combinações: {{ totalCombinacoes }}
+                      </v-chip>
+                    </div>
+
+                    <div class="grade-erp__body">
+                      <!-- CORES (esquerda) -->
+                      <div class="grade-erp__left">
+                        <div class="h-[44px] mb-1" />
+
+                        <div class="grade-erp__left-title">
+                          <span class="text-caption font-weight-medium">CORES</span>
+                        </div>
+
+                        <div class="grade-erp__left-list">
+                          <div
+                              v-for="corId in matrizGrade.cores"
+                              :key="corId"
+                              class="grade-erp__left-item"
+                          >
+                            <div class="d-flex align-center gap-2">
+                              <span class="cor-dot" :style="{ background: getCor(corId)?.cor_hexa || '#999' }" />
+                              <span class="text-body-2 font-weight-medium">{{ getCor(corId)?.descricao || `Cor ${corId}` }}</span>
+                            </div>
+
+                            <v-btn
+                                icon="mdi-close"
+                                size="x-small"
+                                variant="text"
+                                @click="removeCor(corId)"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="grade-erp__left-add">
+                          <v-select
+                              density="compact"
+                              variant="outlined"
+                              placeholder="Selecione"
+                              :items="coresDisponiveis"
+                              item-title="descricao"
+                              item-value="id"
+                              v-model="selectCor"
+                              hide-details
+                          >
+                            <template #selection="{ item }">
+                              <div class="d-flex align-center gap-2">
+                                <span class="cor-dot" :style="{ background: item.raw?.cor_hexa || '#999' }" />
+                                <span>{{ item.raw?.descricao }}</span>
+                              </div>
+                            </template>
+
+                            <template #item="{ props, item }">
+                              <v-list-item v-bind="props">
+                                <template #prepend>
+                                  <span class="cor-dot" :style="{ background: item.raw?.cor_hexa || '#999' }" />
+                                </template>
+                              </v-list-item>
+                            </template>
+
+                            <template #append-item>
+                              <v-divider class="my-2" />
+                              <div class="px-3 pb-2">
+                                <v-btn
+                                    block
+                                    variant="tonal"
+                                    color="var(--text-color-laranja)"
+                                    prepend-icon="mdi-plus"
+                                    @click="abrirModalNovaCor"
+                                >
+                                  Adicionar Cor
+                                </v-btn>
+                              </div>
+                            </template>
+                          </v-select>
+
+                          <v-btn
+                              class="grade-erp__btn-plus"
+                              icon="mdi-plus"
+                              variant="tonal"
+                              size="small"
+                              :disabled="selectCor === null || selectCor === '' || selectCor === undefined"
+                              @click="addCor"
+                          />
+                        </div>
+                      </div>
+
+                      <!-- TAMANHOS + GRID (direita) -->
+                      <div class="grade-erp__right">
+                        <div class="grade-erp__right-header mb-3">
+                          <span class="text-caption font-weight-medium" style="color: var(--text-color-laranja);">TAMANHOS</span>
+                          <v-select
+                              density="compact"
+                              variant="outlined"
+                              placeholder="Filtrar por tipo"
+                              :items="tiposTamanhoLista"
+                              item-title="title"
+                              item-value="value"
+                              v-model="filtroTipoTamanho"
+                              hide-details
+                              clearable
+                              multiple
+                              chips
+                              closable-chips
+                              class="grade-erp__filtro-tipo"
+                              style="max-width: 260px;"
+                          />
+                        </div>
+
+                        <div
+                            class="grade-erp__sizes"
+                            :style="{ gridTemplateColumns: `repeat(${Math.max(matrizGrade.tamanhos.length, 1)}, 120px) 240px` }"
+                        >
+                          <div
+                              v-for="tam in matrizGrade.tamanhos"
+                              :key="tam.id"
+                              class="grade-erp__size-cell"
+                          >
+                            <span>{{ tam.descricao }}</span>
+                            <div class="d-flex">
+                              <v-btn
+                                  icon="mdi-pencil"
+                                  size="x-small"
+                                  variant="text"
+                                  @click="editarTamanho(tam)"
+                              />
+                              <v-btn
+                                  icon="mdi-delete"
+                                  size="x-small"
+                                  variant="text"
+                                  color="error"
+                                  @click="excluirTamanho(tam)"
+                              />
+                              <v-btn
+                                  icon="mdi-close"
+                                  size="x-small"
+                                  variant="text"
+                                  @click="removeTamanho(tam.id)"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="grade-erp__size-add">
+                            <v-select
+                                density="compact"
+                                variant="outlined"
+                                placeholder="Selecione um tamanho"
+                                :items="tamanhosNaoAdicionados"
+                                item-title="descricao"
+                                item-value="id"
+                                v-model="selectTamanho"
+                                hide-details
+                            />
+                            <v-btn
+                                class="grade-erp__btn-plus"
+                                icon="mdi-plus"
+                                size="small"
+                                variant="tonal"
+                                :disabled="!selectTamanho"
+                                @click="addTamanho"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="grade-erp__grid-wrap">
+                          <div
+                              class="grade-erp__grid"
+                              :style="{ gridTemplateColumns: `repeat(${matrizGrade.tamanhos.length}, 120px)` }"
+                          >
+                            <template v-for="corId in matrizGrade.cores" :key="corId">
+                              <div
+                                  v-for="tam in matrizGrade.tamanhos"
+                                  :key="`${corId}-${tam.id}`"
+                                  class="grade-erp__cell"
+                              >
+                                <v-text-field
+                                    density="compact"
+                                    variant="outlined"
+                                    type="number"
+                                    min="0"
+                                    hide-details
+                                    class="grade-erp__input mt-3"
+                                    v-model.number="matrizGrade.qtd[Number(corId)][tam.id]"
+                                />
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+
+                        <v-alert
+                            v-if="matrizGrade.cores.length === 0 || matrizGrade.tamanhos.length === 0"
+                            type="info"
+                            variant="tonal"
+                            density="compact"
+                            class="mt-3"
+                        >
+                          Adicione pelo menos <b>1 cor</b> e <b>1 tamanho</b> para liberar a grade.
+                        </v-alert>
+                      </div>
+                    </div>
+                  </v-sheet>
+
+                  <v-divider class="my-6" />
+
+                  <div class="text-subtitle-1 font-weight-medium mb-3">Produtos da Grade</div>
+
+                  <tabela-padrao
+                      :headers="headersGradeLista"
+                      :items="gradeListaAtual"
+                      :loading="loadingGradeMatriz"
+                      :search="search"
+                      @update:search="(value) => (search = value)"
+                      search-label="Pesquisar na grade"
+                      item-key="id"
+                      no-data-icon="mdi-view-grid-outline"
+                      no-data-text="Nenhuma cor/tamanho adicionado ainda"
+                  >
+                    <template v-slot:[`item.desccor`]="{ item }">
+                      <div class="d-flex align-center">
+                        <span class="cor-dot" :style="{ background: item.cor_hexa }" />
+                        <span>{{ item.desccor }}</span>
+                      </div>
+                    </template>
+                  </tabela-padrao>
+                </template>
+              </v-card-text>
+            </v-card>
+
+            <!-- CADASTRAR / EDITAR COR -->
+            <cadastrar-modal
+                v-model:cadastrar-modal="modalNovaCor"
+                :clear-input="resetNovaCor"
+                :cadastrarcidade="salvarOuEditarCor"
+                :width="450"
+                :loading="produtosStore.loading"
+                :titulo-acao="modoCor === 'edit' ? 'Editar' : 'Cadastrar'"
+                :texto-botao="modoCor === 'edit' ? 'Salvar alterações' : 'Cadastrar'"
+                :icone-botao="modoCor === 'edit' ? 'mdi-content-save-outline' : 'mdi-plus-circle-outline'"
+            >
+              <template #titulo>Cor</template>
+
+              <template #textfields>
+                <v-row dense class="px-4 py-5">
+                  <v-col cols="12" class="mb-2">
+                    <v-text-field
+                        density="compact"
+                        variant="outlined"
+                        label="Descrição"
+                        v-model="novaCor.descricao"
+                        placeholder="Ex: AMARELO"
+                        hide-details="auto"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-select
+                        density="compact"
+                        variant="outlined"
+                        label="Cor Denatran"
+                        :items="coresDenatran"
+                        item-title="title"
+                        item-value="value"
+                        v-model="novaCor.id_cor_denatran"
+                        hide-details="auto"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                        density="compact"
+                        variant="outlined"
+                        label="Cor HEX"
+                        v-model="novaCor.cor_hexa"
+                        placeholder="#FFFF00"
+                        hide-details="auto"
+                    >
+                      <template #append-inner>
+                    <span
+                        class="cor-dot"
+                        :style="{ background: novaCor.cor_hexa || '#999' }"
+                    />
+                      </template>
+                    </v-text-field>
+                  </v-col>
+
+                  <v-col cols="12">
+                    <v-color-picker
+                        width="100%"
+                        class="mt-2"
+                        v-model="novaCor.cor_hexa"
+                        hide-inputs
+                        elevation="0"
+                    />
+                  </v-col>
+                </v-row>
+              </template>
+            </cadastrar-modal>
+
+            <!-- CADASTRAR / EDITAR TAMANHO -->
+            <cadastrar-modal
+                v-model:cadastrar-modal="modalNovoTamanho"
+                :clear-input="resetNovoTamanho"
+                :cadastrarcidade="salvarOuEditarTamanho"
+                :width="400"
+                :loading="estoqueStore.loading"
+                :titulo-acao="modoTamanho === 'edit' ? 'Editar' : 'Cadastrar'"
+                :texto-botao="modoTamanho === 'edit' ? 'Salvar alterações' : 'Cadastrar'"
+                :icone-botao="modoTamanho === 'edit' ? 'mdi-content-save-outline' : 'mdi-plus-circle-outline'"
+            >
+              <template #titulo>Tamanho</template>
+
+              <template #textfields>
+                <v-row dense class="px-4 py-5">
+                  <v-col cols="12">
+                    <v-text-field
+                        density="compact"
+                        variant="outlined"
+                        label="Descrição *"
+                        v-model="novoTamanhoForm.descricao"
+                        placeholder="Ex: P, M, G, 38, 42"
+                        maxlength="30"
+                        counter="30"
+                        hide-details="auto"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-select
+                        density="compact"
+                        variant="outlined"
+                        label="Tipo"
+                        :items="tiposTamanho"
+                        item-title="title"
+                        item-value="value"
+                        v-model="novoTamanhoForm.tipo"
+                        hide-details="auto"
+                        clearable
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                        density="compact"
+                        variant="outlined"
+                        label="Ordem"
+                        v-model.number="novoTamanhoForm.ordem"
+                        type="number"
+                        min="0"
+                        hide-details="auto"
+                    />
+                  </v-col>
+                </v-row>
+              </template>
+            </cadastrar-modal>
+
+            <!-- EXCLUIR TAMANHO -->
+            <excluir-modal
+                v-model:modal-excluir="modalExcluirTamanho"
+                :cancelar="cancelarExclusaoTamanho"
+                :deletar="confirmarExclusaoTamanho"
+                :loading="estoqueStore.loading"
+            >
+              <template #item>{{ tamanhoExcluir?.descricao }}</template>
+            </excluir-modal>
+          </v-tabs-window-item>
         </v-tabs-window>
       </v-sheet>
 
@@ -906,12 +1518,22 @@
       >
         <template #item>{{ itemSelecionadoSimilar?.descproduto }}</template>
       </excluir-modal>
+
+      <!-- DELETAR TRIBUTO -->
+      <excluir-modal
+          :cancelar="() => openModalDeleteTributo = false"
+          :deletar="excluirTributo"
+          :loading="produtosStore.loading"
+          v-model:modal-excluir="openModalDeleteTributo"
+      >
+        <template #item>Tributo do produto</template>
+      </excluir-modal>
     </template>
   </top-all-pages>
 </template>
 
 <script setup>
-import {useRoute} from "vue-router";
+import {useRoute, useRouter} from "vue-router";
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 import {useProdutosStore} from "@/stores/APIs/produtos";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
@@ -928,9 +1550,10 @@ import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import BotaoExpandTransition from "@/components/base/padrao-paginas/BotaoExpandTransition.vue";
 import FormsExpandTransition from "@/components/base/padrao-paginas/FormsExpandTransition.vue";
 import TabelaPadrao from "@/components/base/padrao-paginas/TabelaPadrao.vue";
-import axios from "axios";
+import { toast } from "vue3-toastify";
 
 const route = useRoute();
+const router = useRouter();
 const produtosStore = useProdutosStore();
 const estoqueStore = useEstoqueStore();
 const themeStore = useThemeStore();
@@ -941,7 +1564,7 @@ const idEmpresa = JSON.parse(localStorage.getItem('empresaSelecionada'));
 
 // STATE
 const openModalDelete = ref(false);
-const tab = ref('img');
+const tab = ref('one');
 const validacao = [(v) => !!v || 'Campo obrigatório'];
 const forms = computed(() => produtosStore.produto || {});
 
@@ -1074,7 +1697,15 @@ const buscarSubgrupos = async (id_grupo) => {
 
 const excluirProduto = async () => {
   await produtosStore.deletarProduto(id);
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
   openModalDelete.value = false;
+  toast.success('Produto excluído com sucesso!');
+  router.push('/paginas/produtos');
 };
 
 /**
@@ -1082,7 +1713,16 @@ const excluirProduto = async () => {
  */
 
 const atualizarProduto = async () => {
+  forms.value.ativo = 'S';
+
   await produtosStore.atualizarProduto(id, forms.value);
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  toast.success("Produto atualizado com sucesso!");
 };
 
 /** ================== EMBALAGENS ================== **/
@@ -1215,7 +1855,7 @@ const buscarPessoa = (id) => {
 };
 
 const headersFor = [
-  {title: 'ID', key: 'id'},
+  {title: 'ID', key: 'id_pessoa_display', value: (item) => item.id_pessoa},
   {title: 'Nome do Fornecedor', key: 'id_pessoa'},
   {title: 'Nota', key: 'id_nota'},
   {title: 'Data última compra', key: 'dtultima_compra'},
@@ -1232,7 +1872,9 @@ const itemSelecionadoFor = ref(null);
 
 const editarFor = (item) => {
   itemSelecionadoFor.value = item;
-  Object.assign(formsFornecedor, item)
+  Object.assign(formsFornecedor, item, {
+    dtultima_compra: item.dtultima_compra ? item.dtultima_compra.slice(0, 10) : null,
+  });
   editandoFor.value = true;
   formularioAbertoFor.value = true;
 };
@@ -1342,6 +1984,465 @@ const salvarFormularioSimilar = async () => {
   cancelarFormularioSimilar();
 };
 
+/** ================ GRADE (MATRIZ) ================ **/
+// Mesmo construtor de grade (cores x tamanhos) da tela "Grade de Produtos",
+// pré-carregado com a grade já salva deste produto para permitir alteração.
+
+const cores = computed(() => produtosStore.cores || []);
+const locais = computed(() => produtosStore.localizacoes || []);
+const tamanhosDisponiveis = computed(() => estoqueStore.tamanhos || []);
+
+const gradeMatriz = computed(() => produtosStore.gradeMatriz);
+const loadingGradeMatriz = ref(false);
+const salvandoGradeMatriz = ref(false);
+const gradeLocalizacao = ref(null);
+
+const matrizGrade = reactive({
+  cores: [],      // array de ids de cor
+  tamanhos: [],   // array de objetos { id, origem, descricao }
+  qtd: {},        // { [idCor]: { [tamanhoId]: number } }
+});
+
+const selectCor = ref(null);
+const selectTamanho = ref(null);
+const filtroTipoTamanho = ref(null);
+
+const tiposTamanhoLista = [
+  { title: 'Vestuário BR', value: 'vestuario_br' },
+  { title: 'Vestuário Inglês', value: 'vestuario_ingles' },
+  { title: 'Numérico', value: 'numerico' },
+  { title: 'Idade', value: 'idade' },
+];
+
+const coresDisponiveis = computed(() => cores.value.filter(c => !matrizGrade.cores.includes(Number(c.id))));
+
+const tamanhosNaoAdicionados = computed(() => {
+  const idsExistentes = matrizGrade.tamanhos.map(t => t.id);
+  return tamanhosDisponiveis.value.filter(t => {
+    if (idsExistentes.includes(t.id)) return false;
+    if (filtroTipoTamanho.value && filtroTipoTamanho.value.length > 0) {
+      if (!filtroTipoTamanho.value.includes(t.tipo)) return false;
+    }
+    return true;
+  });
+});
+
+function ensureCell(corId, tamanhoId) {
+  const cid = Number(corId);
+  const tid = Number(tamanhoId);
+  if (!matrizGrade.qtd[cid]) matrizGrade.qtd[cid] = {};
+  if (matrizGrade.qtd[cid][tid] === undefined) matrizGrade.qtd[cid][tid] = 0;
+}
+
+function ensureMatrix() {
+  if (!matrizGrade.cores.length || !matrizGrade.tamanhos.length) return;
+  matrizGrade.cores.forEach((corId) => {
+    matrizGrade.tamanhos.forEach((tam) => ensureCell(corId, tam.id));
+  });
+}
+
+function addCor() {
+  if (selectCor.value === null || selectCor.value === undefined || selectCor.value === "") return;
+
+  const corId = Number(selectCor.value);
+  if (Number.isNaN(corId) || matrizGrade.cores.includes(corId)) return;
+
+  matrizGrade.cores.push(corId);
+  selectCor.value = null;
+  ensureMatrix();
+}
+
+function removeCor(corId) {
+  const cid = Number(corId);
+  matrizGrade.cores = matrizGrade.cores.filter((id) => Number(id) !== cid);
+  delete matrizGrade.qtd[cid];
+}
+
+function getCor(corId) {
+  const cid = Number(corId);
+  return cores.value.find((c) => Number(c.id) === cid) || null;
+}
+
+function addTamanho() {
+  if (!selectTamanho.value) return;
+
+  const tamanho = tamanhosDisponiveis.value.find(t => t.id === selectTamanho.value);
+  if (!tamanho) return;
+  if (matrizGrade.tamanhos.some(t => t.id === tamanho.id)) return;
+
+  matrizGrade.tamanhos.push({ ...tamanho });
+  selectTamanho.value = null;
+  ensureMatrix();
+}
+
+function removeTamanho(tamanhoId) {
+  const tid = Number(tamanhoId);
+  matrizGrade.tamanhos = matrizGrade.tamanhos.filter((t) => t.id !== tid);
+  Object.keys(matrizGrade.qtd).forEach((corId) => {
+    if (matrizGrade.qtd[corId]) delete matrizGrade.qtd[corId][tid];
+  });
+}
+
+const totalCombinacoes = computed(() => {
+  let total = 0;
+  matrizGrade.cores.forEach((corId) => {
+    matrizGrade.tamanhos.forEach((tam) => {
+      if (Number(matrizGrade.qtd?.[Number(corId)]?.[tam.id] ?? 0) > 0) total++;
+    });
+  });
+  return total;
+});
+
+// Lista (cor, tamanho, quantidade) das combinações atualmente na matriz —
+// reage em tempo real a cores/tamanhos adicionados ou removidos.
+const headersGradeLista = [
+  { title: 'Cor', key: 'desccor' },
+  { title: 'Tamanho', key: 'tamanho_descricao' },
+  { title: 'Quantidade', key: 'qtd' },
+];
+
+const gradeListaAtual = computed(() => {
+  const linhas = [];
+  matrizGrade.cores.forEach((corId) => {
+    matrizGrade.tamanhos.forEach((tam) => {
+      const cor = getCor(corId);
+      linhas.push({
+        id: `${corId}_${tam.id}`,
+        id_cor: corId,
+        desccor: cor?.descricao || `Cor ${corId}`,
+        cor_hexa: cor?.cor_hexa || '#999',
+        id_tamanho: tam.id,
+        tamanho_descricao: tam.descricao,
+        qtd: Number(matrizGrade.qtd?.[Number(corId)]?.[tam.id] ?? 0),
+      });
+    });
+  });
+  return linhas;
+});
+
+function resetMatrizGrade() {
+  matrizGrade.cores = [];
+  matrizGrade.tamanhos = [];
+  matrizGrade.qtd = {};
+  selectCor.value = null;
+  selectTamanho.value = null;
+  filtroTipoTamanho.value = null;
+}
+
+// Preenche a matriz com a grade já salva do produto (cores, tamanhos e
+// quantidades), permitindo alterar ou acrescentar mais cores/tamanhos.
+function preencherMatrizComGradeSalva() {
+  resetMatrizGrade();
+
+  const matriz = gradeMatriz.value;
+  gradeLocalizacao.value = matriz?.itens?.[0]?.id_localizacao || null;
+  if (!matriz) return;
+
+  (matriz.cores || []).forEach((cor) => {
+    const corId = Number(cor.id_cor);
+    if (!matrizGrade.cores.includes(corId)) matrizGrade.cores.push(corId);
+  });
+
+  (matriz.tamanhos || []).forEach((tam) => {
+    if (!matrizGrade.tamanhos.some(t => t.id === tam.id_tamanho)) {
+      matrizGrade.tamanhos.push({
+        id: tam.id_tamanho,
+        origem: tam.origem_tamanho,
+        descricao: tam.descricao,
+      });
+    }
+  });
+
+  ensureMatrix();
+
+  (matriz.itens || []).forEach((item) => {
+    ensureCell(item.id_cor, item.id_tamanho);
+    matrizGrade.qtd[Number(item.id_cor)][Number(item.id_tamanho)] = Number(item.qtd) || 0;
+  });
+}
+
+async function buscarGradeMatriz() {
+  loadingGradeMatriz.value = true;
+
+  const produto = forms.value;
+  const almoId = produto?.referenciados_produto_almoxarifado_por_produto?.[0]?.referencia_almoxarifado?.id;
+
+  if (almoId) {
+    await produtosStore.buscarGradeMatriz(idEmpresa?.id, id, almoId);
+  }
+
+  preencherMatrizComGradeSalva();
+
+  loadingGradeMatriz.value = false;
+}
+
+async function salvarGradeMatriz() {
+  const produto = forms.value;
+  const almoId = produto?.referenciados_produto_almoxarifado_por_produto?.[0]?.referencia_almoxarifado?.id;
+
+  if (!almoId) {
+    toast.warning('Produto não possui almoxarifado vinculado');
+    return;
+  }
+
+  const itens = [];
+  matrizGrade.cores.forEach((corId) => {
+    matrizGrade.tamanhos.forEach((tam) => {
+      const qtd = Number(matrizGrade.qtd?.[Number(corId)]?.[tam.id] ?? 0);
+      if (qtd > 0) {
+        itens.push({
+          id_cor: Number(corId),
+          id_tamanho: tam.id,
+          origem_tamanho: tam.origem || '',
+          qtd,
+        });
+      }
+    });
+  });
+
+  if (!itens.length) {
+    toast.warning('Preencha a quantidade de pelo menos uma combinação de cor e tamanho');
+    return;
+  }
+
+  salvandoGradeMatriz.value = true;
+
+  const payload = {
+    id_localizacao: gradeLocalizacao.value || null,
+    itens,
+  };
+
+  const ok = await produtosStore.atualizarGradeMatriz(idEmpresa?.id, id, almoId, payload);
+
+  salvandoGradeMatriz.value = false;
+
+  if (!ok) {
+    toast.error(produtosStore.errorMessage || 'Erro ao salvar grade');
+    return;
+  }
+
+  await buscarGradeMatriz();
+  toast.success('Grade atualizada com sucesso!');
+}
+
+// =========================
+// CADASTRAR / EDITAR COR
+// =========================
+const modalNovaCor = ref(false);
+const editandoCorId = ref(null);
+
+const coresDenatran = [
+  { title: "01 - AMARELO", value: 1 },
+  { title: "02 - AZUL", value: 2 },
+  { title: "03 - BEGE", value: 3 },
+  { title: "04 - BRANCA", value: 4 },
+  { title: "05 - CINZA", value: 5 },
+  { title: "06 - DOURADA", value: 6 },
+  { title: "07 - GRENÁ", value: 7 },
+  { title: "08 - LARANJA", value: 8 },
+  { title: "09 - MARROM", value: 9 },
+  { title: "10 - PRATA", value: 10 },
+  { title: "11 - PRETA", value: 11 },
+  { title: "12 - ROSA", value: 12 },
+  { title: "13 - ROXA", value: 13 },
+  { title: "14 - VERDE", value: 14 },
+  { title: "15 - VERMELHA", value: 15 },
+  { title: "16 - FANTASIA", value: 16 },
+];
+
+const modoCor = computed(() => (editandoCorId.value ? "edit" : "create"));
+
+const novaCor = reactive({
+  descricao: "",
+  id_cor_denatran: null,
+  cor_hexa: "",
+});
+
+function resetNovaCor() {
+  novaCor.descricao = "";
+  novaCor.id_cor_denatran = null;
+  novaCor.cor_hexa = "";
+  modalNovaCor.value = false;
+  editandoCorId.value = null;
+}
+
+function abrirModalNovaCor() {
+  editandoCorId.value = null;
+  modalNovaCor.value = true;
+}
+
+const corFormValida = computed(() => {
+  const descOk = String(novaCor.descricao || "").trim().length >= 2;
+  const denOk = !!novaCor.id_cor_denatran;
+  const hexOk = /^#([0-9A-Fa-f]{6})$/.test(String(novaCor.cor_hexa || "").trim());
+  return descOk && denOk && hexOk;
+});
+
+async function salvarOuEditarCor() {
+  if (!corFormValida.value) return;
+
+  const payload = {
+    descricao: String(novaCor.descricao).trim().toUpperCase(),
+    id_cor_denatran: Number(novaCor.id_cor_denatran),
+    cor_hexa: String(novaCor.cor_hexa).trim().toUpperCase(),
+  };
+
+  if (modoCor.value === "edit") {
+    await produtosStore.atualizarCor(editandoCorId.value?.id, payload);
+  } else {
+    await produtosStore.cadastrarCor(payload);
+  }
+
+  if (!produtosStore.errorMessage) {
+    await produtosStore.buscarCores();
+    resetNovaCor();
+  }
+}
+
+// =========================
+// CADASTRAR / EDITAR / EXCLUIR TAMANHO
+// =========================
+const modalNovoTamanho = ref(false);
+const editandoTamanhoId = ref(null);
+
+const tiposTamanho = tiposTamanhoLista;
+
+const modoTamanho = computed(() => (editandoTamanhoId.value ? "edit" : "create"));
+
+const novoTamanhoForm = reactive({
+  descricao: "",
+  tipo: null,
+  ordem: 0,
+});
+
+function resetNovoTamanho() {
+  novoTamanhoForm.descricao = "";
+  novoTamanhoForm.tipo = null;
+  novoTamanhoForm.ordem = 0;
+  modalNovoTamanho.value = false;
+  editandoTamanhoId.value = null;
+}
+
+function editarTamanho(tamanho) {
+  editandoTamanhoId.value = tamanho.id;
+  novoTamanhoForm.descricao = tamanho.descricao || "";
+  novoTamanhoForm.tipo = tamanho.tipo || null;
+  novoTamanhoForm.ordem = tamanho.ordem || 0;
+  modalNovoTamanho.value = true;
+}
+
+async function salvarOuEditarTamanho() {
+  const desc = String(novoTamanhoForm.descricao || "").trim();
+  if (!desc) {
+    toast.warning("Informe a descrição do tamanho");
+    return;
+  }
+
+  const payload = {
+    descricao: desc,
+    tipo: novoTamanhoForm.tipo || null,
+    ordem: Number(novoTamanhoForm.ordem) || 0,
+  };
+
+  if (modoTamanho.value === "edit") {
+    await estoqueStore.editarTamanho(idEmpresa?.id, editandoTamanhoId.value, payload);
+  } else {
+    await estoqueStore.cadastrarTamanho(payload);
+  }
+
+  if (!estoqueStore.errorMessage) {
+    toast.success(modoTamanho.value === "edit" ? "Tamanho atualizado" : "Tamanho cadastrado");
+    resetNovoTamanho();
+  } else {
+    toast.error(estoqueStore.errorMessage);
+  }
+}
+
+const modalExcluirTamanho = ref(false);
+const tamanhoExcluir = ref(null);
+
+function excluirTamanho(tamanho) {
+  tamanhoExcluir.value = tamanho;
+  modalExcluirTamanho.value = true;
+}
+
+function cancelarExclusaoTamanho() {
+  modalExcluirTamanho.value = false;
+  tamanhoExcluir.value = null;
+}
+
+async function confirmarExclusaoTamanho() {
+  if (!tamanhoExcluir.value) return;
+  await estoqueStore.deletarTamanho(idEmpresa?.id, tamanhoExcluir.value.id);
+  if (!estoqueStore.errorMessage) {
+    toast.success("Tamanho excluído");
+    cancelarExclusaoTamanho();
+  } else {
+    toast.error(estoqueStore.errorMessage);
+  }
+}
+
+/** ================ PREÇO ================ **/
+
+const formRefPreco = ref(null);
+
+const formsPreco = reactive({
+  custo_compra: null,
+  custo_medio: null,
+  custo_aquisicao: null,
+  margem_lucro_liquido: null,
+  perc_desconto: null,
+  preco_venda: null,
+  preco_venda_sugerido: null,
+  preco_garantia: null,
+  comissao_perc: null,
+  comissao_vlr: null,
+  permite_estoque_negativo: 'N',
+  quantidade_minima: null,
+  fator: null,
+});
+
+const permiteEstoqueNegativo = computed({
+  get: () => formsPreco.permite_estoque_negativo === 'S',
+  set: (val) => {
+    formsPreco.permite_estoque_negativo = val ? 'S' : 'N';
+  }
+});
+
+const salvarPreco = async () => {
+  const payload = {
+    id_produto: Number(id),
+    custo_compra: Number(formsPreco.custo_compra) || 0,
+    custo_medio: Number(formsPreco.custo_medio) || 0,
+    custo_aquisicao: Number(formsPreco.custo_aquisicao) || 0,
+    margem_lucro_liquido: Number(formsPreco.margem_lucro_liquido) || 0,
+    perc_desconto: Number(formsPreco.perc_desconto) || 0,
+    preco_venda: Number(formsPreco.preco_venda) || 0,
+    preco_venda_sugerido: Number(formsPreco.preco_venda_sugerido) || 0,
+    preco_garantia: Number(formsPreco.preco_garantia) || 0,
+    comissao_perc: Number(formsPreco.comissao_perc) || 0,
+    comissao_vlr: Number(formsPreco.comissao_vlr) || 0,
+    permite_estoque_negativo: formsPreco.permite_estoque_negativo,
+    quantidade_minima: Number(formsPreco.quantidade_minima) || 0,
+    fator: Number(formsPreco.fator) || 1,
+  };
+
+  if (produtosStore.produtoPreco) {
+    await produtosStore.atualizarProdutoPreco(idEmpresa?.id, id, payload);
+  } else {
+    await produtosStore.cadastrarProdutoPreco(payload);
+    await produtosStore.buscarProdutoPreco(idEmpresa?.id, id);
+  }
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  Object.assign(formsPreco, produtosStore.produtoPreco);
+  toast.success("Preço salvo com sucesso!");
+};
+
 /** ================ TRIBUTOS ================ **/
 
 const exibirTributos = ref(false);
@@ -1374,9 +2475,11 @@ const toggleFormularioTributo = () => {
 };
 
 const headersTributo = [
-  {title: 'ID', key: 'id'},
-  {title: 'Descrição do Tributo', key: 'desctributo'},
-  {title: 'Valor (%)', key: 'valor_tributo'},
+  {title: 'Classificação Fiscal', key: 'classificacao_fiscal'},
+  {title: 'Incidência Fiscal', key: 'incidenciafiscal'},
+  {title: 'CEST', key: 'id_cest'},
+  {title: 'Margem Lucro Bruto (%)', key: 'margem_lucro_bruto'},
+  {title: 'Margem Lucro CNAE (%)', key: 'margem_lucro_cnae'},
   {title: 'Ações', key: 'acoes', sortable: false},
 ];
 
@@ -1399,18 +2502,42 @@ const salvarFormularioTributo = async () => {
     await produtosStore.cadastrarTributo(formsTributo, idEmpresa?.id, id);
   }
 
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  toast.success("Tributo salvo com sucesso!");
   cancelarFormularioTributo();
 };
 
+const itemSelecionadoTributo = ref(null);
+
 const editarTributo = (item) => {
-  itemSelecionado.value = item;
+  itemSelecionadoTributo.value = item;
   Object.assign(formsTributo, item)
   editandoTributo.value = true;
   formularioAbertoTributo.value = true;
 };
 
+const openModalDeleteTributo = ref(false);
 const deletarTributo = (item) => {
-  console.log("Deletando tributo: ", item);
+  console.log("[Tributo] Item selecionado para exclusão:", item);
+  itemSelecionadoTributo.value = item;
+  openModalDeleteTributo.value = true;
+};
+
+const excluirTributo = async () => {
+  console.log("[Tributo] Excluindo com idEmpresa:", idEmpresa?.id, "id_produto:", id);
+  await produtosStore.deletarTributo(idEmpresa?.id, id);
+  openModalDeleteTributo.value = false;
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  toast.success("Tributo excluído com sucesso!");
 };
 
 
@@ -1421,7 +2548,7 @@ const deletarTributo = (item) => {
 function formatarData(dataISO) {
   if (!dataISO) return "";
 
-  const [ano, mes, dia] = dataISO.split("-");
+  const [ano, mes, dia] = dataISO.slice(0, 10).split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
@@ -1443,8 +2570,6 @@ const form = ref({
   foto_url: null,
 });
 
-const API_MIDIAS = "http://192.168.10.79:3005";
-
 const fotoProduto = ref(null);
 const previewImagem = ref(null);
 const loadingUploadFoto = ref(false);
@@ -1455,75 +2580,21 @@ const normalizarKey = (key) => {
   return String(key || "").replaceAll("\\/", "/");
 };
 
-const getPresignedUrl = async (key) => {
-  const keyNormalizada = normalizarKey(key);
-
-  const url = `${API_MIDIAS}/api/files/presigned/${encodeURIComponent(keyNormalizada)}`;
-
-  console.log("URL PRESIGNED:", url);
-
-  try {
-    const { data } = await axios.get(url, {
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    return data;
-  } catch (error) {
-    console.error("ERRO AXIOS COMPLETO:", {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      data: error.response?.data,
-      headers: error.response?.headers,
-      request: error.request,
-    });
-
-    throw error;
-  }
-};
-
 const carregarFotosR2 = async () => {
   loadingFotos.value = true;
-  fotosR2.value = [];
 
   try {
     await produtosStore.buscarFotosBanco(id);
 
-    const fotosBanco = produtosStore.fotosBanco?.data || [];
+    const fotosBanco = produtosStore.fotosBanco || [];
 
-    console.log("FOTOS DO BANCO AQUI:", fotosBanco);
-
-    const fotosComUrl = await Promise.all(
-        fotosBanco.map(async (foto) => {
-          try {
-            const key = normalizarKey(foto.r2key);
-
-            if (!key) return null;
-
-            const presigned = await getPresignedUrl(key);
-
-            return {
-              id: foto.id,
-              id_produto: foto.id_produto,
-              descproduto: foto.descproduto,
-              key,
-              nome: key.split("/").pop(),
-              url: presigned.signedUrl,
-              expiresAt: presigned.expiresAt,
-              contentType: presigned.fileInfo?.contentType,
-            };
-          } catch (error) {
-            console.error("Erro ao carregar foto individual:", foto, error);
-            return null;
-          }
-        })
-    );
-
-    fotosR2.value = fotosComUrl.filter(Boolean);
-
-    console.log("FOTOS R2 FINAL:", fotosR2.value);
+    fotosR2.value = fotosBanco.map((foto) => ({
+      id: foto.id,
+      id_produto: foto.id_produto,
+      key: foto.r2key,
+      nome: foto.r2key ? normalizarKey(foto.r2key).split("/").pop() : `foto-${foto.id}`,
+      url: foto.foto_url,
+    }));
   } catch (error) {
     console.error("Erro ao carregar fotos do produto:", error);
     fotosR2.value = [];
@@ -1539,6 +2610,15 @@ const selecionarFotoR2 = (foto) => {
   previewImagem.value = foto.url;
 };
 
+const converterFotoBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(leitor.result);
+    leitor.onerror = reject;
+    leitor.readAsDataURL(file);
+  });
+};
+
 const uploadFotoProduto = async () => {
   const file = Array.isArray(fotoProduto.value)
       ? fotoProduto.value[0]
@@ -1549,70 +2629,63 @@ const uploadFotoProduto = async () => {
   loadingUploadFoto.value = true;
 
   try {
-    const idSaas = Number(idEmpresa?.id || 1);
-    const idUsuario = Number(idEmpresa?.id || 1);
-
-    const data = await produtosStore.uploadFile(idSaas, idUsuario, file);
-
-    console.log("RETORNO UPLOAD:", data);
-
-    const key = normalizarKey(data.key || data?.file?.key);
-
-    if (!key) {
-      throw new Error("Upload não retornou a key do arquivo.");
-    }
+    const foto = await converterFotoBase64(file);
 
     await produtosStore.salvarFotoBanco({
       id_produto: Number(id),
-      r2key: key,
+      foto,
     });
 
-    form.value.foto_key = key;
+    if (produtosStore.errorMessage) {
+      toast.error(produtosStore.errorMessage);
+      return;
+    }
 
-    const presigned = await getPresignedUrl(key);
-
-    form.value.foto_url = presigned.signedUrl;
-    previewImagem.value = presigned.signedUrl;
-
+    previewImagem.value = foto;
     fotoProduto.value = null;
 
     await carregarFotosR2();
-
-    console.log("Upload sucesso:", data);
+    toast.success("Foto enviada com sucesso!");
   } catch (error) {
     console.error("Erro ao enviar foto:", error);
+    toast.error("Erro ao enviar foto.");
   } finally {
     loadingUploadFoto.value = false;
   }
 };
 
-const removerFotoProduto = async () => {
-  const key = form.value.foto_key;
-
-  if (!key) return;
-
+const excluirFotoSalva = async (idFoto) => {
   try {
     loadingFotos.value = true;
 
-    // 1. Apaga no R2
-    await produtosStore.deleteFile(key);
+    await produtosStore.deletarFotoBanco(Number(id), idFoto);
 
-    // 2. Se deu certo, apaga no banco
-    await produtosStore.deletarFotoBanco(Number(id), form.value.foto_id);
-    form.value.foto_id = null;
+    if (produtosStore.errorMessage) {
+      toast.error(produtosStore.errorMessage);
+      return;
+    }
 
-    // 3. Limpa tela
-    form.value.foto_key = null;
-    form.value.foto_url = null;
-    fotoProduto.value = null;
-    previewImagem.value = null;
+    if (form.value.foto_id === idFoto) {
+      form.value.foto_key = null;
+      form.value.foto_url = null;
+      form.value.foto_id = null;
+      fotoProduto.value = null;
+      previewImagem.value = null;
+    }
 
     await carregarFotosR2();
+    toast.success("Foto excluída com sucesso!");
   } catch (error) {
     console.error("Erro ao remover foto:", error);
+    toast.error("Erro ao remover foto.");
   } finally {
     loadingFotos.value = false;
   }
+};
+
+const removerFotoProduto = async () => {
+  if (!form.value.foto_id) return;
+  await excluirFotoSalva(form.value.foto_id);
 };
 
 const limparPreviewLocal = () => {
@@ -1684,6 +2757,27 @@ watchEffect(async () => {
   if (tributos.value.length === 0) {
     await produtosStore.buscarTributoPorId(idEmpresa?.id, id);
   }
+  if (id && !produtosStore.produtoPreco) {
+    await produtosStore.buscarProdutoPreco(idEmpresa?.id, id);
+    if (produtosStore.produtoPreco) {
+      Object.assign(formsPreco, produtosStore.produtoPreco);
+    }
+  }
+});
+
+watch(tab, async (novaAba) => {
+  if (novaAba === 'grade' && forms.value?.utiliza_grade === 'S') {
+    if (!produtosStore.cores?.length) {
+      await produtosStore.buscarCores();
+    }
+    if (!produtosStore.localizacoes?.length) {
+      await produtosStore.buscarLocalizacoes(idEmpresa?.id);
+    }
+    if (!estoqueStore.tamanhos?.length) {
+      await estoqueStore.buscarTamanhos();
+    }
+    await buscarGradeMatriz();
+  }
 });
 </script>
 
@@ -1719,5 +2813,152 @@ watchEffect(async () => {
 
 .foto-r2-card:hover {
   transform: translateY(-3px);
+}
+
+.cor-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  margin-right: 10px;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+/* Matriz Cor x Tamanho */
+.grade-erp {
+  padding: 16px;
+  background: var(--bg-color-secondary) !important;
+  color: var(--text-color) !important;
+}
+
+.grade-erp__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.grade-erp__body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+}
+
+.grade-erp__left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grade-erp__left-title {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+
+.grade-erp__right-header {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.grade-erp__filtro-tipo :deep(.v-field) {
+  min-height: 30px !important;
+}
+
+.grade-erp__filtro-tipo :deep(.v-chip) {
+  height: 22px !important;
+  font-size: 0.7rem !important;
+}
+
+.grade-erp__left-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.grade-erp__left-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--bg-color);
+}
+
+.grade-erp__left-add {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  gap: 8px;
+  align-items: center;
+}
+
+.grade-erp__right {
+  overflow: auto;
+}
+
+.grade-erp__sizes {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.grade-erp__size-cell {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--bg-color);
+  font-weight: 600;
+}
+
+.grade-erp__size-add {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  gap: 8px;
+  align-items: center;
+}
+
+.grade-erp__grid-wrap {
+  overflow: auto;
+  padding-bottom: 4px;
+}
+
+.grade-erp__grid {
+  display: grid;
+  gap: 8px;
+}
+
+.grade-erp__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grade-erp__input :deep(.v-field__input) {
+  text-align: center;
+}
+
+.grade-erp__btn-plus {
+  background: var(--text-color-laranja) !important;
+  color: #fff !important;
 }
 </style>

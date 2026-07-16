@@ -22,6 +22,25 @@
           <template #form>
             <v-form ref="formRef">
               <v-row>
+                <v-col cols="12">
+                  <v-autocomplete
+                      density="compact"
+                      variant="outlined"
+                      label="Carregar produto existente (opcional)"
+                      hint="Selecione um produto já cadastrado para preencher o formulário automaticamente"
+                      persistent-hint
+                      item-title="descproduto"
+                      item-value="id"
+                      :items="produtos"
+                      :loading="carregandoProdutoBase"
+                      v-model="produtoBaseId"
+                      clearable
+                      prepend-inner-icon="mdi-package-variant-closed"
+                      @update:model-value="carregarProdutoExistente"
+                      :theme="themeStore.darkMode ? 'dark' : 'light'"
+                  />
+                </v-col>
+
                 <v-col cols="12" md="4">
                   <v-text-field
                       density="compact"
@@ -511,6 +530,15 @@
             no-data-text="Nenhum item encontrado"
 
         >
+          <template v-slot:[`item.estoque_por_almoxarifado`]='{ item }'>
+            <span v-if="!item.estoque_por_almoxarifado?.length">—</span>
+            <div v-else class="d-flex flex-column ga-1 py-1">
+              <span v-for="almox in item.estoque_por_almoxarifado" :key="almox.id_almoxarifado">
+                {{ almox.almoxarifado_descricao }}: {{ almox.qtd }}
+              </span>
+            </div>
+          </template>
+
           <template v-slot:[`item.acoes`]='{ item }'>
             <v-btn
                 icon="mdi-eye-off" size="small"
@@ -609,6 +637,7 @@ import MarcasMenu from "@/components/base/menu/MarcasMenu.vue";
 import GarantiaMenu from "@/components/base/menu/GarantiaMenu.vue";
 import MedidasMenu from "@/components/base/menu/MedidasMenu.vue";
 import CadastrarModal from "@/components/base/modais/CadastrarModal.vue";
+import { toast } from "vue3-toastify";
 
 const produtosStore = useProdutosStore();
 const estoqueStore = useEstoqueStore();
@@ -642,9 +671,9 @@ const search = ref('');
 const headers = [
   { title: 'ID', key: 'id' },
   { title: 'Produto', key: 'descproduto' },
-  { title: 'Observação', key: 'observacao' },
-  { title: 'Código Referência', key: 'codigo_ref' },
-  { title: 'Código Fabricação', key: 'codigo_fab' },
+  { title: 'Código Referência', key: 'codigo_gtin' },
+  { title: 'Qtd. por Almoxarifado', key: 'estoque_por_almoxarifado', sortable: false },
+  { title: 'Estoque Total', key: 'estoque_total' },
   { title: 'Ativo', key: 'ativo' },
   { title: 'Ações', key: 'acoes', sortable: false },
 ];
@@ -684,6 +713,91 @@ const descclasse = ref('');
 const descmarca = ref('');
 const descgarantia = ref('');
 const descmedida = ref('');
+
+/**
+ * CARREGAR PRODUTO EXISTENTE (preenche o formulário automaticamente)
+ */
+
+const produtoBaseId = ref(null);
+const carregandoProdutoBase = ref(false);
+
+async function carregarProdutoExistente(id) {
+  if (!id) return;
+
+  carregandoProdutoBase.value = true;
+  try {
+    await produtosStore.buscarProdutoPorId(id);
+    const produto = produtosStore.produto;
+
+    if (!produto || produtosStore.errorMessage) {
+      toast.error(produtosStore.errorMessage || 'Produto não encontrado');
+      return;
+    }
+
+    Object.assign(forms, {
+      descproduto: produto.descproduto || '',
+      aplicacao: produto.aplicacao || '',
+      tipo: produto.tipo || '',
+      codigo_gtin: produto.codigo_gtin || '',
+      codigo_sku: produto.codigo_sku || '',
+      codigo_fab: produto.codigo_fab || '',
+      codigo_ref: produto.codigo_ref || '',
+      id_grupo: produto.id_grupo || null,
+      id_subgrupo: produto.id_subgrupo || null,
+      id_marca: produto.id_marca || null,
+      id_medida: produto.id_medida || null,
+      id_classe: produto.id_classe || null,
+      id_garantia: produto.id_garantia || null,
+      id_ncm: produto.id_ncm || '',
+      utiliza_balanca: produto.utiliza_balanca === 'S',
+      utiliza_grade: produto.utiliza_grade === 'S',
+      utiliza_nrserie: produto.utiliza_nrserie === 'S',
+      utiliza_lote: produto.utiliza_lote === 'S',
+      em_promocao: produto.em_promocao === 'S',
+      observacao: produto.observacao || '',
+      ativo: produto.ativo || 'S',
+    });
+
+    // Resolve o texto exibido nos campos somente-leitura (Grupo, Classe, Marca, Garantia, Medida)
+    if (produto.id_grupo) {
+      await estoqueStore.buscarGrupoPorId(produto.id_grupo);
+      descgrupo.value = estoqueStore.grupo?.descgrupo || `Grupo #${produto.id_grupo}`;
+      await buscarSubgrupos(produto.id_grupo);
+    } else {
+      descgrupo.value = '';
+    }
+
+    if (produto.id_classe) {
+      await estoqueStore.buscarClassePorId(produto.id_classe);
+      descclasse.value = estoqueStore.classe?.descclasse || `Classe #${produto.id_classe}`;
+    } else {
+      descclasse.value = '';
+    }
+
+    if (produto.id_marca) {
+      await produtosStore.buscarMarcaPorId(produto.id_marca);
+      descmarca.value = produtosStore.marca?.descmarca || `Marca #${produto.id_marca}`;
+    } else {
+      descmarca.value = '';
+    }
+
+    if (produto.id_garantia) {
+      await produtosStore.buscarGarantiaPorId(produto.id_garantia);
+      descgarantia.value = produtosStore.garantia?.descgarantia || `Garantia #${produto.id_garantia}`;
+    } else {
+      descgarantia.value = '';
+    }
+
+    descmedida.value = produto.id_medida ? `Medida #${produto.id_medida}` : '';
+
+    toast.success(`Dados de "${produto.descproduto}" carregados no formulário`);
+  } catch (error) {
+    console.error('[Produtos] Erro ao carregar produto existente:', error);
+    toast.error('Erro ao carregar dados do produto');
+  } finally {
+    carregandoProdutoBase.value = false;
+  }
+}
 
 /**
  * TRABALHANDO COM GRADE
@@ -823,6 +937,12 @@ const salvarFormulario = async () => {
     "em_promocao": forms.em_promocao,
     "observacao": forms.observacao,
   });
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
   cancelarFormulario();
   formularioAberto.value = false;
 }
@@ -860,6 +980,7 @@ function cancelarFormulario() {
   descmarca.value = '';
   descgarantia.value = '';
   descmedida.value = '';
+  produtoBaseId.value = null;
   if (formRef.value) formRef.value.resetValidation()
 }
 

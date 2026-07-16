@@ -100,6 +100,8 @@
                       hide-details="auto"
                       v-model="forms.reducao_base_calc"
                       type="number"
+                      min="0"
+                      :rules="reducaoBaseRules"
                       :theme="themeStore.darkMode ? 'dark' : 'light'"
                       prepend-inner-icon="mdi-percent"
                   />
@@ -698,6 +700,10 @@ const validacaoAplicacaoCfop = [
   (v) => (v && v.length <= 2) || "Aplicação CFOP deve ter no máximo 2 caracteres.",
 ];
 
+const reducaoBaseRules = [
+  (v) => v === null || v === '' || v === undefined || Number(v) >= 0 || 'Redução da BC não pode ser negativa.',
+];
+
 // ✅ 2) FORMS (ajustado com tipos/valores corretos)
 const forms = reactive({
   id_uf: null,
@@ -809,7 +815,10 @@ const cancelarFormulario = () => {
 
 // ✅ 4) SALVAR (payload coerente com as regras)
 const salvarFormulario = async () => {
-  if (formRef.value && !(await formRef.value.validate())) return;
+  if (formRef.value) {
+    const { valid } = await formRef.value.validate();
+    if (!valid) return;
+  }
 
   const payload = {
     id_uf: forms.id_uf,
@@ -817,11 +826,11 @@ const salvarFormulario = async () => {
 
     // regras novas
     aplicacao_cfop: forms.aplicacao_cfop?.trim()?.slice(0, 2) || "",
-    assume_preco: Number(forms.assume_preco),
+    assume_preco: String(forms.assume_preco),
     gera_imposto_federal: forms.gera_imposto_federal, // "S" | "N"
-    altera_custo_compra_entrada: Number(forms.altera_custo_compra_entrada), // 1..3
-    altera_custo_aquisicao_entrada: Number(forms.altera_custo_aquisicao_entrada), // 1..3
-    altera_custo_medio_entrada: Number(forms.altera_custo_medio_entrada), // 1..3
+    altera_custo_compra_entrada: String(forms.altera_custo_compra_entrada), // 1..3
+    altera_custo_aquisicao_entrada: String(forms.altera_custo_aquisicao_entrada), // 1..3
+    altera_custo_medio_entrada: String(forms.altera_custo_medio_entrada), // 1..3
 
     // restante
     tipo: forms.tipo,

@@ -34,7 +34,7 @@
 
 <script setup>
 import BuscaPadraoMenu from "@/components/base/menu/BuscaPadraoMenu.vue";
-import {ref, computed, defineEmits, watch, watchEffect} from "vue";
+import {ref, computed, defineEmits, watch, onMounted} from "vue";
 import {useProdutosStore} from "@/stores/APIs/produtos";
 
 const emit = defineEmits(["selecionar"]);
@@ -45,7 +45,7 @@ const termoPesquisa = ref("");
 const estoqueStore = useProdutosStore();
 const medidas = computed(() => estoqueStore.medidas);
 
-watchEffect(() => {
+onMounted(() => {
   if (medidas.value.length === 0) {
     estoqueStore.buscarMedidas("", 15);
   }

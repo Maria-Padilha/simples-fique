@@ -45,7 +45,7 @@
                       </v-col>
 
                       <v-col cols="12" md="4">
-                        <v-select v-model="novoCaixa.participa_fluxo" :items="['S','N']" label="Participa Fluxo" variant="outlined" density="compact" />
+                        <v-select v-model="novoCaixa.participa_fluxo" :items="[{title:'Sim',value:'S'},{title:'Não',value:'N'}]" label="Participa Fluxo" variant="outlined" density="compact" class="custom-text-field" prepend-inner-icon="mdi-swap-horizontal" />
                       </v-col>
 
                       <!-- Plano de Conta -->
@@ -208,8 +208,7 @@
 
                 <template v-slot:[`item.ativo`]="{ item }">
                   <v-chip
-                      :color="item.ativo === 'S' ? 'green' : 'grey'"
-                      text-color="white"
+                      :color="item.ativo === 'S' ? 'success' : 'default'"
                       size="small"
                       :variant="item.ativo === 'S' ? 'flat' : 'outlined'"
                   >

@@ -160,13 +160,13 @@
 
       <v-text-field
           hide-details variant="outlined" class="mt-7 w-[92%]" density="compact" append-inner-icon="mdi-magnify"
-          placeholder="Pesquisar" @click:appendInner="errorModal = true"
+          placeholder="Pesquisar" v-model="searchQuery" @click:appendInner="searchQuery = ''" clearable
       />
     </v-list>
 
     <v-divider class="mt-3"></v-divider>
 
-    <v-list :lines="false" density="default" nav>
+    <v-list :lines="false" density="default" nav v-model:opened="openedGroups">
       <v-list-item
           prepend-icon="mdi-home"
           title="Home"
@@ -177,7 +177,7 @@
 
       <!-- RENDERIZAR DINAMICAMENTE TODOS OS MÓDULOS DO STORE -->
       <v-list-group
-          v-for="modulo in sidebarStore.getModulos()"
+          v-for="modulo in modulosFiltrados"
           :key="modulo.id"
           :value="modulo.id"
       >
@@ -200,13 +200,9 @@
             <template v-slot:activator="{ props }">
               <v-list-item
                   v-bind="props"
-                  :prepend-icon="submenu.icon"
                   class="submenu-item"
                   density="comfortable"
               >
-                <template #prepend>
-                  <v-icon :icon="submenu.icon" size="21px" />
-                </template>
                 <template #title>
                   <span class="span">{{ submenu.text }}</span>
                 </template>
@@ -219,12 +215,8 @@
                 :key="j"
                 class="sub-submenu-item"
                 :to="subSubmenu.route"
-                :prepend-icon="subSubmenu.icon"
                 density="comfortable"
             >
-              <template #prepend>
-                <v-icon :icon="subSubmenu.icon" size="18px" />
-              </template>
               <template #title>
                 <span class="span-small">{{ subSubmenu.text }}</span>
               </template>
@@ -236,12 +228,8 @@
               v-else
               class="submenu-item"
               :to="submenu.route"
-              :prepend-icon="submenu.icon"
               density="comfortable"
           >
-            <template #prepend>
-              <v-icon :icon="submenu.icon" size="21px" />
-            </template>
             <template #title>
               <span class="span">{{ submenu.text }}</span>
             </template>
@@ -271,11 +259,6 @@
   </v-navigation-drawer>
   <!-- FIM SIDEBAR LATERAL -->
 
-  <!-- MODAL DE ERRO - PESQUISA (PROVISÓRIO) -->
-  <ErrorAlertModal :error="false" v-model:modal="errorModal">
-    <template #erro>O recurso de busca está em desenvolvimento e será disponibilizado em breve.</template>
-  </ErrorAlertModal>
-
   <!-- MODAL DE CONFIGURAÇÃO DE ACESSOS RÁPIDOS -->
   <ConfigAcessosRapidosModal v-model="modalAcessosRapidos" />
 
@@ -292,7 +275,6 @@ import {useConfigParfinStore} from "@/stores/APIs/config";
 import {useAcessoStore} from "@/stores/APIs/acesso";
 import {useAcessosRapidosStore} from "@/stores/acessos-rapidos";
 import {ref, onMounted, onBeforeUnmount, mergeProps, computed, watch} from 'vue'
-import ErrorAlertModal from "@/components/base/modais/ErrorAlertModal.vue";
 import ConfigAcessosRapidosModal from "@/components/base/modais/ConfigAcessosRapidosModal.vue";
 import AgendaModal from "@/components/base/modais/AgendaModal.vue";
 import {useAgendaStore} from "@/stores/APIs/agenda";
@@ -319,9 +301,6 @@ const configStore = useConfigParfinStore();
 // Store de acessos rápidos
 const acessosRapidosStore = useAcessosRapidosStore();
 
-// modal de erro
-const errorModal = ref(false);
-
 // modal de acessos rápidos
 const modalAcessosRapidos = ref(false);
 
@@ -337,6 +316,52 @@ const items = ref([
   { text: 'Configurações', icon: 'mdi-cog-outline', route: '/paginas/configuracoes' },
   { text: 'Sair', icon: 'mdi-logout', route: '/login' },
 ])
+
+// Busca no sidebar
+const searchQuery = ref('')
+const _openedGroups = ref([])
+
+const modulosFiltrados = computed(() => {
+  const q = (searchQuery.value || '').trim().toLowerCase()
+  if (!q) return sidebarStore.getModulos()
+
+  return sidebarStore.getModulos().reduce((acc, modulo) => {
+    if (modulo.titulo.toLowerCase().includes(q)) {
+      acc.push(modulo)
+      return acc
+    }
+    const submenusFiltrados = modulo.submenus.reduce((sAcc, submenu) => {
+      if (submenu.text.toLowerCase().includes(q)) {
+        sAcc.push(submenu)
+        return sAcc
+      }
+      if (submenu.submenus) {
+        const subsFiltrados = submenu.submenus.filter(s => s.text.toLowerCase().includes(q))
+        if (subsFiltrados.length) sAcc.push({ ...submenu, submenus: subsFiltrados })
+      }
+      return sAcc
+    }, [])
+    if (submenusFiltrados.length) acc.push({ ...modulo, submenus: submenusFiltrados })
+    return acc
+  }, [])
+})
+
+const openedGroups = computed({
+  get() {
+    if (!(searchQuery.value || '').trim()) return _openedGroups.value
+    const ids = []
+    modulosFiltrados.value.forEach((modulo) => {
+      ids.push(modulo.id)
+      modulo.submenus?.forEach((submenu, i) => {
+        if (submenu.submenus) ids.push(`${modulo.id}-${i}`)
+      })
+    })
+    return ids
+  },
+  set(val) {
+    _openedGroups.value = val
+  }
+})
 
 // Ajustando o sidebar para ficar responsivo
 const drawer = ref(true);

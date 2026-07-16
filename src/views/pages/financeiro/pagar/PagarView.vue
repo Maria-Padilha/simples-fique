@@ -41,16 +41,12 @@
         <v-card :color="themeStore.darkMode ? 'text-white' : ''" class="background-secondary" elevation="0">
           <v-card-text class="pa-4">
             <div class="d-flex justify-end align-center mb-3 gap-2">
-              <v-btn
-                  color="var(--text-color-laranja)"
-                  :prepend-icon="formularioAberto ? 'mdi-minus' : 'mdi-plus'"
-                  variant="flat"
-                  size="small"
-                  class="text-white"
-                  @click="toggleFormulario"
-              >
-                {{ formularioAberto ? 'Cancelar' : 'Nova Conta a Pagar' }}
-              </v-btn>
+              <BotaoExpandTransition
+                  :formulario-aberto="formularioAberto"
+                  texto-abrir="Nova Conta a Pagar"
+                  texto-fechar="Cancelar"
+                  @toggle="toggleFormulario"
+              />
             </div>
 
             <!-- Formulário Expansível -->
@@ -255,7 +251,7 @@
                                   <v-text-field
                                       label="Descrição do Histórico"
                                       variant="outlined"
-                                      density="comfortable"
+                                      density="compact"
                                       hide-details="auto"
                                       v-model="descricaoHistorico"
                                   />
@@ -272,15 +268,12 @@
                               v-model="formData.vlroriginal"
                               label="Valor Original *"
                               :rules="[rules.required, rules.currency]"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class="required-left-border"
                               prepend-inner-icon="mdi-currency-usd"
                               prefix="R$"
-                              :hint="formData.vlroriginal ? formatarMoeda(formData.vlroriginal) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -318,15 +311,12 @@
                           <v-text-field
                               v-model="formData.juros"
                               label="Juros"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class=""
                               prefix="R$"
                               prepend-inner-icon="mdi-percent"
-                              :hint="formData.juros ? formatarMoeda(formData.juros) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -335,15 +325,12 @@
                           <v-text-field
                               v-model="formData.multa"
                               label="Multa"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class=""
                               prefix="R$"
                               prepend-inner-icon="mdi-alert-circle"
-                              :hint="formData.multa ? formatarMoeda(formData.multa) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -352,15 +339,12 @@
                           <v-text-field
                               v-model="formData.desconto"
                               label="Desconto"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                               variant="outlined"
                               density="compact"
                               class=""
                               prefix="R$"
                               prepend-inner-icon="mdi-sale"
-                              :hint="formData.desconto ? formatarMoeda(formData.desconto) : ''"
-                              persistent-hint
                           ></v-text-field>
                         </v-col>
 
@@ -373,7 +357,7 @@
                         <v-col cols="12" v-if="formData.qtdparcelas > 1 && !parcelasCalculadas">
                           <v-card variant="outlined" class="mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-calculator-variant" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-calculator-variant" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Configurações das Parcelas
                             </v-card-title>
 
@@ -384,14 +368,11 @@
                                   <v-text-field
                                       v-model="formData.valor_primeira_parcela"
                                       label="Valor 1ª Parcela"
-                                      type="number"
-                                      step="0.01"
+                                      v-mask-decimal.br="2"
                                       variant="outlined"
                                       density="compact"
                                       prefix="R$"
                                       prepend-inner-icon="mdi-cash"
-                                      :hint="formData.valor_primeira_parcela ? formatarMoeda(formData.valor_primeira_parcela) : ''"
-                                      persistent-hint
                                   ></v-text-field>
                                 </v-col>
 
@@ -424,7 +405,7 @@
                                 <!-- Botão Calcular -->
                                 <v-col cols="12" class="d-flex justify-center">
                                   <v-btn
-                                      color="orange"
+                                      color="var(--text-color-laranja)"
                                       variant="elevated"
                                       @click="calcularParcelas"
                                       :disabled="!formData.vlroriginal || !formData.qtdparcelas"
@@ -448,11 +429,11 @@
                             <div v-if="parcelas.length > 0 || (formData.qtdparcelas === 1 && formData.vlroriginal)">
                               <v-divider class="mb-4"></v-divider>
                               <div class="d-flex align-center mb-4">
-                                <v-icon icon="mdi-format-list-numbered" class="mr-3" color="orange"></v-icon>
+                                <v-icon icon="mdi-format-list-numbered" class="mr-3" color="var(--text-color-laranja)"></v-icon>
                                 <h4 class="text-h6 mb-0">Detalhamento das Parcelas</h4>
                                 <v-spacer></v-spacer>
                                 <v-chip
-                                    :color="(parcelas.length === 1 || formData.qtdparcelas === 1) ? 'success' : 'orange'"
+                                    :color="(parcelas.length === 1 || formData.qtdparcelas === 1) ? 'success' : 'var(--text-color-laranja)'"
                                     variant="elevated"
                                     size="small"
                                 >
@@ -493,7 +474,7 @@
                                     <template v-slot:[`item.nrparcela`]="{ item }">
                                       <div class="d-flex align-center">
                                         <v-avatar
-                                            :color="item.nrparcela === 1 && valorEntrada > 0 ? 'orange' : 'orange lighten-2'"
+                                            color="var(--text-color-laranja)"
                                             size="28"
                                             class="mr-2"
                                         >
@@ -530,8 +511,7 @@
                                     <template v-slot:[`item.vlrparcela`]="{ item }">
                                       <v-text-field
                                           v-model="item.vlrparcela"
-                                          type="number"
-                                          step="0.01"
+                                          v-mask-decimal.br="2"
                                           variant="outlined"
                                           density="compact"
                                           hide-details
@@ -576,7 +556,7 @@
                                       <v-card
                                           variant="tonal"
                                           class="pa-3"
-                                          color="orange"
+                                          color="var(--text-color-laranja)"
                                       >
                                         <div class="d-flex align-center justify-space-between">
                                           <div class="d-flex align-center">
@@ -584,7 +564,7 @@
                                                 icon="mdi-chart-pie"
                                                 class="mr-2"
                                                 size="small"
-                                                color="orange"
+                                                color="var(--text-color-laranja)"
                                             ></v-icon>
                                             <h5 class="text-subtitle-1 mb-0 font-weight-medium">
                                               Resumo das Parcelas
@@ -608,16 +588,17 @@
                           </v-expand-transition>
                         </v-col>
 
-                        <!-- Rateio por Centro de Custo (select acima e tabela de centros selecionados) -->
-                        <v-col cols="12" v-if="parcelas.length > 0">
+                        <!-- Rateio por Centro de Custo (card com múltiplas linhas: centro de custo + reduzido de
+                             despesa + valor). Enviado como array `ccusto` em CriarPagContaRequest -->
+                        <v-col cols="12">
                           <v-card variant="outlined" class="background-secondary mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-swap-horizontal" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-swap-horizontal" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Rateio por Centro de Custo
-                              <v-spacer></v-spacer> 
+                              <v-spacer></v-spacer>
                               <v-btn
                                   size="small"
-                                  color="orange"
+                                  color="var(--text-color-laranja)"
                                   variant="text"
                                   prepend-icon="mdi-plus"
                                   @click="adicionarCentro"
@@ -626,7 +607,7 @@
                               </v-btn>
                               <v-btn
                                   size="small"
-                                  color="orange"
+                                  color="var(--text-color-laranja)"
                                   variant="elevated"
                                   class="ml-2"
                                   @click="distribuirIgualmente"
@@ -643,10 +624,11 @@
                               <v-table class="background-secondary" v-else density="compact">
                                 <thead>
                                 <tr>
-                                  <th style="width: 40%">Centro de Custo</th>
-                                  <th style="width: 25%">Valor (R$)</th>
-                                  <th style="width: 20%">Porcentagem (%)</th>
-                                  <th style="width: 15%; text-align: center">Ações</th>
+                                  <th style="width: 30%">Centro de Custo</th>
+                                  <th style="width: 30%">Reduzido de Despesa</th>
+                                  <th style="width: 20%">Valor (R$)</th>
+                                  <th style="width: 15%">Porcentagem (%)</th>
+                                  <th style="width: 5%; text-align: center">Ações</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -661,22 +643,30 @@
                                         variant="outlined"
                                         density="compact"
                                         hide-details
-                                        :class="ccustoParametro.utiliza_ccusto === 'S' ? 'required-left-border' : ''"
                                     />
-                                    <div v-if="linha.desccentrocusto" class="text-caption text-grey mt-1">
-                                      API: {{ linha.desccentrocusto }}
-                                    </div>
                                   </td>
                                   <td>
                                     <v-text-field
-                                        v-model.number="linha.valor"
-                                        type="number"
-                                        step="0.01"
+                                        :model-value="linha.descplanoconta"
+                                        label="Selecione *"
+                                        variant="outlined"
+                                        density="compact"
+                                        hide-details
+                                        readonly
+                                    >
+                                      <template #append-inner>
+                                        <PlanoContaMenu @selecionar="(p) => selecionarReduzidoRateio(index, p)" />
+                                      </template>
+                                    </v-text-field>
+                                  </td>
+                                  <td>
+                                    <v-text-field
+                                        v-model="linha.valor"
+                                        v-mask-decimal.br="2"
                                         variant="outlined"
                                         density="compact"
                                         prefix="R$"
                                         hide-details
-                                        :class="ccustoParametro.utiliza_ccusto === 'S' ? 'required-left-border' : ''"
                                         @input="onRateioValorChange(index)"
                                     />
                                   </td>
@@ -706,6 +696,7 @@
                                 <tfoot>
                                 <tr class="font-weight-bold">
                                   <td>TOTAL</td>
+                                  <td></td>
                                   <td>{{ formatarMoeda(totalRateadoValor) }}</td>
                                   <td>{{ Number(totalRateadoPercent).toFixed(2) }}%</td>
                                   <td></td>
@@ -720,7 +711,7 @@
                         <v-col cols="12">
                           <v-card variant="outlined" class="mb-4" elevation="1">
                             <v-card-title class="text-h6 pa-4 d-flex align-center">
-                              <v-icon icon="mdi-file-image" class="mr-2" color="orange"></v-icon>
+                              <v-icon icon="mdi-file-image" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                               Anexar um Documento
                             </v-card-title>
 
@@ -769,7 +760,7 @@
                     <v-btn
                         color="var(--text-color-laranja)"
                         :loading="loading"
-                        :disabled="!formValidoComCCusto"
+                        :disabled="!formValido"
                         @click="salvarContaPagar"
                         variant="flat"
                         class="text-white"
@@ -807,9 +798,21 @@
                 @edit-item="editarContaPagar"
                 @confirm-delete="excluirContaPagar"
                 expandable
-                expand-on-click
                 v-model:expanded="expandedRows"
+                @click-row="handleRowClick"
             >
+              <!-- Ícone de expandir/recolher — precisa passar por handleRowClick para
+                   disparar a mesma animação de fechamento do clique na linha; o botão
+                   nativo do Vuetify chama toggleExpand direto e pula a animação. -->
+              <template v-slot:[`item.data-table-expand`]="{ item }">
+                <v-btn
+                    :icon="expandedRows.includes(item.id) ? '$collapse' : '$expand'"
+                    size="small"
+                    variant="text"
+                    @click.stop="handleRowClick(item)"
+                ></v-btn>
+              </template>
+
               <!-- Coluna de Imagem -->
               <template v-slot:[`item.imagem`]="{ item }">
                 <MediaShow
@@ -833,7 +836,7 @@
               <!-- Formatação para Valor Original -->
               <template v-slot:[`item.vlroriginal`]="{ item }">
                 <v-chip
-                    :color="item.vlroriginal > 1000 ? 'orange' : 'primary'"
+                    :color="item.vlroriginal > 1000 ? 'var(--text-color-laranja)' : 'primary'"
                     variant="tonal"
                     size="small"
                 >
@@ -891,63 +894,65 @@
               <template v-slot:expanded-row="{ item }">
                 <tr>
                   <td :colspan="headers.length + 1" class="pa-0">
-                    <div class="pa-4 background-card">
-                      <p class="text-sm font-semibold mb-2">
-                        Parcelas do Documento {{ item.nrdocumento }}
-                      </p>
+                    <v-expand-transition appear>
+                      <div v-if="!closingIds.has(item.id)" class="pa-4 background-card parcelas-expand">
+                        <p class="text-sm font-semibold mb-2">
+                          Parcelas do Documento {{ item.nrdocumento }}
+                        </p>
 
-                      <v-progress-linear v-if="loadingParcelas[item.id]" indeterminate color="primary" class="mb-2" />
+                        <v-progress-linear v-if="loadingParcelas[item.id]" indeterminate color="primary" class="mb-2" />
 
-                      <v-data-table
-                          v-if="!loadingParcelas[item.id]"
-                          :headers="headersParcelasExpand"
-                          :items="parcelasCache[item.id] || []"
-                          hide-default-footer
-                          density="compact"
-                          class="background-secondary rounded"
-                          no-data-text="Nenhuma parcela encontrada."
-                      >
-                        <template v-slot:[`item.dtvencimento`]="{ item: parcela }">
-                          <span v-if="parcela.dtvencimento">
-                            {{ new Date(parcela.dtvencimento).toLocaleDateString('pt-BR') }}
-                          </span>
-                          <span v-else class="text-grey">-</span>
-                        </template>
+                        <v-data-table
+                            v-if="!loadingParcelas[item.id]"
+                            :headers="headersParcelasExpand"
+                            :items="parcelasCache[item.id] || []"
+                            hide-default-footer
+                            density="compact"
+                            class="background-secondary rounded"
+                            no-data-text="Nenhuma parcela encontrada."
+                        >
+                          <template v-slot:[`item.dtvencimento`]="{ item: parcela }">
+                            <span v-if="parcela.dtvencimento">
+                              {{ new Date(parcela.dtvencimento).toLocaleDateString('pt-BR') }}
+                            </span>
+                            <span v-else class="text-grey">-</span>
+                          </template>
 
-                        <template v-slot:[`item.vlroriginalparcela`]="{ item: parcela }">
-                          <v-chip variant="tonal" color="primary" size="small">
-                            {{ formatarMoeda(parcela.vlroriginalparcela) }}
-                          </v-chip>
-                        </template>
+                          <template v-slot:[`item.vlroriginalparcela`]="{ item: parcela }">
+                            <v-chip variant="tonal" color="primary" size="small">
+                              {{ formatarMoeda(parcela.vlroriginalparcela) }}
+                            </v-chip>
+                          </template>
 
-                        <template v-slot:[`item.vlrquitado`]="{ item: parcela }">
-                          <span :class="parseFloat(parcela.vlrquitado) > 0 ? 'text-success font-weight-medium' : 'text-grey'">
-                            {{ formatarMoeda(parcela.vlrquitado) }}
-                          </span>
-                        </template>
+                          <template v-slot:[`item.vlrquitado`]="{ item: parcela }">
+                            <span :class="parseFloat(parcela.vlrquitado) > 0 ? 'text-success font-weight-medium' : 'text-grey'">
+                              {{ formatarMoeda(parcela.vlrquitado) }}
+                            </span>
+                          </template>
 
-                        <template v-slot:[`item.vlrliberadopagto`]="{ item: parcela }">
-                          <span :class="parseFloat(parcela.vlrliberadopagto) > 0 ? 'font-weight-medium' : 'text-grey'">
-                            {{ formatarMoeda(parcela.vlrliberadopagto) }}
-                          </span>
-                        </template>
+                          <template v-slot:[`item.vlrliberadopagto`]="{ item: parcela }">
+                            <span :class="parseFloat(parcela.vlrliberadopagto) > 0 ? 'font-weight-medium' : 'text-grey'">
+                              {{ formatarMoeda(parcela.vlrliberadopagto) }}
+                            </span>
+                          </template>
 
-                        <template v-slot:[`item.situacao`]="{ item: parcela }">
-                          <v-chip
-                              size="small" variant="tonal"
-                              :color="parcela.situacao === 'Q' ? 'success' : parcela.situacao === 'P' ? 'warning' : 'default'"
-                          >
-                            {{ parcela.situacao === 'Q' ? 'Quitada' : parcela.situacao === 'P' ? 'Parcial' : 'Aberta' }}
-                          </v-chip>
-                        </template>
+                          <template v-slot:[`item.situacao`]="{ item: parcela }">
+                            <v-chip
+                                size="small" variant="tonal"
+                                :color="parcela.situacao === 'Q' ? 'success' : parcela.situacao === 'P' ? 'warning' : 'default'"
+                            >
+                              {{ parcela.situacao === 'Q' ? 'Quitada' : parcela.situacao === 'P' ? 'Parcial' : 'Aberta' }}
+                            </v-chip>
+                          </template>
 
-                        <template v-slot:[`item.baixada`]="{ item: parcela }">
-                          <v-icon :color="parcela.baixada === 'S' ? 'success' : 'grey'" size="small">
-                            {{ parcela.baixada === 'S' ? 'mdi-check-circle' : 'mdi-circle-outline' }}
-                          </v-icon>
-                        </template>
-                      </v-data-table>
-                    </div>
+                          <template v-slot:[`item.baixada`]="{ item: parcela }">
+                            <v-icon :color="parcela.baixada === 'S' ? 'success' : 'grey'" size="small">
+                              {{ parcela.baixada === 'S' ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                            </v-icon>
+                          </template>
+                        </v-data-table>
+                      </div>
+                    </v-expand-transition>
                   </td>
                 </tr>
               </template>
@@ -1024,7 +1029,7 @@
         >
           <v-card class="align-center justify-center d-flex">
             <v-card-title class="text-h6 pa-4 d-flex align-center">
-              <v-icon icon="mdi-file-xml-box" color="orange" class="mr-2"></v-icon>
+              <v-icon icon="mdi-file-xml-box" color="var(--text-color-laranja)" class="mr-2"></v-icon>
               Importar Conta a Pagar de XML (NFe)
               <v-spacer></v-spacer>
               <v-btn icon="mdi-close" variant="text" @click="fecharModalImportarXML"></v-btn>
@@ -1041,7 +1046,7 @@
                     accept=".xml"
                     prepend-icon="mdi-file-xml-box"
                     variant="outlined"
-                    density="comfortable"
+                    density="compact"
                     @update:modelValue="processarArquivoXML"
                     :loading="processandoXML"
                     show-size
@@ -1074,7 +1079,7 @@
                 <!-- Informações do Emitente (Fornecedor) -->
                 <v-card variant="outlined" class="mb-4">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-account-box" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-account-box" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Emitente (Fornecedor)
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1125,7 +1130,7 @@
                 <!-- Dados da NFe/NFSe -->
                 <v-card variant="outlined" class="mb-4">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-file-document" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-file-document" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Dados da {{ dadosXMLImportado.tipoNota === 'NFSe' ? 'Nota Fiscal de Serviço' : 'Nota Fiscal' }}
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1165,7 +1170,7 @@
                 <!-- Valores -->
                 <v-card variant="outlined" class="mb-4">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-currency-usd" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-currency-usd" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Valores
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1250,7 +1255,7 @@
                         </v-col>
                         <v-col cols="12" md="3">
                           <div class="text-caption text-grey">Valor Líquido</div>
-                          <div class="text-h6 font-weight-bold" style="color: #4CAF50;">
+                          <div class="text-h6 font-weight-bold text-success">
                             {{ formatarMoeda(dadosXMLImportado.valores.valorLiquido) }}
                           </div>
                         </v-col>
@@ -1262,7 +1267,7 @@
                 <!-- Pagamento (somente para NFe) -->
                 <v-card variant="outlined" class="mb-4" v-if="dadosXMLImportado.pagamento && dadosXMLImportado.pagamento.length > 0">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-credit-card" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-credit-card" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Pagamento
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1287,7 +1292,7 @@
                 <v-expansion-panels class="mb-4" v-if="dadosXMLImportado.produtos && dadosXMLImportado.produtos.length > 0">
                   <v-expansion-panel>
                     <v-expansion-panel-title>
-                      <v-icon :icon="dadosXMLImportado.tipoNota === 'NFSe' ? 'mdi-briefcase' : 'mdi-package-variant-closed'" class="mr-2" color="orange"></v-icon>
+                      <v-icon :icon="dadosXMLImportado.tipoNota === 'NFSe' ? 'mdi-briefcase' : 'mdi-package-variant-closed'" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                       {{ dadosXMLImportado.tipoNota === 'NFSe' ? 'Serviços' : 'Produtos/Itens' }} ({{ dadosXMLImportado.produtos.length }})
                     </v-expansion-panel-title>
                     <v-expansion-panel-text>
@@ -1322,7 +1327,7 @@
                 <!-- Opções para importação -->
                 <v-card variant="outlined">
                   <v-card-title class="text-subtitle-1 pa-3 d-flex align-center">
-                    <v-icon icon="mdi-cog" class="mr-2" color="orange"></v-icon>
+                    <v-icon icon="mdi-cog" class="mr-2" color="var(--text-color-laranja)"></v-icon>
                     Opções de Importação
                   </v-card-title>
                   <v-card-text class="pa-3">
@@ -1433,17 +1438,18 @@ import ExportacaoModal from '@/components/base/modais/ExportacaoModal.vue'
 import PdfPreviewModal from '@/components/base/modais/PdfPreviewModal.vue'
 // eslint-disable-next-line no-unused-vars
 import AcessoNegadoModal from '@/components/base/modais/AcessoNegadoModal.vue'
+import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import BuscaAvancada from '@/components/base/padrao-paginas/BuscaAvancada.vue'
 import TipoDocumentoMenu from '@/components/base/menu/TipoDocumentoMenu.vue'
 import LocalCobrancaMenu from '@/components/base/menu/LocalCobrancaMenu.vue'
+import PlanoContaMenu from '@/components/base/menu/PlanoContaMenu.vue'
 import MediaSave from '@/components/base/media/MediaSave.vue'
 import MediaShow from '@/components/base/media/MediaShow.vue'
 import BuscaPadraoMenu from '@/components/base/menu/BuscaPadraoMenu.vue'
 import CadastrarModal from '@/components/base/modais/CadastrarModal.vue'
 // eslint-disable-next-line no-unused-vars
 import numeric from 'numeric'
-import apiPhp from '@/services/apiPhp'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 
 // ID do programa desta tela
@@ -1483,19 +1489,14 @@ const parcelasCalculadas = ref(false)
 // Flag para suprimir o watcher que limpa parcelas enquanto carregamos um documento existente
 const suppressParcelWatcher = ref(false)
 
-// Rateio por centro de custo — computed garante reatividade ao store
+// Centros de custo — computed garante reatividade ao store
 const centrosCusto = computed(() => ccustoStore.centrosCusto || [])
 
-// Parâmetro de centro de custo (obrigatoriedade)
-const ccustoParametro = ref({
-  utiliza_ccusto: 'N'
-})
-
-// Array direto de rateios (simplificado)
+// Rateio por Centro de Custo — card com múltiplas linhas (centro de custo + reduzido de despesa + valor)
 const ccustosRateio = ref([])
 
 const totalRateadoValor = computed(() => {
-  return ccustosRateio.value.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0)
+  return ccustosRateio.value.reduce((s, r) => s + (parseDecimalBR(r.valor) || 0), 0)
 })
 
 const totalRateadoPercent = computed(() => {
@@ -1550,6 +1551,32 @@ const dialogExclusao = reactive({
 const expandedRows = ref([])
 const parcelasCache = ref({})
 const loadingParcelas = ref({})
+
+// Ids em processo de animação de fechamento. Enquanto um id está aqui, o item
+// continua em expandedRows (a linha não é desmontada) só que sua div interna
+// já dispara a transição de saída — a remoção real de expandedRows só ocorre
+// depois de a animação terminar. Sem isso, o Vuetify desmonta a linha inteira
+// no clique e a transição de fechamento nunca chega a ser exibida.
+const closingIds = reactive(new Set())
+const CLOSE_ANIMATION_MS = 400
+
+const handleRowClick = (item) => {
+  const id = item.id
+  if (closingIds.has(id)) return
+
+  const idx = expandedRows.value.indexOf(id)
+  if (idx === -1) {
+    expandedRows.value.push(id)
+    return
+  }
+
+  closingIds.add(id)
+  setTimeout(() => {
+    closingIds.delete(id)
+    const i = expandedRows.value.indexOf(id)
+    if (i !== -1) expandedRows.value.splice(i, 1)
+  }, CLOSE_ANIMATION_MS)
+}
 
 const headersParcelasExpand = [
   { title: 'Parcela', key: 'id_pagparcela', sortable: false },
@@ -1615,14 +1642,14 @@ const formData = reactive({
   id_planoconta: null,
   id_historicocontabil: null,
   observacao: '',
-  vlroriginal: null,
+  vlroriginal: '',
   qtdparcelas: 1,
   dtemissao: new Date().toISOString().split('T')[0], // Data atual
   // Campos simplificados
-  juros: 0,
-  multa: 0,
-  desconto: 0,
-  valor_primeira_parcela: 0,
+  juros: '',
+  multa: '',
+  desconto: '',
+  valor_primeira_parcela: '',
   venc_primeira_parcela: '',
   intervalo_parcelas: 30,
   // ID da media anexada (key retornada da API)
@@ -1741,6 +1768,16 @@ watch(fornecedorSearch, (val) => {
 
 
 
+// Helpers para formatação decimal BR (vírgula como separador decimal)
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 // Função para formatação monetária brasileira
 const formatarMoeda = (valor) => {
   if (!valor && valor !== 0) return 'R$ 0,00'
@@ -1777,7 +1814,7 @@ const rules = {
   required: (value) => !!value || 'Campo obrigatório',
   currency: (value) => {
     if (!value) return true
-    return !isNaN(parseFloat(value)) || 'Valor deve ser numérico'
+    return parseDecimalBR(value) !== null || 'Valor deve ser numérico'
   }
 }
 
@@ -1796,39 +1833,6 @@ const totalParcelasFiltradas = computed(() => {
     const valor = parseFloat(item.vlroriginal || 0)
     return total + valor
   }, 0)
-})
-
-// Validar se o formulário está realmente válido (inclui ccusto obrigatório)
-const formValidoComCCusto = computed(() => {
-  // Primeiro verificar se o formulário está válido
-  if (!formValido.value) {
-    console.log('Formulário inválido - preencha todos os campos obrigatórios')
-    return false
-  }
-
-  // Se centro de custo é obrigatório, verificar se foi selecionado com valor válido
-  const utilizaCCusto = ccustoParametro.value?.utiliza_ccusto?.trim?.() === 'S' || ccustoParametro.value?.utiliza_ccusto === 'S'
-
-  if (utilizaCCusto) {
-    const temCCustoValido = ccustosRateio.value && ccustosRateio.value.some(cc => {
-      const valido = cc.id_ccusto && parseFloat(cc.valor) > 0
-      if (valido) {
-        console.log('Centro de custo válido encontrado:', cc.desccentrocusto, 'valor:', cc.valor)
-      }
-      return valido
-    })
-
-    if (!temCCustoValido) {
-      console.log('Centro de custo é obrigatório e não foi selecionado ou sem valor válido')
-      return false
-    }
-
-    console.log('Todos os validações passadas - Centro de custo obrigatório OK, Formulário OK')
-    return true
-  }
-
-  console.log('Centro de custo não é obrigatório - apenas validação de formulário OK')
-  return true
 })
 
 // Ciclo de vida
@@ -1857,7 +1861,7 @@ watch([() => formData.qtdparcelas, () => formData.vlroriginal], () => {
   parcelasCalculadas.value = false
 
   // Se for parcela única e tiver valor, gerar automaticamente
-  if (formData.qtdparcelas === 1 && formData.vlroriginal) {
+  if (formData.qtdparcelas === 1 && parseDecimalBR(formData.vlroriginal)) {
     // Usar timeout para garantir que a UI atualize
     setTimeout(() => {
       gerarParcelaUnica()
@@ -1868,25 +1872,8 @@ watch([() => formData.qtdparcelas, () => formData.vlroriginal], () => {
 // Watcher específico para gerar parcela única quando campos relevantes mudarem
 watch([() => formData.venc_primeira_parcela, () => formData.dtemissao, () => formData.valor_primeira_parcela], () => {
   // Se for parcela única e já tiver valor, atualizar automaticamente
-  if (formData.qtdparcelas === 1 && formData.vlroriginal && parcelas.value.length > 0) {
+  if (formData.qtdparcelas === 1 && parseDecimalBR(formData.vlroriginal) && parcelas.value.length > 0) {
     gerarParcelaUnica()
-  }
-})
-
-// Inicializar rateios quando parcelas já foram calculadas
-watch(() => parcelasCalculadas.value, (val) => {
-  if (val && ccustosRateio.value.length === 0) {
-    // garantir que centros já foram carregados
-    if ((centrosCusto.value || []).length === 0) {
-      // tentar carregar novamente
-      ccustoStore.listarCCusto().then(() => {
-        inicializarRateio()
-      }).catch(() => {
-        inicializarRateio()
-      })
-    } else {
-      inicializarRateio()
-    }
   }
 })
 
@@ -1926,37 +1913,8 @@ const carregarContasPagar = async (filtrosApi = null) => {
   }
 }
 
-// Carregar parâmetros de centro de custo
-const carregarCCustoParametro = async () => {
-  try {
-    console.log('Iniciando carregamento de ccustoparametro...')
-
-    const response = await apiPhp.get('/financeiro/centro-custo-parametros/parametro')
-
-    console.log('Resposta de ccustoparametro:', response)
-
-    if (Array.isArray(response.data) && response.data.length > 0) {
-      ccustoParametro.value = response.data[0]
-      console.log('Centro de custo parâmetro carregado com sucesso:', ccustoParametro.value)
-      console.log('utiliza_ccusto value:', ccustoParametro.value.utiliza_ccusto)
-    } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-      ccustoParametro.value = response.data
-      console.log('Centro de custo parâmetro carregado com sucesso:', ccustoParametro.value)
-      console.log('utiliza_ccusto value:', ccustoParametro.value.utiliza_ccusto)
-    } else {
-      console.warn('Nenhum parâmetro de centro de custo retornado, usando padrão N')
-      ccustoParametro.value = { utiliza_ccusto: 'N' }
-    }
-  } catch (error) {
-    console.error('Erro ao carregar parâmetro de centro de custo:', error)
-    ccustoParametro.value = { utiliza_ccusto: 'N' }
-  }
-}
-
 // Carregar dados auxiliares dos dropdowns
 const carregarDadosAuxiliares = async () => {
-  await carregarCCustoParametro()
-
   try {
     const tiposDoc = await financeiroStore.buscarTiposDocumento()
     tiposDocumento.value = tiposDoc
@@ -1993,28 +1951,29 @@ const carregarDadosAuxiliares = async () => {
   }
 }
 
-// Inicializar rateio com uma linha vazia
-const inicializarRateio = () => {
-  if (ccustosRateio.value.length === 0) {
-    adicionarCentro()
-  }
-}
+// ===== Rateio por Centro de Custo (card com múltiplas linhas) =====
 
-// Adicionar nova linha de rateio
 const adicionarCentro = () => {
   ccustosRateio.value.push({
     id_ccusto: null,
-    desccentrocusto: '',
+    id_reduzido_despesa: null,
+    descplanoconta: '',
     valor: 0,
     porcentagem: 0
   })
 }
 
-// Remover linha de rateio
-// eslint-disable-next-line no-unused-vars
 const removerCentro = (index) => {
   ccustosRateio.value.splice(index, 1)
   recalcularPorcentagens()
+}
+
+const selecionarReduzidoRateio = (index, planoConta) => {
+  const linha = ccustosRateio.value[index]
+  if (!linha) return
+
+  linha.id_reduzido_despesa = planoConta.id
+  linha.descplanoconta = planoConta.descconta || planoConta.descricao || ''
 }
 
 // Atualiza porcentagem ao alterar valor
@@ -2025,7 +1984,7 @@ const onRateioValorChange = (index) => {
   const r = ccustosRateio.value[index]
   if (!r) return
 
-  const valorAtual = parseFloat(r.valor) || 0
+  const valorAtual = parseDecimalBR(r.valor) || 0
   r.porcentagem = ((valorAtual / total) * 100).toFixed(2)
 }
 
@@ -2038,7 +1997,7 @@ const onRateioPercentChange = (index) => {
   if (!r) return
 
   const porcAtual = parseFloat(r.porcentagem) || 0
-  r.valor = ((porcAtual * total) / 100).toFixed(2)
+  r.valor = formatDecimalBR((porcAtual * total) / 100)
 }
 
 // Recalcular todas as porcentagens baseado nos valores
@@ -2047,7 +2006,7 @@ const recalcularPorcentagens = () => {
   if (total === 0) return
 
   ccustosRateio.value.forEach(r => {
-    const valorNum = parseFloat(r.valor) || 0
+    const valorNum = parseDecimalBR(r.valor) || 0
     r.porcentagem = ((valorNum / total) * 100).toFixed(2)
   })
 }
@@ -2065,14 +2024,14 @@ const distribuirIgualmente = () => {
   ccustosRateio.value.forEach((r, index) => {
     // Para o último centro, ajustar para garantir que a soma seja exatamente o total
     if (index === count - 1) {
-      r.valor = (total - valorAcumulado).toFixed(2)
+      r.valor = formatDecimalBR(total - valorAcumulado)
     } else {
-      r.valor = valorPorCentro.toFixed(2)
-      valorAcumulado += parseFloat(r.valor)
+      r.valor = formatDecimalBR(valorPorCentro)
+      valorAcumulado += parseDecimalBR(r.valor) || 0
     }
 
     // Calcular porcentagem
-    r.porcentagem = ((parseFloat(r.valor) / total) * 100).toFixed(2)
+    r.porcentagem = (((parseDecimalBR(r.valor) || 0) / total) * 100).toFixed(2)
   })
 }
 
@@ -2122,7 +2081,7 @@ const editarContaPagar = async (item) => {
       formData.especie = dados.especie || formData.especie
       formData.id_tipodocumen = dados.id_tipodocumento || dados.id_tipodocumen || null
       formData.observacao = dados.observacao || ''
-      formData.vlroriginal = dados.vlroriginal || parseFloat(dados.vlrdocumento || 0) || formData.vlroriginal
+      formData.vlroriginal = formatDecimalBR(dados.vlroriginal || parseFloat(dados.vlrdocumento || 0) || '') || formData.vlroriginal
       formData.qtdparcelas = parseInt(dados.qtdparcelas || formData.qtdparcelas || 1)
       formData.dtemissao = dados.dtemissao || formData.dtemissao
       formData.id_media = (dados.id_media || (documento && documento.media && documento.media[0] && documento.media[0].id_media)) || formData.id_media
@@ -2256,7 +2215,7 @@ const editarContaPagar = async (item) => {
       try {
         const primeira = parcelas.value[0]
         if (primeira) {
-          formData.valor_primeira_parcela = parseFloat(primeira.vlrparcela) || 0
+          formData.valor_primeira_parcela = formatDecimalBR(parseFloat(primeira.vlrparcela) || 0)
           formData.venc_primeira_parcela = primeira.dtvencimento || ''
         }
       } catch (e) {
@@ -2284,7 +2243,7 @@ const editarContaPagar = async (item) => {
       // preencher os campos do card de cálculo com a primeira parcela encontrada
       if (parcelas.value && parcelas.value.length > 0) {
         const p0 = parcelas.value[0]
-        formData.valor_primeira_parcela = parseFloat(p0.vlrparcela) || 0
+        formData.valor_primeira_parcela = formatDecimalBR(parseFloat(p0.vlrparcela) || 0)
         formData.venc_primeira_parcela = p0.dtvencimento || ''
       }
       calcularTotalParcelas()
@@ -2302,44 +2261,7 @@ const editarContaPagar = async (item) => {
       })
     }
 
-    // Rateios (centros de custo) — API returns `ccusto` as array of { id_ccusto, valor, desccentrocusto }
-    // A API retorna a estrutura: { data: [...], pagparcela: [...], media: [...], ccusto: [...] }
-    // O ccusto está no nível raiz do documento, NÃO dentro de data[0]
-
-    // Buscar ccusto no nível raiz do documento (estrutura correta da API)
-    const ccustos = documento?.ccusto || []
-
-    if (Array.isArray(ccustos) && ccustos.length > 0) {
-
-      // Ensure centrosCusto list is loaded
-      if ((centrosCusto.value || []).length === 0) {
-        try {
-          await ccustoStore.listarCCusto()
-        } catch (e) {
-          console.warn('Não foi possível carregar centros de custo ao editar documento', e)
-        }
-      } else
-
-          // Mapear ccustos diretamente para o array de rateio
-        ccustosRateio.value = ccustos.map(c => {
-          const linha = {
-            id_ccusto: Number(c.id_ccusto || c.id_ccusto_prev_lote || c.id),
-            valor: parseFloat(c.valor) || 0,
-            desccentrocusto: c.desccentrocusto || '',
-            porcentagem: 0
-          }
-          return linha
-        })
-
-      // Aguardar nextTick para garantir reatividade
-      await nextTick()
-
-      // Calcular as porcentagens baseadas no total das parcelas
-      recalcularPorcentagens()
-
-    } else
-
-        // Media: API returns `media` as array (e.g. ["key"]) — persist first element into formData.id_media
+    // Media: API returns `media` as array (e.g. ["key"]) — persist first element into formData.id_media
     if (documento && Array.isArray(documento.media) && documento.media.length > 0) {
       formData.id_media = documento.media[0] || formData.id_media
     } else if (dados && Array.isArray(dados.media) && dados.media.length > 0) {
@@ -2377,13 +2299,13 @@ const resetarForm = () => {
     id_red_ctb_for: null,
     id_planoconta: null,
     observacao: '',
-    vlroriginal: null,
+    vlroriginal: '',
     qtdparcelas: 1,
     dtemissao: new Date().toISOString().split('T')[0], // Data atual
-    juros: 0,
-    multa: 0,
-    desconto: 0,
-    valor_primeira_parcela: 0,
+    juros: '',
+    multa: '',
+    desconto: '',
+    valor_primeira_parcela: '',
     venc_primeira_parcela: '',
     intervalo_parcelas: 30,
     id_media: ''
@@ -2399,7 +2321,7 @@ const resetarForm = () => {
   valorEntrada.value = 0
   parcelasCalculadas.value = false
 
-  // Limpar rateios
+  // Limpar rateio por centro de custo
   ccustosRateio.value = []
 
   if (formRef.value) {
@@ -2408,7 +2330,7 @@ const resetarForm = () => {
 
   // Gerar parcela única automaticamente após reset se tiver valor
   setTimeout(() => {
-    if (formData.qtdparcelas === 1 && formData.vlroriginal) {
+    if (formData.qtdparcelas === 1 && parseDecimalBR(formData.vlroriginal)) {
       gerarParcelaUnica()
     }
   }, 100)
@@ -2418,19 +2340,6 @@ const salvarContaPagar = async () => {
   try {
     loading.value = true
 
-    // Validar se centro de custo é obrigatório
-    const utilizaCCusto = ccustoParametro.value?.utiliza_ccusto?.trim?.() === 'S' || ccustoParametro.value?.utiliza_ccusto === 'S'
-
-    if (utilizaCCusto) {
-      const temCCustoValido = ccustosRateio.value && ccustosRateio.value.some(cc => cc.id_ccusto && parseFloat(cc.valor) > 0)
-      if (!temCCustoValido) {
-        console.warn('Bloqueando salvar: Centro de custo obrigatório não preenchido')
-        mostrarMensagem('Centro de custo é obrigatório. Por favor, selecione um centro de custo com valor maior que zero.', 'warning')
-        loading.value = false
-        return
-      }
-    }
-
     // Validar se há parcelas calculadas
     if (parcelas.value.length === 0) {
       mostrarMensagem('É necessário calcular as parcelas antes de salvar', 'warning')
@@ -2438,51 +2347,21 @@ const salvarContaPagar = async () => {
       return
     }
 
-    // Dados principais da conta a pagar
-    // Determinar nome do fornecedor a partir do id selecionado
-    const fornecedorObj = (pessoas.value || []).find(p => p.id === formData.id_fornecedor) || {}
-    const fornecedorNome = fornecedorObj.apelido_fantasia || fornecedorObj.nome_razao || fornecedorObj.nome || ''
-
-    const dadosPrincipais = {
-      fornecedor: fornecedorNome,
-      id_fornecedor: formData.id_fornecedor,
-      id_historico_ctb: formData.id_historicocontabil || null,
-      id_red_ctb_for: formData.id_red_ctb_for || null,
-      abreviatura: tipoDocumentoSelecionado.value,
-      id_empresa: idEmpresa.value,
-      nrdocumento: formData.nrdocumento,
-      serie: formData.serie,
-      especie: formData.especie,
-      id_tipodocumento: formData.id_tipodocumen,
-      id_planoconta: formData.id_planoconta,
-      observacao: formData.observacao,
-      vlroriginal: parseFloat(formData.vlroriginal),
-      origem: "PAG",
-      qtdparcelas: parseInt(formData.qtdparcelas),
-      dtemissao: formData.dtemissao
+    // Reduzido de despesa é obrigatório em toda linha que tiver centro de custo selecionado
+    const linhaSemReduzido = ccustosRateio.value.find(r => r.id_ccusto && !r.id_reduzido_despesa)
+    if (linhaSemReduzido) {
+      mostrarMensagem('Selecione o Reduzido de Despesa de todos os centros de custo informados', 'warning')
+      loading.value = false
+      return
     }
 
-    // Preparar parcelas no formato esperado pelo THorse
-    const parcelasFormatadas = parcelas.value.map((parcela, index) => ({
-      id: String(parcela.nrparcela || (index + 1)),
-      id_localcobranca: String(parcela.id_localcobranca || 1),
-      vlroriginalparcela: String(parseFloat(parcela.vlrparcela) || 0),
-      dtvencimento: parcela.dtvencimento || '',
-      perc_juros: String(parseFloat(formData.juros) || 0),
-      perc_desconto: String(parseFloat(formData.desconto) || 0),
-      perc_multa: String(parseFloat(formData.multa) || 0)
-    }))
-
-    // Usar key do Pinia para o payload
-    const mediaValue = financeiroStore.getMediaKeyTemporaria() || null
-
-    // Montar array ccusto no formato solicitado: [{ id_ccusto, valor, perc_ccusto }]
+    // Montar array ccusto: [{ id_ccusto, id_reduzido_despesa, valor }]
     const ccustoArray = ccustosRateio.value
-        .filter(r => r.id_ccusto) // Só incluir linhas com centro selecionado
+        .filter(r => r.id_ccusto)
         .map(r => ({
           id_ccusto: r.id_ccusto,
-          valor: (parseFloat(r.valor) || 0).toFixed(2),
-          perc_ccusto: (parseFloat(r.porcentagem) || 0).toFixed(2)
+          id_reduzido_despesa: r.id_reduzido_despesa,
+          valor: parseDecimalBR(r.valor) || 0
         }))
 
     // Validar soma do rateio (se houver rateios) contra o total das parcelas
@@ -2495,6 +2374,35 @@ const salvarContaPagar = async () => {
         return
       }
     }
+
+    // Dados principais da conta a pagar — campos aceitos por CriarPagContaRequest
+    const dadosPrincipais = {
+      id_fornecedor: formData.id_fornecedor,
+      vlroriginal: parseDecimalBR(formData.vlroriginal),
+      qtdparcelas: parseInt(formData.qtdparcelas),
+      dtemissao: formData.dtemissao,
+      intervalo_dias: parseInt(formData.intervalo_parcelas) || 30,
+      nrdocumento: formData.nrdocumento,
+      serie: formData.serie,
+      especie: formData.especie,
+      id_tipodocumento: formData.id_tipodocumen,
+      observacao: formData.observacao,
+      origem: "PAG"
+    }
+
+    // Preparar parcelas (campos numéricos, não string)
+    const parcelasFormatadas = parcelas.value.map((parcela, index) => ({
+      id: Number(parcela.nrparcela || (index + 1)),
+      id_localcobranca: Number(parcela.id_localcobranca || 1),
+      vlroriginalparcela: parseDecimalBR(parcela.vlrparcela) || 0,
+      dtvencimento: parcela.dtvencimento || '',
+      perc_juros: parseDecimalBR(formData.juros) || 0,
+      perc_desconto: parseDecimalBR(formData.desconto) || 0,
+      perc_multa: parseDecimalBR(formData.multa) || 0
+    }))
+
+    // Usar key do Pinia para o payload
+    const mediaValue = financeiroStore.getMediaKeyTemporaria() || null
 
     // Montar payload no formato flat (Laravel): campos principais + arrays relacionados
     const payloadCompleto = {
@@ -3086,13 +2994,13 @@ const confirmarImportacaoXML = async () => {
     formData.nrdocumento = dados.nfe.numero
     formData.serie = dados.nfe.serie
     formData.especie = dados.tipoNota || 'NFe'
-    formData.vlroriginal = valorTotal
+    formData.vlroriginal = formatDecimalBR(valorTotal)
     formData.qtdparcelas = opcoesImportXML.qtdParcelas
     formData.dtemissao = dados.nfe.dataEmissao ? dados.nfe.dataEmissao.split('T')[0] : ''
-    formData.desconto = dados.valores.valorDesconto || 0
+    formData.desconto = formatDecimalBR(dados.valores.valorDesconto || 0)
     formData.venc_primeira_parcela = opcoesImportXML.dataVencimento
     formData.intervalo_parcelas = opcoesImportXML.intervaloParcelas
-    formData.valor_primeira_parcela = valorTotal / opcoesImportXML.qtdParcelas
+    formData.valor_primeira_parcela = formatDecimalBR(valorTotal / opcoesImportXML.qtdParcelas)
 
     // Preencher tipo de documento com ID 1 (Nota fiscal) que vem da API /tipodocumento
     const tipoDocumentoNotaFiscal = (tiposDocumento.value || []).find(tipo => tipo.id === 1)
@@ -3385,8 +3293,8 @@ const calcularParcelas = async () => {
 
     // Preparar dados conforme payload esperado pelo backend (apenas para múltiplas parcelas)
     const dadosCalculo = {
-      vlrdocumento: parseFloat(formData.vlroriginal),
-      vlrprimeiraparcela: parseFloat(formData.valor_primeira_parcela) || 0,
+      vlrdocumento: parseDecimalBR(formData.vlroriginal),
+      vlrprimeiraparcela: parseDecimalBR(formData.valor_primeira_parcela) || 0,
       qtdparcelas: qtdParcelas,
       primeirovencimento: formData.venc_primeira_parcela || formData.dtemissao,
       intervalo: parseInt(formData.intervalo_parcelas) || 30
@@ -3441,8 +3349,8 @@ const calcularParcelas = async () => {
 
 // Função otimizada para gerar uma única parcela (sem API)
 const gerarParcelaUnica = () => {
-  const valorOriginal = parseFloat(formData.vlroriginal) || 0
-  const valorPrimeiraParcela = parseFloat(formData.valor_primeira_parcela) || 0
+  const valorOriginal = parseDecimalBR(formData.vlroriginal) || 0
+  const valorPrimeiraParcela = parseDecimalBR(formData.valor_primeira_parcela) || 0
   const dataVencimento = formData.venc_primeira_parcela || formData.dtemissao
 
   if (valorOriginal > 0) {
@@ -3478,8 +3386,8 @@ const gerarParcelaUnica = () => {
 // Função temporária para gerar parcelas (remover quando backend estiver pronto)
 const gerarParcelasTemporario = () => {
   const qtd = parseInt(formData.qtdparcelas) || 0
-  const valorOriginal = parseFloat(formData.vlroriginal) || 0
-  const valorPrimeiraParcela = parseFloat(formData.valor_primeira_parcela) || 0
+  const valorOriginal = parseDecimalBR(formData.vlroriginal) || 0
+  const valorPrimeiraParcela = parseDecimalBR(formData.valor_primeira_parcela) || 0
   const dataVencPrimeira = formData.venc_primeira_parcela || formData.dtemissao
 
   if (qtd > 0 && valorOriginal > 0) {
@@ -3731,6 +3639,15 @@ const handleImprimir = ({ dados, filtros, nomeRelatorio }) => {
 </script>
 
 <style scoped>
+/* Transição de abertura/fechamento das Parcelas expandidas — sobrescreve a
+   duração padrão (0.3s) do v-expand-transition só para esta div específica,
+   sem afetar outros usos de v-expand-transition no app. */
+:deep(.parcelas-expand.expand-transition-enter-active),
+:deep(.parcelas-expand.expand-transition-leave-active) {
+  transition-duration: 0.4s !important;
+  transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
 .background-secondary {
   background-color: var(--bg-color-secondary);
   color: var(--text-color);

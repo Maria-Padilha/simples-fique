@@ -1,904 +1,463 @@
 <template>
   <top-all-pages icon="mdi-account-group">
-    <template #titulo>
-      <v-sheet class="bg-transparent w-[100%] text-h5 pa-4 d-flex justify-space-between align-center">
-        Clientes
-        <v-btn
-            color="var(--text-color-laranja)"
-            variant="flat"
-            size="small"
-            prepend-icon="mdi-file-upload"
-            class="text-white"
-            @click="abrirImportacao"
-        >
-          Importar CSV
-        </v-btn>
-      </v-sheet>
-    </template>
-
+    <template #titulo>Clientes</template>
     <template #section>
-      <div>
-        <v-card elevation="0" class="background-secondary">
-          <v-card-text class="pa-4">
-            <botao-expand-transition :formulario-aberto="formularioAberto" @toggle="toggleFormulario">
-              <template #default>{{ formularioAberto ? 'Cancelar' : 'Novo Cliente' }}</template>
-            </botao-expand-transition>
+      <v-card class="background-secondary" elevation="0">
+        <v-card-text class="pa-4">
+          <BotaoExpandTransition
+              :formulario-aberto="formularioAberto"
+              @toggle="toggleFormulario"
+          >
+            <template #default>{{ formularioAberto ? 'Cancelar' : 'Novo Cliente' }}</template>
+          </BotaoExpandTransition>
 
-            <!-- Formulário expansível -->
-            <v-expand-transition>
-              <div v-if="formularioAberto">
-                <v-card class="background-card mb-7" elevation="0">
-                  <v-card-title class="text-h6 pa-4">
-                    <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2" size="23px"/>
-                    {{ editando ? 'Editar Cliente' : 'Novo Cliente' }}
-                  </v-card-title>
-
-                  <v-card-text class="pa-4">
-                    <v-form ref="formRef" v-model="formValido">
-                      <v-row>
-                        <!-- Tipo Pessoa -->
-                        <v-col cols="12" md="3">
-                          <v-select
-                              v-model="form.tipo_pessoa"
-                              :items="[{label:'Física', value:'F'},{label:'Jurídica', value:'J'}]"
-                              item-title="label"
-                              item-value="value"
-                              label="Tipo *"
-                              :rules="[rules.required]"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field required-left-border"
-                              prepend-inner-icon="mdi-account-circle"
-                          />
-                        </v-col>
-                        <!-- CPF / CNPJ -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-if="form.tipo_pessoa === 'F'"
-                              v-model="form.cpf_cnpj"
-                              label="CPF"
-                              maxlength="14"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                              prepend-inner-icon="mdi-card-account-details"
-                              v-mask-cpf
-                          />
-                          <v-text-field
-                              v-else
-                              v-model="form.cpf_cnpj"
-                              label="CNPJ"
-                              maxlength="14"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                              prepend-inner-icon="mdi-card-account-details"
-                              v-mask-cnpj
-                          />
-                        </v-col>
-
-                        <!-- Nome / Razão -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.nome_razao"
-                              label="Nome / Razão *"
-                              :rules="[rules.required]"
-                              maxlength="100"
-                              variant="outlined"
-                              density="compact"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field required-left-border"
-                              prepend-inner-icon="mdi-account"
-                              hide-details="auto"
-                          />
-                        </v-col>
-
-                        <!-- Apelido / Fantasia -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.apelido_fantasia"
-                              label="Apelido / Fantasia *"
-                              :rules="[rules.required]"
-                              maxlength="100"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                             class="custom-text-field required-left-border"
-                              prepend-inner-icon="mdi-rename-box"
-                          />
-                        </v-col>
-
-                        <!-- RG / Inscrição -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.rg_inscricao"
-                              label="RG / Inscrição Estadual"
-                              maxlength="20"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                              prepend-inner-icon="mdi-identifier"
-                          />
-                        </v-col>
-
-                        <!-- Telefone -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.telefone"
-                              label="Telefone"
-                              maxlength="15"
-                              variant="outlined"
-                              hide-details="auto"
-                              density="compact"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                              prepend-inner-icon="mdi-phone"
-                              v-mask-phone.br
-                          />
-                        </v-col>
-
-                        <!-- Celular -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.celular"
-                              label="Celular"
-                              maxlength="15"
-                              variant="outlined"
-                              hide-details="auto"
-                              density="compact"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                              prepend-inner-icon="mdi-cellphone"
-                              v-mask-phone.br
-                          />
-                        </v-col>
-
-                        <!-- WhatsApp -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.whats"
-                              label="WhatsApp"
-                              maxlength="15"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                              prepend-inner-icon="mdi-whatsapp"
-                              v-mask-phone.br
-                          />
-                        </v-col>
-
-                        <!-- Redes sociais -->
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.instagram"
-                              label="Instagram"
-                              maxlength="80"
-                              prepend-inner-icon="mdi-instagram"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                          />
-                        </v-col>
-
-                        <!-- Website -->
-                        <v-col cols="3">
-                          <v-text-field
-                              v-model="form.website"
-                              label="Website"
-                              maxlength="150"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                              prepend-inner-icon="mdi-web"
-                          />
-                        </v-col>
-
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.facebook"
-                              label="Facebook"
-                              maxlength="80"
-                              prepend-inner-icon="mdi-facebook"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                          />
-                        </v-col>
-
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.twitter_x"
-                              label="Twitter / X"
-                              maxlength="80"
-                              prepend-inner-icon="mdi-twitter"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                          />
-                        </v-col>
-
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.tik_tok"
-                              label="TikTok"
-                              maxlength="80"
-                              prepend-inner-icon="mdi-music-note"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                          />
-                        </v-col>
-
-                        <v-col cols="12" md="3">
-                          <v-text-field
-                              v-model="form.telegram"
-                              label="Telegram"
-                              maxlength="80"
-                              prepend-inner-icon="mdi-send"
-                              variant="outlined"
-                              density="compact"
-                              hide-details="auto"
-                              :theme="themeStore.darkMode ? 'dark' : 'light'"
-                              class="custom-text-field"
-                          />
-                        </v-col>
-
-                        <!-- Endereços -->
-                        <v-col cols="12">
-                          <v-divider class="my-2"></v-divider>
-                          <div class="d-flex align-center justify-space-between mt-2 mb-2">
-                            <div class="text-subtitle-2 font-weight-bold">
-                              <v-icon icon="mdi-map-marker" class="mr-1" size="18px"></v-icon>
-                              Endereços
-                            </div>
-                            <v-btn
-                                prepend-icon="mdi-plus"
-                                size="x-small"
-                                color="var(--text-color-laranja)"
-                                variant="flat"
-                                class="text-white"
-                                :disabled="form.enderecos.length >= 4"
-                                @click="adicionarEndereco"
-                            >Adicionar</v-btn>
-                          </div>
-                        </v-col>
-
-                        <v-col cols="12" v-for="(end, idx) in form.enderecos" :key="idx">
-                          <v-card class="background-secondary pa-3 mb-1" elevation="0">
-                            <v-row align="center" dense>
-                              <v-col cols="6" md="2">
-                                <v-select
-                                    v-model="end.tipo_endereco"
-                                    :items="tiposDisponiveis(idx)"
-                                    item-title="label"
-                                    item-value="value"
-                                    label="Tipo de Endereço"
-                                    variant="outlined"
-                                    density="compact"
-                                    hide-details="auto"
-                                    :theme="themeStore.darkMode ? 'dark' : 'light'"
-                                    class="custom-text-field"
-                                    prepend-inner-icon="mdi-home-map-marker"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="2">
-                                <v-text-field
-                                    v-model="end.cep"
-                                    label="CEP"
-                                    maxlength="9"
-                                    variant="outlined"
-                                    density="compact"
-                                    hide-details="auto"
-                                    :theme="themeStore.darkMode ? 'dark' : 'light'"
-                                    class="custom-text-field"
-                                    prepend-inner-icon="mdi-map-marker"
-                                    :loading="end._buscandoCep"
-                                    @blur="buscarCep(end)"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="2">
-                                <v-text-field
-                                    v-model="end.cidade"
-                                    label="Cidade"
-                                    maxlength="100"
-                                    variant="outlined"
-                                    density="compact"
-                                    hide-details="auto"
-                                    :theme="themeStore.darkMode ? 'dark' : 'light'"
-                                    class="custom-text-field"
-                                    prepend-inner-icon="mdi-city"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="2">
-                                <v-text-field
-                                    v-model="end.bairro"
-                                    label="Bairro"
-                                    maxlength="100"
-                                    variant="outlined"
-                                    density="compact"
-                                    hide-details="auto"
-                                    :theme="themeStore.darkMode ? 'dark' : 'light'"
-                                    class="custom-text-field"
-                                    prepend-inner-icon="mdi-map-marker-radius"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="2">
-                                <v-text-field
-                                    v-model="end.logradouro"
-                                    label="Logradouro"
-                                    maxlength="100"
-                                    variant="outlined"
-                                    density="compact"
-                                    hide-details="auto"
-                                    :theme="themeStore.darkMode ? 'dark' : 'light'"
-                                    class="custom-text-field"
-                                    prepend-inner-icon="mdi-road-variant"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="2">
-                                <v-text-field
-                                    v-model="end.numero"
-                                    label="Número"
-                                    maxlength="10"
-                                    variant="outlined"
-                                    density="compact"
-                                    hide-details="auto"
-                                    :theme="themeStore.darkMode ? 'dark' : 'light'"
-                                    class="custom-text-field"
-                                    prepend-inner-icon="mdi-numeric"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="2">
-                                <v-text-field
-                                    v-model="end.complemento"
-                                    label="Complemento"
-                                    maxlength="100"
-                                    variant="outlined"
-                                    density="compact"
-                                    hide-details="auto"
-                                    :theme="themeStore.darkMode ? 'dark' : 'light'"
-                                    class="custom-text-field"
-                                    prepend-inner-icon="mdi-home-plus"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="auto" class="d-flex justify-end">
-                                <v-btn
-                                    icon="mdi-delete-outline"
-                                    size="small"
-                                    color="error"
-                                    variant="text"
-                                    @click="removerEndereco(idx)"
-                                ></v-btn>
-                              </v-col>
-                            </v-row>
-                          </v-card>
-                        </v-col>
-                      </v-row>
-                    </v-form>
-                  </v-card-text>
-
-                  <v-card-actions class="pa-4">
-                    <v-spacer></v-spacer>
-                    <v-btn color="grey" variant="text" @click="cancelarFormulario" size="small">Cancelar</v-btn>
-                    <v-btn
-                        color="var(--text-color-laranja)"
-                        :loading="loading"
-                        :disabled="!formValido"
-                        @click="salvarPessoa"
-                        variant="flat" size="small"
-                        class="text-white">
-                      {{ editando ? 'Atualizar' : 'Salvar' }}
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </div>
-            </v-expand-transition>
-
-            <!-- Modal de Importação CSV -->
-            <v-dialog v-model="importacaoAberta" max-width="600px" persistent>
-              <v-card class="background-card">
-                <v-card-title class="text-h6 pa-4 d-flex align-center">
-                  <v-icon icon="mdi-file-upload" class="mr-2"></v-icon>
-                  Importar Clientes via CSV
+          <v-expand-transition>
+            <div v-if="formularioAberto">
+              <v-card class="background-card mb-7" elevation="0">
+                <v-card-title class="text-h6 pa-4">
+                  <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2" size="23px"/>
+                  {{ editando ? 'Editar Cliente' : 'Novo Cliente' }}
                 </v-card-title>
-
                 <v-card-text class="pa-4">
-                  <v-alert
-                      type="info"
-                      variant="tonal"
-                      density="compact"
-                      class="mb-4"
-                  >
-                    <div class="text-caption">
-                      <strong>Formato esperado:</strong> Arquivo CSV com as colunas do modelo.
-                      Campos obrigatórios: tipo_pessoa, nome_razao, apelido_fantasia.
+                  <v-form ref="formRef" v-model="formValido">
+                    <FormPessoa
+                        ref="formPessoaRef"
+                        v-model="formPessoa"
+                        @pessoa-encontrada="handlePessoaEncontrada"
+                        @pessoa-nao-encontrada="handlePessoaNaoEncontrada"
+                    />
+
+                    <v-divider class="my-4"/>
+                    <div class="text-subtitle-2 font-weight-bold mb-3">
+                      <v-icon icon="mdi-account-details" class="mr-1" size="18px"/>
+                      Dados do Cliente
                     </div>
-                  </v-alert>
 
-                  <div class="d-flex gap-2 mb-4">
-                    <v-btn
-                        color="primary"
-                        variant="outlined"
-                        prepend-icon="mdi-download"
-                        @click="baixarModeloCSV"
-                        size="small"
-                        block
-                    >
-                      Baixar Modelo CSV
-                    </v-btn>
-                  </div>
+                    <v-row dense>
+                      <v-col cols="12" md="3">
+                        <v-select
+                            v-model="formCliente.tpcliente"
+                            :items="[{ title: 'Consumidor', value: 'C' }, { title: 'Revendedor', value: 'R' }]"
+                            label="Tipo de Cliente *"
+                            :rules="[rules.required]"
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-tag-outline"
+                            class="custom-text-field required-left-border"
+                        />
+                      </v-col>
 
-                  <v-file-input
-                      v-model="arquivoCSV"
-                      label="Selecione o arquivo CSV"
-                      accept=".csv"
-                      prepend-icon="mdi-file-delimited"
-                      variant="outlined"
-                      density="compact"
-                      :theme="themeStore.darkMode ? 'dark' : 'light'"
-                      show-size
-                      @change="onArquivoSelecionado"
-                  ></v-file-input>
+                      <v-col cols="12" md="3">
+                        <v-select
+                            v-model="formCliente.contribuinte_icms"
+                            :items="[
+                              { title: 'Sim', value: 'S' },
+                              { title: 'Não', value: 'N' },
+                              { title: 'Isento', value: 'I' }
+                            ]"
+                            label="Contribuinte ICMS *"
+                            :rules="[rules.required]"
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-receipt-text-outline"
+                            class="custom-text-field required-left-border"
+                        />
+                      </v-col>
 
-                  <v-alert
-                      v-if="resultadoImportacao.show"
-                      :type="resultadoImportacao.type"
-                      variant="tonal"
-                      density="compact"
-                      class="mt-4"
-                  >
-                    {{ resultadoImportacao.message }}
-                  </v-alert>
+                      <v-col cols="12" md="3">
+                        <v-select
+                            v-model="formCliente.substituto_iss"
+                            :items="[{ title: 'Sim', value: 'S' }, { title: 'Não', value: 'N' }]"
+                            label="Substituto ISS *"
+                            :rules="[rules.required]"
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-file-document-outline"
+                            class="custom-text-field required-left-border"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="3">
+                        <v-select
+                            v-model="formCliente.id_vendedor"
+                            :items="vendedores"
+                            item-title="nome"
+                            item-value="id_colabo"
+                            label="Vendedor"
+                            clearable
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-account-tie"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="3">
+                        <v-text-field
+                            v-model="formCliente.limitecredito"
+                            v-mask-decimal.br="2"
+                            label="Limite de Crédito"
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-currency-brl"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="3">
+                        <v-text-field
+                            v-model="formCliente.dtvencto_limite"
+                            label="Vencimento do Limite"
+                            type="date"
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-calendar"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                            v-model="formCliente.observacao"
+                            label="Observação"
+                            maxlength="500"
+                            variant="outlined"
+                            density="compact"
+                            prepend-inner-icon="mdi-note-text-outline"
+                        />
+                      </v-col>
+                    </v-row>
+                  </v-form>
                 </v-card-text>
-
                 <v-card-actions class="pa-4">
-                  <v-spacer></v-spacer>
-                  <v-btn
-                      color="grey"
-                      variant="text"
-                      @click="fecharImportacao"
-                      size="small"
-                  >
-                    Cancelar
-                  </v-btn>
+                  <v-spacer/>
+                  <v-btn color="grey" variant="text" @click="cancelarFormulario">Cancelar</v-btn>
                   <v-btn
                       color="var(--text-color-laranja)"
+                      :loading="loading"
+                      :disabled="!formValido"
+                      @click="salvarCliente"
                       variant="flat"
                       class="text-white"
-                      :loading="importandoCSV"
-                      :disabled="!arquivoCSV"
-                      @click="importarCSV"
-                      size="small"
                   >
-                    Importar
+                    {{ editando ? 'Atualizar' : 'Salvar' }}
                   </v-btn>
                 </v-card-actions>
               </v-card>
-            </v-dialog>
+            </div>
+          </v-expand-transition>
 
-            <v-expand-transition>
-              <div v-if="!formularioAberto">
-                <v-row class="mb-4">
-                  <v-col cols="12" md="6">
-                    <v-text-field
-                        class="ml-3"
-                        width="480"
-                        v-model="search"
-                        label="Pesquisar"
-                        append-inner-icon="mdi-magnify"
-                        variant="outlined"
-                        density="compact"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
+          <TabelaPadrao
+              v-if="!formularioAberto"
+              :headers="headers"
+              :items="clientes"
+              :loading="loading"
+              :search="search"
+              @update:search="(value) => search = value"
+              search-label="Pesquisar cliente"
+              item-key="id_cliente"
+              no-data-icon="mdi-account-group"
+              no-data-text="Nenhum cliente cadastrado"
+              delete-title="Inativar"
+              delete-tooltip="Inativar"
+              delete-dialog-title="Inativar cliente"
+              delete-dialog-message="O cliente será inativado."
+              delete-item-display-field="nome"
+              @edit-item="editarCliente"
+              @confirm-delete="inativarCliente"
+          >
+            <template v-slot:[`item.tipo_pessoa`]="{ item }">
+              {{ item.tipo_pessoa === 'J' ? 'Jurídica' : 'Física' }}
+            </template>
 
-                <v-data-table
-                    :headers="headers"
-                    :items="pessoas"
-                    :loading="loading"
-                    item-key="id"
-                    class="background-secondary"
-                >
-                  <template v-slot:[`item.tipo_pessoa`]='{ item }'>
-                    {{ item.tipo_pessoa === 'F' ? 'Física' : 'Jurídica' }}
-                  </template>
+            <template v-slot:[`item.tpcliente`]="{ item }">
+              <v-chip :color="item.tpcliente === 'R' ? 'info' : 'default'" size="small" variant="tonal">
+                {{ item.tpcliente === 'R' ? 'Revendedor' : 'Consumidor' }}
+              </v-chip>
+            </template>
 
-                  <template v-slot:[`item.acoes`]='{ item }'>
-                    <v-btn icon="mdi-pencil" size="small" color="primary" variant="text"
-                           @click="editarPessoa(item)"></v-btn>
-                    <v-btn icon="mdi-delete" size="small" color="error" variant="text"
-                           @click="confirmarExclusao(item)"></v-btn>
-                  </template>
+            <template v-slot:[`item.contribuinte_icms`]="{ item }">
+              <v-chip size="small" variant="tonal">
+                {{ { S: 'Sim', N: 'Não', I: 'Isento' }[item.contribuinte_icms] ?? item.contribuinte_icms }}
+              </v-chip>
+            </template>
 
-                  <template v-slot:no-data>
-                    <div class="text-center pa-4">
-                      <v-icon icon="mdi-account-off" size="64" class="mb-2 opacity-60"></v-icon>
-                      <p class="text-body-1">Nenhum cliente encontrado</p>
-                    </div>
-                  </template>
-                </v-data-table>
-              </div>
-            </v-expand-transition>
-          </v-card-text>
-        </v-card>
+            <template v-slot:[`item.ativo`]="{ item }">
+              <v-chip :color="item.ativo ? 'success' : 'error'" size="small">
+                {{ item.ativo ? 'Ativo' : 'Inativo' }}
+              </v-chip>
+            </template>
+          </TabelaPadrao>
+        </v-card-text>
+      </v-card>
 
-
-        <!-- Snackbar -->
-        <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
-
-      </div>
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
     </template>
   </top-all-pages>
 </template>
 
 <script setup>
-import {ref, reactive, computed, watchEffect} from 'vue'
-import {useThemeStore} from '@/stores/config-temas/theme'
-import {usePessoasStore} from "@/stores/APIs/pessoas";
-import BotaoExpandTransition from "@/components/base/padrao-paginas/BotaoExpandTransition.vue";
-import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
+import { ref, reactive, onMounted, computed } from 'vue'
+import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
+import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
+import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
+import FormPessoa from '@/components/base/padrao-paginas/FormPessoa.vue'
+import { useClientesStore } from '@/stores/APIs/clientes'
+import { useFuncionariosStore } from '@/stores/APIs/funcionarios'
+import { usePessoasStore } from '@/stores/APIs/pessoas'
 
-const themeStore = useThemeStore();
-const pessoasStore = usePessoasStore();
+const clientesStore = useClientesStore()
+const funcionariosStore = useFuncionariosStore()
+const pessoasStore = usePessoasStore()
 
-// State
-const pessoas = computed(() => pessoasStore.pessoas);
-const loading = computed(() => pessoasStore.loading);
+const clientes = computed(() => clientesStore.clientes)
+const loading = computed(() => clientesStore.loading)
+const vendedores = computed(() => funcionariosStore.funcionarios)
 const search = ref('')
 
-// Formulário expansível
 const formularioAberto = ref(false)
+const editando = ref(false)
 const formValido = ref(false)
 const formRef = ref(null)
-const editando = ref(false)
+const formPessoaRef = ref(null)
 
-// Importação CSV
-const importacaoAberta = ref(false)
-const arquivoCSV = ref(null)
-const importandoCSV = ref(false)
-const resultadoImportacao = reactive({ show: false, message: '', type: 'success' })
+const formPessoa = reactive({
+  id: null,
+  tipo_pessoa: 'F',
+  nome_razao: '',
+  apelido_fantasia: '',
+  cpf_cnpj: '',
+  rg_inscricao: '',
+  telefone: '',
+  celular: '',
+  whats: '',
+  website: '',
+  instagram: '',
+  facebook: '',
+  twitter_x: '',
+  tik_tok: '',
+  telegram: '',
+  enderecos: [],
+})
 
-const form = reactive({
-  "tipo_pessoa": "",
-  "nome_razao": "",
-  "apelido_fantasia": "",
-  "cpf_cnpj": "",
-  "rg_inscricao": "",
-  "telefone": "",
-  "celular": "",
-  "whats": "",
-  "website": "",
-  "cliente": "",
-  "fornecedor": "",
-  "transportadora": "",
-  "colaborador": "",
-  "representante": "",
-  "instagram": "",
-  "facebook": "",
-  "twitter_x": "",
-  "tik_tok": "",
-  "telegram": "",
-  "ativo": "",
-  "data": {},
-  "enderecos": []
-});
+const formCliente = reactive({
+  id_cliente: null,
+  tpcliente: 'C',
+  contribuinte_icms: 'N',
+  substituto_iss: 'N',
+  id_vendedor: null,
+  id_tabela_preco: null,
+  limitecredito: '',
+  dtvencto_limite: null,
+  observacao: null,
+  nrsuframa: null,
+  insc_mun_subst_iss: null
+})
 
-// Snackbar
-const snackbar = reactive({show: false, message: '', color: 'success'})
+const snackbar = reactive({ show: false, message: '', color: 'success' })
 
 const headers = [
-  {title: 'ID', key: 'id', sortable: true},
-  {title: 'Tipo', key: 'tipo_pessoa', sortable: true},
-  {title: 'Nome / Razão', key: 'nome_razao', sortable: true},
-  {title: 'Apelido', key: 'apelido_fantasia', sortable: true},
-  {title: 'CPF/CNPJ', key: 'cpf_cnpj', sortable: true},
-  {title: 'Telefone', key: 'telefone', sortable: false},
-  {title: 'Celular', key: 'celular', sortable: false},
-  {title: 'Ativo', key: 'ativo', sortable: false},
-  {title: 'Ações', key: 'acoes', sortable: false}
+  { title: 'ID', key: 'id_cliente', sortable: true },
+  { title: 'Nome', key: 'nome', sortable: true },
+  { title: 'Tipo', key: 'tipo_pessoa', sortable: true },
+  { title: 'CPF/CNPJ', key: 'cpf_cnpj', sortable: false },
+  { title: 'Tipo Cliente', key: 'tpcliente', sortable: false },
+  { title: 'Contribuinte ICMS', key: 'contribuinte_icms', sortable: false },
+  { title: 'Status', key: 'ativo', sortable: false },
+  { title: 'Ações', key: 'actions', sortable: false }
 ]
 
 const rules = {
   required: (v) => !!v || 'Campo obrigatório'
 }
 
-const tiposEndereco = [
-  { label: 'Residencial/Comercial', value: 1 },
-  { label: 'Entrega', value: 2 },
-  { label: 'Cobrança', value: 3 },
-  { label: 'Fiscal', value: 4 }
-]
-
-const tiposDisponiveis = (idx) => {
-  const usados = form.enderecos.map((e, i) => i !== idx ? e.tipo_endereco : null).filter(t => t !== null)
-  return tiposEndereco.filter(t => !usados.includes(t.value))
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
 }
 
-const adicionarEndereco = () => {
-  if (form.enderecos.length >= 4) return
-  form.enderecos.push({
-    tipo_endereco: null,
-    cidade: '',
-    bairro: '',
-    logradouro: '',
-    numero: '',
-    complemento: '',
-    cep: ''
-  })
-}
-
-const removerEndereco = (idx) => {
-  form.enderecos.splice(idx, 1)
-}
-
-const buscarCep = async (end) => {
-  const cep = (end.cep || '').replace(/\D/g, '')
-  if (cep.length !== 8) return
-
-  end._buscandoCep = true
-  try {
-    const resp = await import('@/services/api').then(m => m.default.get(`/cep/${cep}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    }))
-    const d = resp.data?.data?.[0] ?? resp.data
-    if (d) {
-      if (d.logradouro)  end.logradouro = d.logradouro
-      if (d.bairro)      end.bairro     = d.bairro
-      if (d.localidade)  end.cidade     = d.localidade
-    }
-  } catch (e) {
-    console.error('Erro ao buscar CEP:', e)
-  } finally {
-    end._buscandoCep = false
-  }
-}
-
-// CRUD
-const buscarPessoas = async () => {
-  if (pessoas.value.length === 0)
-    await pessoasStore.buscarTodasPessoas();
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 const toggleFormulario = () => {
   if (formularioAberto.value) {
     cancelarFormulario()
-  } else {
-    editando.value = false
-    resetarForm()
-    formularioAberto.value = true
+    return
   }
-}
-
-const editarPessoa = async (p) => {
-  editando.value = true
+  editando.value = false
+  resetarForm()
   formularioAberto.value = true
-
-  const resultado = await pessoasStore.buscarpessoaId(p.id)
-
-  const pessoaData = resultado?.pessoa ?? p
-  const enderecoData = resultado?.endereco ?? []
-
-  Object.assign(form, pessoaData)
-  form.enderecos = Array.isArray(enderecoData) ? enderecoData.map(e => ({ ...e })) : []
 }
 
 const cancelarFormulario = () => {
   formularioAberto.value = false
+  editando.value = false
   resetarForm()
 }
 
 const resetarForm = () => {
-  Object.assign(form, {
-    tipo_pessoa: 'F',
-    nome_razao: '',
-    apelido_fantasia: '',
-    cpf_cnpj: '',
-    rg_inscricao: '',
-    telefone: '',
-    celular: '',
-    whats: '',
-    website: '',
-    cliente: 'N',
-    fornecedor: 'N',
-    transportadora: 'N',
-    colaborador: 'N',
-    representante: 'N',
-    instagram: '',
-    facebook: '',
-    twitter_x: '',
-    tik_tok: '',
-    telegram: '',
-    ativo: 'S',
-    data: {}
+  formPessoaRef.value?.resetarForm()
+  Object.assign(formCliente, {
+    id_cliente: null,
+    tpcliente: 'C',
+    contribuinte_icms: 'N',
+    substituto_iss: 'N',
+    id_vendedor: null,
+    id_tabela_preco: null,
+    limitecredito: '',
+    dtvencto_limite: null,
+    observacao: null,
+    nrsuframa: null,
+    insc_mun_subst_iss: null
   })
-  form.enderecos = []
   if (formRef.value) formRef.value.resetValidation()
 }
 
-const salvarPessoa = async () => {
-  await pessoasStore.salvarPessoa(formRef.value, form, editando.value, snackbar);
-  if (!pessoasStore.errorMessage) cancelarFormulario();
+const handlePessoaEncontrada = (pessoa) => {
+  const cli = pessoa.dados_cliente
+  editando.value = !!cli
+  Object.assign(formCliente, {
+    id_cliente: cli?.id_cliente ?? cli?.id ?? null,
+    tpcliente: cli?.tpcliente ?? 'C',
+    contribuinte_icms: cli?.contribuinte_icms ?? 'N',
+    substituto_iss: cli?.substituto_iss ?? 'N',
+    id_vendedor: cli?.id_vendedor ?? null,
+    id_tabela_preco: cli?.id_tabela_preco ?? null,
+    limitecredito: cli?.limitecredito ? formatDecimalBR(cli.limitecredito) : '',
+    dtvencto_limite: cli?.dtvencto_limite ? cli.dtvencto_limite.slice(0, 10) : null,
+    observacao: cli?.observacao ?? null,
+    nrsuframa: cli?.nrsuframa ?? null,
+    insc_mun_subst_iss: cli?.insc_mun_subst_iss ?? null
+  })
 }
 
-const confirmarExclusao = (p) => {
-  if (!confirm('Confirmar exclusão?')) return
-  deletarPessoa(p.id)
+const handlePessoaNaoEncontrada = () => {
+  editando.value = false
+  Object.assign(formCliente, {
+    id_cliente: null,
+    tpcliente: 'C',
+    contribuinte_icms: 'N',
+    substituto_iss: 'N',
+    id_vendedor: null,
+    id_tabela_preco: null,
+    limitecredito: '',
+    dtvencto_limite: null,
+    observacao: null,
+    nrsuframa: null,
+    insc_mun_subst_iss: null
+  })
 }
 
-const deletarPessoa = async (id) => {
-  await pessoasStore.deletarPessoa(id, snackbar)
-}
+const editarCliente = async (item) => {
+  editando.value = true
+  formularioAberto.value = true
 
-// Importação CSV
-const abrirImportacao = () => {
-  importacaoAberta.value = true
-  resultadoImportacao.show = false
-}
-
-const fecharImportacao = () => {
-  importacaoAberta.value = false
-  arquivoCSV.value = null
-  resultadoImportacao.show = false
-}
-
-const baixarModeloCSV = () => {
-  const csvContent = `tipo_pessoa,nome_razao,apelido_fantasia,cpf_cnpj,rg_inscricao,telefone,celular,whats,website,cliente,fornecedor,transportadora,colaborador,representante,instagram,facebook,twitter_x,tik_tok,telegram,ativo
-F,João Silva,João,12345678900,123456789,1133334444,11999998888,11999998888,https://exemplo.com,S,N,N,N,N,@joao,joao.silva,@joaosilva,@joao,@joaosilva,S
-J,Empresa XYZ Ltda,XYZ Comércio,12345678000199,987654321,1144445555,11988887777,11988887777,https://empresaxyz.com.br,N,S,N,N,N,@empresaxyz,empresa.xyz,@empresaxyz,@xyzempresa,@empresaxyz,S`
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  
-  link.setAttribute('href', url)
-  link.setAttribute('download', 'modelo_importacao_pessoas.csv')
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
-const onArquivoSelecionado = () => {
-  resultadoImportacao.show = false
-}
-
-const parseCSV = (text) => {
-  const lines = text.split('\n').filter(line => line.trim())
-  const headers = lines[0].split(',').map(h => h.trim())
-  const data = []
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',')
-    const obj = {}
-    
-    headers.forEach((header, index) => {
-      let value = values[index]?.trim() || ''
-      
-      // Converter valores numéricos
-      if (header === 'latitude' || header === 'longitude') {
-        value = value ? Number(value) : null
-      }
-      
-      // Normalizar tipo_pessoa: "Física" -> "F", "Jurídica" -> "J"
-      if (header === 'tipo_pessoa') {
-        if (value.toLowerCase().includes('física') || value.toLowerCase() === 'fisica' || value === 'F') {
-          value = 'F'
-        } else if (value.toLowerCase().includes('jurídica') || value.toLowerCase() === 'juridica' || value === 'J') {
-          value = 'J'
-        }
-      }
-      
-      // Normalizar Sim/Não -> S/N
-      if (['cliente', 'fornecedor', 'transportadora', 'colaborador', 'representante', 'ativo'].includes(header)) {
-        if (value.toLowerCase() === 'sim' || value === 'S') {
-          value = 'S'
-        } else if (value.toLowerCase() === 'não' || value.toLowerCase() === 'nao' || value === 'N') {
-          value = 'N'
-        } else {
-          value = value || 'N' // Padrão
-        }
-      }
-      
-      obj[header] = value
+  const resultado = await pessoasStore.buscarpessoaId(item.id_pessoa)
+  if (resultado) {
+    formPessoaRef.value?.preencherPessoa(resultado.pessoa, resultado.endereco)
+    const cli = resultado.dadosCliente || {}
+    Object.assign(formCliente, {
+      id_cliente: cli.id_cliente ?? item.id_cliente ?? null,
+      tpcliente: cli.tpcliente ?? item.tpcliente ?? 'C',
+      contribuinte_icms: cli.contribuinte_icms ?? item.contribuinte_icms ?? 'N',
+      substituto_iss: cli.substituto_iss ?? item.substituto_iss ?? 'N',
+      id_vendedor: cli.id_vendedor ?? item.id_vendedor ?? null,
+      id_tabela_preco: cli.id_tabela_preco ?? item.id_tabela_preco ?? null,
+      limitecredito: formatDecimalBR(cli.limitecredito ?? item.limitecredito),
+      dtvencto_limite: (cli.dtvencto_limite ?? item.dtvencto_limite) ? (cli.dtvencto_limite ?? item.dtvencto_limite).slice(0, 10) : null,
+      observacao: cli.observacao ?? item.observacao ?? null,
+      nrsuframa: cli.nrsuframa ?? item.nrsuframa ?? null,
+      insc_mun_subst_iss: cli.insc_mun_subst_iss ?? item.insc_mun_subst_iss ?? null
     })
-    
-    data.push(obj)
   }
-  
-  return data
 }
 
-const importarCSV = async () => {
-  if (!arquivoCSV.value) {
-    resultadoImportacao.show = true
-    resultadoImportacao.type = 'error'
-    resultadoImportacao.message = 'Selecione um arquivo CSV'
-    return
-  }
-  
-  importandoCSV.value = true
-  resultadoImportacao.show = false
-  
+const salvarCliente = async () => {
+  const valid = await formRef.value?.validate()
+  if (valid && !valid.valid) return
+
   try {
-    // v-file-input retorna array ou objeto dependendo da versão
-    const file = Array.isArray(arquivoCSV.value) ? arquivoCSV.value[0] : arquivoCSV.value
-    
-    if (!file) {
-      resultadoImportacao.show = true
-      resultadoImportacao.type = 'error'
-      resultadoImportacao.message = 'Arquivo inválido'
-      return
+    const pessoaNova = !formPessoa.id
+    const payloadEntity = {
+      tpcliente: formCliente.tpcliente,
+      contribuinte_icms: formCliente.contribuinte_icms,
+      substituto_iss: formCliente.substituto_iss,
+      id_vendedor: formCliente.id_vendedor || null,
+      id_tabela_preco: formCliente.id_tabela_preco || null,
+      limitecredito: parseDecimalBR(formCliente.limitecredito),
+      dtvencto_limite: formCliente.dtvencto_limite || null,
+      observacao: formCliente.observacao || null,
+      nrsuframa: formCliente.nrsuframa || null,
+      insc_mun_subst_iss: formCliente.insc_mun_subst_iss || null
     }
-    
-    const text = await file.text()
-    const pessoas = parseCSV(text)
-    
-    if (pessoas.length === 0) {
-      resultadoImportacao.show = true
-      resultadoImportacao.type = 'warning'
-      resultadoImportacao.message = 'Nenhum cliente encontrado no arquivo'
-      return
+
+    if (editando.value) {
+      if (formPessoa.id) {
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa }, true, snackbar)
+      }
+      await clientesStore.atualizarCliente(formCliente.id_cliente, payloadEntity)
+      snackbar.message = 'Cliente atualizado com sucesso!'
+    } else if (pessoaNova) {
+      const payload = {
+        tipo_pessoa: formPessoa.tipo_pessoa,
+        nome_razao: formPessoa.nome_razao,
+        apelido_fantasia: formPessoa.apelido_fantasia,
+        cpf_cnpj: (formPessoa.cpf_cnpj || '').replace(/\D/g, ''),
+        rg_inscricao: formPessoa.rg_inscricao || null,
+        telefone: (formPessoa.telefone || '').replace(/\D/g, '') || null,
+        celular: (formPessoa.celular || '').replace(/\D/g, '') || null,
+        whats: (formPessoa.whats || '').replace(/\D/g, '') || null,
+        website: formPessoa.website || null,
+        instagram: formPessoa.instagram || null,
+        facebook: formPessoa.facebook || null,
+        twitter_x: formPessoa.twitter_x || null,
+        tik_tok: formPessoa.tik_tok || null,
+        telegram: formPessoa.telegram || null,
+        endereco: (formPessoa.enderecos || []).map((end) => {
+          const copy = { ...end }
+          delete copy._buscandoCep
+          return copy
+        }),
+        ...payloadEntity
+      }
+      await clientesStore.criarCliente(payload)
+      snackbar.message = 'Cliente cadastrado com sucesso!'
+    } else {
+      await clientesStore.criarCliente({ id_pessoa: formPessoa.id, ...payloadEntity })
+      snackbar.message = 'Cliente cadastrado com sucesso!'
     }
-    
-    // Validar campos obrigatórios
-    const pessoasValidas = pessoas.filter(p => 
-      p.tipo_pessoa && p.nome_razao && p.apelido_fantasia
-    )
-    
-    if (pessoasValidas.length === 0) {
-      resultadoImportacao.show = true
-      resultadoImportacao.type = 'error'
-      resultadoImportacao.message = 'Nenhum cliente válido encontrado. Verifique os campos obrigatórios.'
-      return
-    }
-    
-    // Importar pessoas
-    await pessoasStore.importarPessoasCSV(pessoasValidas)
-    
-    resultadoImportacao.show = true
-    resultadoImportacao.type = 'success'
-    resultadoImportacao.message = `${pessoasValidas.length} cliente(s) importado(s) com sucesso!`
-    
-    // Recarregar lista
-    await pessoasStore.buscarTodasPessoas()
-    
-    // Fechar após 2 segundos
-    setTimeout(() => {
-      fecharImportacao()
-    }, 2000)
-    
-  } catch (error) {
-    console.error('Erro ao importar CSV:', error)
-    resultadoImportacao.show = true
-    resultadoImportacao.type = 'error'
-    resultadoImportacao.message = 'Erro ao processar arquivo CSV'
-  } finally {
-    importandoCSV.value = false
+
+    snackbar.color = 'success'
+    snackbar.show = true
+    await clientesStore.buscarClientes()
+    cancelarFormulario()
+  } catch (e) {
+    console.error(e)
+    snackbar.message = e.response?.data?.erro || 'Erro ao salvar cliente.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 
-watchEffect(() => {
-  buscarPessoas()
+const inativarCliente = async (item) => {
+  try {
+    const id = item?.id_cliente ?? item?.id ?? item
+    await clientesStore.inativarCliente(id)
+    snackbar.message = 'Cliente inativado com sucesso!'
+    snackbar.color = 'success'
+    snackbar.show = true
+    await clientesStore.buscarClientes()
+  } catch (e) {
+    console.error(e)
+    snackbar.message = e.response?.data?.erro || 'Erro ao inativar cliente.'
+    snackbar.color = 'error'
+    snackbar.show = true
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    clientesStore.buscarClientes(),
+    funcionariosStore.buscarFuncionarios()
+  ])
 })
 </script>

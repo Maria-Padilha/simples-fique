@@ -1,6 +1,6 @@
 <template>
   <div class="pa-4">
-    <v-card class="background-secondary my-4" elevation="1">
+    <v-card class="background-secondary my-4" elevation="0">
       <v-card-title class="text-h5 pa-4 d-flex justify-space-between align-center">
         <div class="d-flex align-center">
           <v-icon icon="mdi-cash-register-outline" class="mr-3"></v-icon>
@@ -19,7 +19,6 @@
               label="Data Início"
               variant="outlined"
               density="compact"
-              :theme="themeStore.darkMode ? 'dark' : 'light'"
             ></v-text-field>
           </v-col>
 
@@ -30,7 +29,6 @@
               label="Data Fim"
               variant="outlined"
               density="compact"
-              :theme="themeStore.darkMode ? 'dark' : 'light'"
             ></v-text-field>
           </v-col>
 
@@ -40,7 +38,6 @@
               label="Caixa"
               variant="outlined"
               density="compact"
-              :theme="themeStore.darkMode ? 'dark' : 'light'"
             ></v-select>
           </v-col>
 
@@ -56,7 +53,7 @@
               Filtrar
             </v-btn>
             <v-btn
-              color="primary"
+              color="var(--text-color-laranja)"
               variant="outlined"
               prepend-icon="mdi-download"
               @click="exportarRelatorio"
@@ -69,12 +66,16 @@
 
     <v-card elevation="0" class="background-secondary">
       <v-card-text class="pa-4">
-        <v-data-table
+        <TabelaPadrao
+          :formulario-aberto="false"
           :headers="headers"
           :items="dadosRelatorio"
           :loading="loading"
+          :show-edit-action="false"
+          :show-delete-action="false"
           item-key="id"
-          class="background-secondary"
+          no-data-icon="mdi-chart-bar"
+          no-data-text="Nenhum dado encontrado para os filtros aplicados."
         >
           <template v-slot:[`item.tipo`]="{ item }">
             <v-chip
@@ -87,7 +88,7 @@
           </template>
 
           <template v-slot:[`item.valor`]="{ item }">
-            <span :style="{ color: item.tipo === 'entrada' ? 'var(--text-color)' : '#d32f2f' }">
+            <span :style="{ color: item.tipo === 'entrada' ? 'var(--text-color)' : 'rgb(var(--v-theme-error))' }">
               R$ {{ item.valor.toFixed(2) }}
             </span>
           </template>
@@ -102,25 +103,31 @@
               </span>
             </div>
           </template>
-
-          <template v-slot:no-data>
-            <div class="text-center pa-4">
-              <v-icon icon="mdi-cash-register-off" size="64" class="mb-2 opacity-60"></v-icon>
-              <p class="text-body-1">Nenhuma movimentação encontrada</p>
-            </div>
-          </template>
-        </v-data-table>
+        </TabelaPadrao>
       </v-card-text>
     </v-card>
+
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+      {{ snackbar.message }}
+    </v-snackbar>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
+import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 
 const themeStore = useThemeStore()
 const loading = ref(false)
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+
+const mostrarMensagem = (message, color = 'success') => {
+  snackbar.message = message
+  snackbar.color = color
+  snackbar.show = true
+}
 
 const filtros = reactive({
   dataInicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -158,7 +165,7 @@ const filtrarRelatorio = () => {
   try {
     dadosRelatorio.value = []
   } catch (error) {
-    console.error('Erro:', error)
+    mostrarMensagem('Erro ao carregar relatório', 'error')
   } finally {
     loading.value = false
   }

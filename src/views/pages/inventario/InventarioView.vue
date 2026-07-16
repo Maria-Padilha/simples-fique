@@ -277,7 +277,9 @@
                       item-title="descproduto"
                       item-value="id_produto"
                       :loading="carregandoGridProdutos"
+                      :custom-filter="filtrarProdutoPorNomeOuCodigo"
                       clearable
+                      @focus="carregarGridProdutos"
                   >
                     <template #item="{ props, item }">
                       <v-list-item v-bind="props">
@@ -386,6 +388,25 @@
               </v-alert>
 
               <v-row>
+                <!-- Código de busca -->
+                <v-col cols="12" md="4">
+                  <v-text-field
+                      v-model="filtroManual.codigo"
+                      label="Buscar por Código"
+                      variant="outlined"
+                      density="compact"
+                      prepend-inner-icon="mdi-barcode"
+                      hint="Pressione Enter para buscar"
+                      persistent-hint
+                      clearable
+                      @keyup.enter="buscarPorCodigo"
+                  >
+                    <template #append-inner>
+                      <v-btn icon="mdi-magnify" size="small" variant="text" @click="buscarPorCodigo"></v-btn>
+                    </template>
+                  </v-text-field>
+                </v-col>
+
                 <!-- Produto -->
                 <v-col cols="12" md="4">
                   <v-autocomplete
@@ -398,7 +419,9 @@
                       item-title="descproduto"
                       item-value="id_produto"
                       :loading="carregandoGridProdutos"
+                      :custom-filter="filtrarProdutoPorNomeOuCodigo"
                       clearable
+                      @focus="carregarGridProdutos"
                   ></v-autocomplete>
                 </v-col>
 
@@ -506,15 +529,27 @@
           </v-card-title>
 
           <v-card-text class="pa-4">
+            <v-alert
+                v-if="naoEncontradosCount > 0"
+                type="warning"
+                density="compact"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="naoEncontradosCount = 0"
+                icon="mdi-barcode-off"
+            >
+              <strong>{{ naoEncontradosCount }}</strong> {{ naoEncontradosCount === 1 ? 'código de barras não encontrado' : 'códigos de barras não encontrados' }} no catálogo de referência.
+            </v-alert>
             <v-table class="inventario-table" density="comfortable">
               <thead>
                 <tr>
                   <th class="text-center" style="width: 5%">#</th>
                   <th class="text-left" style="width: 10%">Código</th>
-                  <th class="text-left" style="width: 33%">Produto</th>
-                  <th class="text-center" style="width: 13%">Qtd. Sistema</th>
-                  <th class="text-center" style="width: 13%">Qtd. Contada</th>
-                  <th class="text-center" style="width: 13%">Diferença</th>
+                  <th class="text-left" style="width: 35%">Produto</th>
+                  <th class="text-center" style="width: 12%">Qtd. Sistema</th>
+                  <th class="text-center" style="width: 12%">Qtd. Contada</th>
+                  <th class="text-center" style="width: 12%">Diferença</th>
                   <th class="text-center" style="width: 10%">Ações</th>
                 </tr>
               </thead>
@@ -537,10 +572,43 @@
                   <td class="text-center text-body-2 font-weight-bold">{{ index + 1 }}</td>
                   <td class="text-body-2">{{ item.codigo }}</td>
                   <td>
-                    <div class="text-body-2 font-weight-medium">{{ item.nome }}</div>
-                    <div class="text-caption text-grey" v-if="item.localizacao">
-                      <v-icon icon="mdi-map-marker" size="x-small"></v-icon>
-                      {{ item.localizacao }}
+                    <div class="d-flex align-center ga-3">
+                      <v-avatar
+                          v-if="item.fotoUrl"
+                          size="44"
+                          rounded
+                          class="flex-shrink-0"
+                      >
+                        <v-img
+                            :src="item.fotoUrl"
+                            alt=""
+                            cover
+                            class="rounded"
+                        />
+                      </v-avatar>
+                      <v-avatar
+                          v-else
+                          size="44"
+                          rounded
+                          color="grey-lighten-3"
+                          class="flex-shrink-0"
+                      >
+                        <v-icon icon="mdi-package-variant" color="grey-lighten-1"></v-icon>
+                      </v-avatar>
+                      <div v-if="!item.encontrado">
+                        <v-icon icon="mdi-alert-circle-outline" color="warning" size="small"></v-icon>
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-body-2 font-weight-medium text-truncate" :class="{ 'text-warning': !item.encontrado }" :title="item.nome">{{ item.nome }}</div>
+                        <div class="text-caption text-grey" v-if="item.erro">
+                          <v-icon icon="mdi-alert" size="x-small" color="warning"></v-icon>
+                          {{ item.erro }}
+                        </div>
+                        <div class="text-caption text-grey" v-if="item.localizacao">
+                          <v-icon icon="mdi-map-marker" size="x-small"></v-icon>
+                          {{ item.localizacao }}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td class="text-center">
@@ -569,7 +637,7 @@
                         size="small"
                         variant="text"
                         color="error"
-                        @click="removerItem(index)"
+                        @click="abrirModalExcluir(index)"
                     ></v-btn>
                   </td>
                 </tr>
@@ -734,7 +802,7 @@
                         size="small"
                         variant="text"
                         color="error"
-                        @click="excluirLote(index)"
+                        @click="abrirModalExcluirLote(index)"
                     ></v-btn>
                   </td>
                 </tr>
@@ -808,8 +876,8 @@
                   no-data-text="Nenhum item neste lote"
                   loading-text="Carregando itens..."
               >
-                <template #[`item.id_seq`]="{ item }">
-                  <span class="font-weight-bold">{{ item.id_seq }}</span>
+                <template #[`item.codigo`]="{ item }">
+                  <span class="font-weight-bold">{{ item.codigo }}</span>
                 </template>
 
                 <template #[`item.nome`]="{ item }">
@@ -993,6 +1061,44 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+
+    <!-- Modal Remover Item -->
+    <ConfirmarAcaoModal
+        v-model:modal-aberto="modalExcluirItem"
+        titulo="Remover item?"
+        :mensagem="`Tem certeza que deseja remover '${itemExcluirNome}' da lista de itens do inventário? O produto não é excluído do catálogo, só sai desta lista.`"
+        texto-confirmar="Remover"
+        icone="mdi-delete-outline"
+        cor="error"
+        :loading="loadingExcluir"
+        :confirmar="confirmarExclusaoItem"
+        :cancelar="cancelarExclusaoItem"
+    />
+
+    <!-- Modal Limpar Inventário -->
+    <ConfirmarAcaoModal
+        v-model:modal-aberto="modalLimparInventario"
+        titulo="Limpar inventário?"
+        mensagem="Tem certeza que deseja remover todos os itens adicionados ao inventário? Esta ação não pode ser desfeita."
+        texto-confirmar="Limpar"
+        icone="mdi-delete-sweep-outline"
+        cor="error"
+        :confirmar="confirmarLimparInventario"
+        :cancelar="cancelarLimparInventario"
+    />
+
+    <!-- Modal Excluir Inventário (lote) -->
+    <ConfirmarAcaoModal
+        v-model:modal-aberto="modalExcluirLote"
+        titulo="Excluir inventário?"
+        :mensagem="`Tem certeza que deseja excluir o inventário de '${loteExcluirNome}'? Esta ação não pode ser desfeita.`"
+        texto-confirmar="Excluir"
+        icone="mdi-delete-outline"
+        cor="error"
+        :loading="loadingExcluirLote"
+        :confirmar="confirmarExclusaoLote"
+        :cancelar="cancelarExclusaoLote"
+    />
       </div>
     </template>
   </top-all-pages>
@@ -1004,8 +1110,10 @@ import { useThemeStore } from '@/stores/config-temas/theme'
 import { useEstoqueStore } from '@/stores/APIs/estoque'
 import { useProdutosStore } from '@/stores/APIs/produtos'
 import { useInventarioStore } from '@/stores/APIs/inventario'
+import ConfirmarAcaoModal from '@/components/base/modais/ConfirmarAcaoModal.vue'
 import { toast } from 'vue3-toastify'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
+import ExcelJS from 'exceljs/dist/exceljs.min.js'
 
 const themeStore = useThemeStore()
 const inventarioStore = useInventarioStore()
@@ -1034,8 +1142,8 @@ const paginaModal = ref(1)
 const itensPorPaginaModal = ref(10)
 
 const headersItensModal = [
-  { title: '#', key: 'id_seq', sortable: true, align: 'center', width: '5%' },
-  { title: 'Produto', key: 'nome', sortable: true, width: '40%' },
+  { title: '#', key: 'codigo', sortable: true, align: 'center', width: '15%' },
+  { title: 'Produto', key: 'nome', sortable: true, width: '30%' },
   { title: 'Qtd. Sistema', key: 'estoqueSistema', sortable: true, align: 'center', width: '15%' },
   { title: 'Qtd. Contada', key: 'quantidadeContada', sortable: false, align: 'center', width: '20%' },
   { title: 'Diferença', key: 'diferenca', sortable: true, align: 'center', width: '15%' }
@@ -1064,6 +1172,7 @@ const itemAtual = reactive({
 })
 
 const itensInventario = ref([])
+const naoEncontradosCount = ref(0)
 const produtoEncontrado = ref(null)
 const lotes = ref([])
 const almoxarifados = ref([])
@@ -1159,6 +1268,17 @@ const formatarData = (data) => {
   return `${dia}/${mes}/${ano}`
 }
 
+// Filtro do dropdown "Produto": além do nome, também casa por código de barras/SKU,
+// já que é comum o usuário digitar o código ali em vez do campo dedicado.
+const filtrarProdutoPorNomeOuCodigo = (_itemTitle, queryText, item) => {
+  if (!queryText) return true
+  const query = queryText.toLowerCase()
+  const produto = item.raw || {}
+  const nome = (produto.descproduto || '').toLowerCase()
+  const codigo = String(produto.codigo_gtin || produto.codigo_sku || '').toLowerCase()
+  return nome.includes(query) || codigo.includes(query)
+}
+
 const toggleLote = () => {
   loteAberto.value = !loteAberto.value
   if (!loteAberto.value) {
@@ -1231,6 +1351,7 @@ const finalizarLote = async () => {
         id_cor: 0,
         id_tamanho: 0,
         id_produto: item.produtoId,
+        codigo_barras: item.codigo || '',
         qtd_sistema: item.estoqueSistema || 0,
         qtd_contada: item.quantidadeContada || 0,
         diferenca: item.diferenca || 0,
@@ -1289,14 +1410,18 @@ const visualizarItensLote = async (lote) => {
 
     if (dados) {
       const itensApi = Array.isArray(dados) ? dados : (dados.itens || dados.item || dados.data || [])
-      const itensMapeados = itensApi.map(item => ({
-        id_seq: item.id_seq,
-        produtoId: item.id_produto,
-        nome: item.descproduto || `Produto #${item.id_produto}`,
-        estoqueSistema: item.qtd_sistema || 0,
-        quantidadeContada: item.qtd_contada || 0,
-        diferenca: item.qtd_diferenca || 0
-      }))
+      const itensMapeados = itensApi.map(item => {
+        const produto = item.referencia_produto || {}
+        return {
+          id_seq: item.id_seq,
+          produtoId: item.id_produto,
+          codigo: produto.codigo_gtin || item.codigo_gtin || item.codigo_barras || '',
+          nome: produto.descproduto || item.descproduto || `Produto #${item.id_produto}`,
+          estoqueSistema: item.qtd_sistema || 0,
+          quantidadeContada: item.qtd_contada || 0,
+          diferenca: item.qtd_diferenca || 0
+        }
+      })
 
       loteVisualizando.value = {
         ...loteVisualizando.value,
@@ -1313,13 +1438,29 @@ const visualizarItensLote = async (lote) => {
   }
 }
 
-const excluirLote = async (index) => {
-  const lote = lotes.value[index]
-  
-  if (!confirm('Tem certeza que deseja cancelar este inventário?')) {
-    return
-  }
+const modalExcluirLote = ref(false)
+const loteExcluirIndex = ref(null)
+const loteExcluirNome = ref('')
+const loadingExcluirLote = ref(false)
 
+const abrirModalExcluirLote = (index) => {
+  loteExcluirIndex.value = index
+  loteExcluirNome.value = lotes.value[index]?.almoxarifadoNome || `Inventário #${lotes.value[index]?.id ?? ''}`
+  modalExcluirLote.value = true
+}
+
+const cancelarExclusaoLote = () => {
+  modalExcluirLote.value = false
+  loteExcluirIndex.value = null
+}
+
+const confirmarExclusaoLote = async () => {
+  const index = loteExcluirIndex.value
+  if (index === null) return
+
+  const lote = lotes.value[index]
+
+  loadingExcluirLote.value = true
   try {
     // Se o lote tem ID, cancelar via API
     if (lote.id) {
@@ -1328,7 +1469,7 @@ const excluirLote = async (index) => {
         toast.error('Empresa não selecionada')
         return
       }
-      
+
       const empresaSelecionada = JSON.parse(empresaSelecionadaStr)
       const idEmpresa = empresaSelecionada.id
 
@@ -1339,11 +1480,16 @@ const excluirLote = async (index) => {
 
       await inventarioStore.cancelarInventario(parseInt(idEmpresa), lote.id)
     }
-    
+
     // Remover do array local
     lotes.value.splice(index, 1)
   } catch (error) {
     console.error('[Inventário] Erro ao excluir lote:', error)
+    toast.error('Erro ao excluir inventário')
+  } finally {
+    loadingExcluirLote.value = false
+    modalExcluirLote.value = false
+    loteExcluirIndex.value = null
   }
 }
 
@@ -1431,125 +1577,75 @@ const importarArquivo = async () => {
 
   processandoArquivo.value = true
   try {
-    const fileContent = await inventario.arquivo.text()
-    const linhas = fileContent.split('\n').filter(linha => linha.trim())
+    const empresaSelecionadaStr = localStorage.getItem('empresaSelecionada')
+    if (!empresaSelecionadaStr) { toast.error('Empresa não selecionada'); return }
+    const idEmpresa = JSON.parse(empresaSelecionadaStr).id
 
-    console.log('[Inventário] Total de linhas:', linhas.length)
-    console.log('[Inventário] Primeiras 3 linhas:', linhas.slice(0, 3))
+    const resultado = await inventarioStore.processarArquivoInventario(inventario.arquivo, {
+      id_empresa: idEmpresa,
+      id_almoxarifado: inventario.id_almoxarifado,
+      layout_utilizado: inventario.layout_utilizado,
+      usar_separador: usarSeparador.value,
+      separador_char: usarSeparador.value ? inventario.separador_char : undefined,
+      layout_dig_prod: !usarSeparador.value ? inventario.layout_dig_prod : undefined,
+      layout_dig_qtd: !usarSeparador.value ? inventario.layout_dig_qtd : undefined
+    })
 
-    let itensProcessados = 0
-    let erros = 0
-
-    for (const linha of linhas) {
-      try {
-        let codigo, quantidade, localizacaoId = null
-        
-        if (usarSeparador.value) {
-          // Processar com separador
-          const partes = linha.split(inventario.separador_char).map(p => p.trim())
-          console.log('[Inventário] Linha processada:', linha)
-          console.log('[Inventário] Partes:', partes)
-          
-          if (inventario.layout_utilizado === 'cod_interno_qtd_loc') {
-            [codigo, quantidade, localizacaoId] = partes
-          } else {
-            [codigo, quantidade] = partes
-          }
-        } else {
-          // Processar tamanho fixo
-          const digitosProduto = inventario.layout_dig_prod
-          const digitosQtd = inventario.layout_dig_qtd
-          
-          codigo = linha.substring(0, digitosProduto).trim()
-          quantidade = linha.substring(digitosProduto, digitosProduto + digitosQtd).trim()
-          console.log('[Inventário] Tamanho fixo - Código:', codigo, 'Quantidade:', quantidade)
-        }
-
-        console.log('[Inventário] Buscando produto - Código:', codigo, 'Quantidade:', quantidade, 'Tipo:', inventario.layout_utilizado)
-
-        // Buscar produto baseado no tipo de documento
-        let produto = null
-        switch (inventario.layout_utilizado) {
-          case 'cod_interno_qtd':
-          case 'cod_interno_qtd_loc':
-            produto = produtos.value.find(p => p.id === parseInt(codigo))
-            console.log('[Inventário] Buscando por ID:', parseInt(codigo), 'Encontrado:', !!produto)
-            break
-          case 'cod_barras_qtd':
-            produto = produtos.value.find(p => p.codigo_gtin === codigo || p.codigo_sku === codigo)
-            console.log('[Inventário] Buscando por código de barras:', codigo, 'Encontrado:', !!produto)
-            break
-          case 'cod_referencia_qtd':
-            produto = produtos.value.find(p => p.codigo_sku === codigo)
-            console.log('[Inventário] Buscando por SKU:', codigo, 'Encontrado:', !!produto)
-            break
-          case 'cod_fabricacao_qtd':
-            produto = produtos.value.find(p => p.codigo_fabricante === codigo)
-            console.log('[Inventário] Buscando por código fabricante:', codigo, 'Encontrado:', !!produto)
-            break
-        }
-
-        if (produto) {
-          // Verificar se já existe
-          const jaExiste = itensInventario.value.find(item => item.produtoId === produto.id)
-          if (!jaExiste) {
-            const qtdContada = parseFloat(quantidade) || 0
-            
-            // Buscar saldo do produto no almoxarifado via API
-            const empresaSelecionadaStr = localStorage.getItem('empresaSelecionada')
-            const empresaSelecionada = JSON.parse(empresaSelecionadaStr)
-            const idEmpresa = empresaSelecionada.id
-            
-            let qtdSistema = 0
-            try {
-              const saldoData = await inventarioStore.consultarSaldoProdutoAlmoxarifado(
-                idEmpresa,
-                inventario.id_almoxarifado,
-                produto.id
-              )
-              qtdSistema = saldoData?.saldo || saldoData?.quantidade || 0
-              console.log('[Inventário] Saldo do produto no almoxarifado:', qtdSistema)
-            } catch (error) {
-              console.warn('[Inventário] Erro ao buscar saldo, usando 0:', error)
-              qtdSistema = 0
-            }
-
-            itensInventario.value.push({
-              produtoId: produto.id,
-              codigo: produto.codigo_sku || produto.codigo_gtin || produto.id,
-              nome: produto.descproduto,
-              estoqueSistema: qtdSistema,
-              quantidadeContada: qtdContada,
-              diferenca: 0,
-              unidade: produto.unidade || 'UN',
-              localizacaoId: localizacaoId ? parseInt(localizacaoId) : null,
-              localizacao: localizacaoId ? getDescricaoLocalizacao(parseInt(localizacaoId)) : ''
-            })
-            itensProcessados++
-            console.log('[Inventário] Produto adicionado:', produto.descproduto)
-          } else {
-            console.log('[Inventário] Produto já existe:', produto.descproduto)
-          }
-        } else {
-          console.warn('[Inventário] Produto não encontrado para código:', codigo)
-          erros++
-        }
-      } catch (error) {
-        console.error('[Inventário] Erro ao processar linha:', linha, error)
-        erros++
-      }
+    if (!resultado) {
+      toast.error('Erro ao processar arquivo - resposta vazia')
+      return
     }
 
-    console.log('[Inventário] Processamento concluído - Sucesso:', itensProcessados, 'Erros:', erros)
+    const itens = resultado.itens || []
 
-    if (itensProcessados > 0) {
-      toast.success(`${itensProcessados} produtos importados com sucesso!`)
+    for (const item of itens) {
+      if (!item.encontrado || !item.produto) continue
+
+      const jaExiste = itensInventario.value.find(i => i.codigo === item.codigo_barras)
+      if (jaExiste) continue
+
+      const qtdSistema = item.produto?.saldo_atual || item.produto?.quantidade || 0
+      const qtdContada = item.quantidade || 0
+
+      itensInventario.value.push({
+        produtoId: item.produto.id,
+        codigo: item.codigo_barras || item.produto.codigo_gtin || item.produto.codigo_sku || '',
+        nome: item.produto.descricao || item.produto.descproduto || item.produto.nome || item.produto.produto || '',
+        fotoUrl: item.produto.foto_url || '',
+        marca: item.produto.marca || '',
+        categoria: item.produto.categoria || '',
+        ncm: item.produto.ncm || '',
+        cestCodigo: item.produto.cest_codigo || '',
+        precoMedio: item.produto.preco_medio || 0,
+        estoqueSistema: qtdSistema,
+        quantidadeContada: qtdContada,
+        diferenca: qtdSistema - qtdContada,
+        unidade: item.produto.unidade || item.produto.embalagem || 'UN',
+        localizacaoId: null,
+        localizacao: '',
+        encontrado: true,
+        erro: null
+      })
     }
-    if (erros > 0) {
-      toast.warning(`${erros} linhas não puderam ser processadas`)
+
+    const total = resultado.total_linhas || 0
+    const encontrados = resultado.encontrados || 0
+    const naoEncontrados = resultado.nao_encontrados || 0
+    const invalidas = resultado.invalidas || 0
+
+    naoEncontradosCount.value = naoEncontrados
+
+    if (total > 0) {
+      toast.success(`Arquivo processado: ${total} linha(s)`)
     }
-    if (itensProcessados === 0 && erros === 0) {
-      toast.info('Nenhum produto novo foi encontrado')
+    if (encontrados > 0) {
+      toast.success(`${encontrados} produto(s) encontrado(s) e adicionado(s)`)
+    }
+    if (invalidas > 0) {
+      toast.warning(`${invalidas} linha(s) inválida(s) ignoradas`)
+    }
+    if (encontrados === 0 && naoEncontrados === 0 && invalidas === 0) {
+      toast.info('Nenhum produto foi processado')
     }
   } catch (error) {
     toast.error('Erro ao processar arquivo')
@@ -1561,24 +1657,217 @@ const importarArquivo = async () => {
 
 
 
-const removerItem = (index) => {
-  itensInventario.value.splice(index, 1)
-  toast.info('Item removido do inventário')
+const modalExcluirItem = ref(false)
+const itemExcluirIndex = ref(null)
+const itemExcluirNome = ref('')
+const loadingExcluir = ref(false)
+
+const abrirModalExcluir = (index) => {
+  itemExcluirIndex.value = index
+  itemExcluirNome.value = itensInventario.value[index]?.nome || 'item'
+  modalExcluirItem.value = true
 }
 
-const limparInventario = () => {
-  if (confirm('Tem certeza que deseja limpar todos os itens do inventário?')) {
-    itensInventario.value = []
-    toast.success('Inventário limpo')
+const confirmarExclusaoItem = () => {
+  if (itemExcluirIndex.value !== null) {
+    itensInventario.value.splice(itemExcluirIndex.value, 1)
+    toast.info('Item removido do inventário')
   }
+  modalExcluirItem.value = false
+  itemExcluirIndex.value = null
+}
+
+const cancelarExclusaoItem = () => {
+  modalExcluirItem.value = false
+  itemExcluirIndex.value = null
+}
+
+const modalLimparInventario = ref(false)
+
+const limparInventario = () => {
+  modalLimparInventario.value = true
+}
+
+const confirmarLimparInventario = () => {
+  itensInventario.value = []
+  naoEncontradosCount.value = 0
+  toast.success('Inventário limpo')
+  modalLimparInventario.value = false
+}
+
+const cancelarLimparInventario = () => {
+  modalLimparInventario.value = false
 }
 
 const imprimirInventario = () => {
   toast.info('Impressão em desenvolvimento')
 }
 
-const exportarExcel = () => {
-  toast.info('Exportação para Excel em desenvolvimento')
+const carregarImagemComoPng = async (url) => {
+  if (!url) return null
+  try {
+    const response = await fetch(url)
+    if (!response.ok) return null
+    const blob = await response.blob()
+    const bitmap = await createImageBitmap(blob)
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    canvas.getContext('2d').drawImage(bitmap, 0, 0)
+    return canvas.toDataURL('image/png')
+  } catch {
+    return null
+  }
+}
+
+const exportarExcel = async () => {
+  if (itensInventario.value.length === 0) {
+    toast.warning('Nenhum item para exportar')
+    return
+  }
+
+  toast.info('Gerando planilha, aguarde...')
+
+  const LARANJA = 'FFF57C00'
+  const LARANJA_CLARO = 'FFFCE4C4'
+  const BRANCO = 'FFFFFFFF'
+  const CINZA_ZEBRA = 'FFF7F7F7'
+  const BORDA = { style: 'thin', color: { argb: 'FFE0E0E0' } }
+
+  const colunas = [
+    { header: 'Foto', width: 10 },
+    { header: 'Código', width: 16 },
+    { header: 'Produto', width: 42 },
+    { header: 'Marca', width: 16 },
+    { header: 'Categoria', width: 18 },
+    { header: 'NCM', width: 12 },
+    { header: 'CEST', width: 12 },
+    { header: 'Un.', width: 8 },
+    { header: 'Preço Médio', width: 14 },
+    { header: 'Qtd. Sistema', width: 13 },
+    { header: 'Qtd. Contada', width: 13 },
+    { header: 'Diferença', width: 12 }
+  ]
+  const TOTAL_COLUNAS = colunas.length
+
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'SimplesFique'
+  workbook.created = new Date()
+
+  const sheet = workbook.addWorksheet('Inventário', {
+    views: [{ state: 'frozen', ySplit: 3 }]
+  })
+  sheet.columns = colunas.map(c => ({ width: c.width }))
+
+  sheet.mergeCells(1, 1, 1, TOTAL_COLUNAS)
+  const tituloCell = sheet.getCell(1, 1)
+  tituloCell.value = 'SimplesFique  ·  Relatório de Inventário'
+  tituloCell.font = { bold: true, size: 16, color: { argb: BRANCO } }
+  tituloCell.alignment = { vertical: 'middle', horizontal: 'center' }
+  tituloCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LARANJA } }
+  sheet.getRow(1).height = 34
+
+  sheet.mergeCells(2, 1, 2, TOTAL_COLUNAS)
+  const subCell = sheet.getCell(2, 1)
+  subCell.value = `Inventário de ${formatarData(inventario.data)}  ·  ${itensInventario.value.length} itens`
+  subCell.font = { italic: true, size: 11, color: { argb: 'FF5A5A5A' } }
+  subCell.alignment = { vertical: 'middle', horizontal: 'center' }
+  subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LARANJA_CLARO } }
+  sheet.getRow(2).height = 22
+
+  const headerRow = sheet.getRow(3)
+  colunas.forEach((c, i) => {
+    const cell = headerRow.getCell(i + 1)
+    cell.value = c.header
+    cell.font = { bold: true, color: { argb: BRANCO } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LARANJA } }
+    cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    cell.border = { top: BORDA, left: BORDA, bottom: BORDA, right: BORDA }
+  })
+  headerRow.height = 24
+
+  let falhaImagens = 0
+
+  for (let i = 0; i < itensInventario.value.length; i++) {
+    const item = itensInventario.value[i]
+    const numeroLinha = 4 + i
+    const row = sheet.getRow(numeroLinha)
+    row.height = 44
+
+    row.getCell(2).value = item.codigo
+    row.getCell(3).value = item.nome
+    row.getCell(4).value = item.marca || '-'
+    row.getCell(5).value = item.categoria || '-'
+    row.getCell(6).value = item.ncm || '-'
+    row.getCell(7).value = item.cestCodigo || '-'
+    row.getCell(8).value = item.unidade
+    row.getCell(9).value = Number(item.precoMedio) || 0
+    row.getCell(9).numFmt = '"R$" #,##0.00'
+    row.getCell(10).value = item.estoqueSistema
+    row.getCell(11).value = item.quantidadeContada
+    row.getCell(12).value = item.diferenca
+
+    const corDiferenca = item.diferenca > 0 ? 'FF2E7D32' : item.diferenca < 0 ? 'FFC62828' : 'FF757575'
+    row.getCell(12).font = { bold: true, color: { argb: corDiferenca } }
+
+    for (let col = 1; col <= TOTAL_COLUNAS; col++) {
+      const cell = row.getCell(col)
+      cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'left' : 'center', wrapText: col === 3 }
+      cell.border = { top: BORDA, left: BORDA, bottom: BORDA, right: BORDA }
+      if (i % 2 === 1 && col !== 12) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CINZA_ZEBRA } }
+      }
+    }
+
+    const imagemBase64 = await carregarImagemComoPng(item.fotoUrl)
+    if (imagemBase64) {
+      const imageId = workbook.addImage({ base64: imagemBase64, extension: 'png' })
+      sheet.addImage(imageId, {
+        tl: { col: 0.15, row: numeroLinha - 1 + 0.08 },
+        ext: { width: 38, height: 38 }
+      })
+    } else if (item.fotoUrl) {
+      falhaImagens++
+    }
+  }
+
+  const linhaTotal = 4 + itensInventario.value.length
+  sheet.mergeCells(linhaTotal, 1, linhaTotal, 8)
+  const totalLabelCell = sheet.getCell(linhaTotal, 1)
+  totalLabelCell.value = `TOTAL — ${itensInventario.value.length} itens`
+  totalLabelCell.font = { bold: true }
+  totalLabelCell.alignment = { vertical: 'middle', horizontal: 'right' }
+  totalLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LARANJA_CLARO } }
+
+  const colSistema = sheet.getCell(linhaTotal, 10)
+  const colContada = sheet.getCell(linhaTotal, 11)
+  const colDiferenca = sheet.getCell(linhaTotal, 12)
+  colSistema.value = { formula: `SUM(J4:J${linhaTotal - 1})` }
+  colContada.value = { formula: `SUM(K4:K${linhaTotal - 1})` }
+  colDiferenca.value = { formula: `SUM(L4:L${linhaTotal - 1})` }
+  ;[totalLabelCell, colSistema, colContada, colDiferenca].forEach(cell => {
+    cell.font = { ...(cell.font || {}), bold: true }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LARANJA_CLARO } }
+    cell.border = { top: BORDA, left: BORDA, bottom: BORDA, right: BORDA }
+  })
+  ;[colSistema, colContada, colDiferenca].forEach(cell => {
+    cell.alignment = { vertical: 'middle', horizontal: 'center' }
+  })
+  sheet.getRow(linhaTotal).height = 24
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `inventario-${inventario.data}.xlsx`
+  link.click()
+  URL.revokeObjectURL(link.href)
+
+  if (falhaImagens > 0) {
+    toast.warning(`Planilha exportada, mas ${falhaImagens} foto(s) não puderam ser incluídas`)
+  } else {
+    toast.success('Planilha exportada com sucesso')
+  }
 }
 
 const gerarLinkContagem = (loteIdParam = null, idEmpresaParam = null) => {
@@ -1631,16 +1920,73 @@ const copiarLink = async () => {
   }
 }
 
-const buscarPorCodigo = () => {
-  if (!filtroManual.codigo) return
-  const produto = produtosGrid.value.find(p =>
-    String(p.id_produto) === String(filtroManual.codigo) ||
-    p.codigo_gtin === filtroManual.codigo
-  )
-  if (produto) {
-    filtroManual.produtoId = produto.id_produto
-  } else {
-    toast.warning('Produto não encontrado para o código informado')
+const buscarPorCodigo = async () => {
+  const codigo = filtroManual.codigo
+  if (!codigo) return
+
+  const empresaSelecionadaStr = localStorage.getItem('empresaSelecionada')
+  if (!empresaSelecionadaStr) { toast.error('Empresa não selecionada'); return }
+  const idEmpresa = JSON.parse(empresaSelecionadaStr).id
+
+  if (!inventario.id_almoxarifado) {
+    toast.warning('Selecione um almoxarifado primeiro')
+    return
+  }
+
+  try {
+    let produto = produtosGrid.value.find(p =>
+      String(p.id_produto) === codigo ||
+      p.codigo_gtin === codigo
+    )
+
+    if (!produto) {
+      const ref = await inventarioStore.buscarProdutoReferencia(codigo)
+      if (!ref) {
+        toast.warning('Produto não encontrado')
+        return
+      }
+      const importado = await inventarioStore.importarProdutoReferencia(codigo)
+      if (!importado) {
+        toast.warning('Erro ao importar produto')
+        return
+      }
+      produto = normalizarProdutoGrid(importado)
+      produtosGrid.value.push(produto)
+    }
+
+    const produtoId = produto.id_produto
+    filtroManual.produtoId = produtoId
+
+    if (itensInventario.value.find(i => i.produtoId === produtoId)) {
+      toast.info('Produto já está no inventário')
+      return
+    }
+
+    let qtdSistema = 0
+    try {
+      const saldoData = await inventarioStore.consultarSaldoProdutoAlmoxarifado(
+        idEmpresa, inventario.id_almoxarifado, produtoId
+      )
+      qtdSistema = saldoData?.saldo || saldoData?.quantidade || 0
+    } catch {
+      console.warn('[Inventário] Erro ao buscar saldo, usando 0')
+    }
+
+    itensInventario.value.push({
+      produtoId,
+      codigo: produto.codigo_gtin || produto.id_produto,
+      nome: produto.descproduto,
+      estoqueSistema: qtdSistema,
+      quantidadeContada: 0,
+      diferenca: 0,
+      unidade: produto.abreviatura || 'UN',
+      localizacaoId: null,
+      localizacao: ''
+    })
+
+    toast.success(`Produto "${produto.descproduto}" adicionado`)
+  } catch (error) {
+    toast.error('Erro ao buscar produto')
   }
 }
 
@@ -1660,9 +2006,43 @@ const onGrupoChange = async (grupoId) => {
   }
 }
 
+// Normaliza os itens de /estoque/produto-almoxarifados: a API retorna o produto
+// aninhado em `item.produto` (mesmo padrão do endpoint de processar-arquivo), mas o
+// v-autocomplete precisa de id_produto/descproduto no nível raiz do item — sem isso
+// o Vuetify usa o objeto inteiro como valor selecionado e exibe "[object Object]".
+const normalizarProdutoGrid = (item) => {
+  const produto = item.produto || item
+  const id = item.id_produto ?? produto.id_produto ?? produto.id ?? item.id ?? null
+  return {
+    ...item,
+    id_produto: id,
+    descproduto: item.descproduto || produto.descproduto || produto.descricao || produto.nome || produto.produto || `Produto #${id}`,
+    codigo_gtin: item.codigo_gtin || produto.codigo_gtin || produto.codigo_sku || produto.codigo_barras || '',
+    codigo_sku: item.codigo_sku || produto.codigo_sku || '',
+    abreviatura: item.abreviatura || produto.abreviatura || produto.unidade || 'UN',
+    quantidade: item.quantidade ?? item.saldo ?? item.saldo_atual ?? produto.saldo_atual ?? produto.quantidade ?? 0
+  }
+}
+
 const buscarGridInventario = async () => {
   if (!inventario.id_almoxarifado) {
     toast.warning('Selecione um almoxarifado primeiro')
+    return
+  }
+
+  // Se o usuário preencheu "Buscar por Código", o botão "Listar Produtos ao Inventário"
+  // deve trazer só aquele produto (via /produtos/referencia/{gtin}) — não a listagem em
+  // massa filtrada por grupo/marca/localização, que ignoraria o código digitado.
+  if (filtroManual.codigo) {
+    await buscarPorCodigo()
+    return
+  }
+
+  const nenhumFiltroSelecionado = !filtroManual.produtoId && !filtroManual.grupoId &&
+      !filtroManual.subgrupoId && !filtroManual.marcaId && !filtroManual.localizacaoId
+
+  if (nenhumFiltroSelecionado) {
+    toast.warning('Selecione ao menos um filtro (produto, grupo, subgrupo, marca ou localização) antes de listar. Para adicionar um único item por código de barras, use o campo "Buscar por Código".')
     return
   }
 
@@ -1682,7 +2062,7 @@ const buscarGridInventario = async () => {
     }
 
     await inventarioStore.buscarGridInventario(parseInt(idEmpresa), inventario.id_almoxarifado, filtros)
-    const produtosFiltrados = inventarioStore.gridProdutos || []
+    const produtosFiltrados = (inventarioStore.gridProdutos || []).map(normalizarProdutoGrid)
 
     if (produtosFiltrados.length === 0) {
       toast.warning('Nenhum produto encontrado com os filtros selecionados')
@@ -1722,18 +2102,18 @@ const buscarGridInventario = async () => {
   }
 }
 
+// Carregamento preguiçoso: só busca a grade quando o dropdown "Produto" é aberto,
+// não ao selecionar o almoxarifado — evita bater em /estoque/produto-almoxarifados
+// (a listagem completa) em fluxos que não precisam dela, como a busca por código de barras.
 const carregarGridProdutos = async () => {
-  if (!inventario.id_almoxarifado) {
-    produtosGrid.value = []
-    return
-  }
+  if (!inventario.id_almoxarifado || produtosGrid.value.length > 0) return
   carregandoGridProdutos.value = true
   try {
     const empresaSelecionadaStr = localStorage.getItem('empresaSelecionada')
     if (!empresaSelecionadaStr) return
     const idEmpresa = JSON.parse(empresaSelecionadaStr).id
     await inventarioStore.buscarGridInventario(parseInt(idEmpresa), inventario.id_almoxarifado)
-    produtosGrid.value = inventarioStore.gridProdutos || []
+    produtosGrid.value = (inventarioStore.gridProdutos || []).map(normalizarProdutoGrid)
     console.log('[Inventário] Grid de produtos carregada:', produtosGrid.value.length, 'produtos')
   } catch (error) {
     console.error('[Inventário] Erro ao carregar grid de produtos:', error)
@@ -1742,13 +2122,10 @@ const carregarGridProdutos = async () => {
   }
 }
 
-// Recarregar grid ao trocar almoxarifado (modo Manual)
-watch(() => inventario.id_almoxarifado, (novoAlmox) => {
-  if (novoAlmox) {
-    carregarGridProdutos()
-  } else {
-    produtosGrid.value = []
-  }
+// Ao trocar de almoxarifado, só limpa o cache — o recarregamento acontece
+// sob demanda (ver carregarGridProdutos), quando o dropdown "Produto" é aberto.
+watch(() => inventario.id_almoxarifado, () => {
+  produtosGrid.value = []
 })
 
 // Carregar dados iniciais
@@ -1877,7 +2254,7 @@ const carregarInventarios = async () => {
       const situacao = desc === 'ENCERRADO' ? 'E' : desc === 'CANCELADO' ? 'C' : 'A'
       return {
         ...lote,
-        almoxarifadoNome: lote.descalmoxarifado || lote.almoxarifadoNome || 'Não identificado',
+        almoxarifadoNome: lote.referencia_almoxarifado?.descalmoxarifado || lote.descalmoxarifado || lote.almoxarifadoNome || 'Não identificado',
         data: lote.dtgeracao ? lote.dtgeracao.split('T')[0] : lote.data,
         situacao,
         descsituacao: lote.descsituacao || '',

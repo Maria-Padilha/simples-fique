@@ -17,7 +17,7 @@
             :forms="forms"
             :validacao="validacao"
             :pessoas="pessoas"
-            :ufs="ufsFiltradas"
+            :ufs="ufsList"
             :cfops="cfopsFiltrados"
             :almoxarifado-nome="almoxarifadoNome"
             :cfop-nome="cfopNome"
@@ -127,7 +127,9 @@ import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 import {usePessoasStore} from "@/stores/APIs/pessoas";
 import {useProdutosStore} from "@/stores/APIs/produtos";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
-import {computed, onMounted, reactive, ref, watch,} from "vue";
+import {useLocalizacaoStore} from "@/stores/APIs/localizacao";
+import {computed, onMounted, reactive, ref, watch} from "vue";
+import {useRouter} from "vue-router";
 import TabelaPadrao from "@/components/base/padrao-paginas/TabelaPadrao.vue";
 import FormsEntrada from "@/components/base/produtos/entrada/FormsEntrada.vue";
 import {useThemeStore} from "@/stores/config-temas/theme";
@@ -135,11 +137,13 @@ import {toast} from "vue3-toastify";
 import {useFuncoesStore} from "@/stores/funcoes/funcoes";
 import VincularProdutos from "@/components/base/modais/VincularProdutos.vue";
 
+const router = useRouter();
 const themeStore = useThemeStore();
 const funcoesStore = useFuncoesStore();
 const pessoasStore = usePessoasStore();
 const produtosStore = useProdutosStore();
 const estoqueStore = useEstoqueStore();
+const localizacaoStore = useLocalizacaoStore();
 const idEmpresa = JSON.parse(localStorage.getItem('empresaSelecionada'));
 const cnpjEmpresa = idEmpresa?.cnpj || null;
 
@@ -275,7 +279,7 @@ const forms = reactive({
   "arquivoxml": null,
   "tipo": null,
   "regra_cfop": null,
-  "nf_estrangeira": "A",
+  "nf_estrangeira": null,
   "perc_icmsimp": null,
   "vlr_siscomex": null,
   "vlr_afrmm": null,
@@ -311,6 +315,7 @@ const cancelarFormulario = () => {
   itens.value = [];
   produtos.value = [];
   editando.value = false;
+  router.push({ name: 'entradadfe' });
 };
 
 const selecionarAlmoxarifado = (almoxarifado) => {
@@ -330,16 +335,21 @@ const cfopsFiltrados = computed(() => {
       .map(v => ({ title: v, value: v }));
 });
 
-const ufsFiltradas = computed(() => {
-  // se CFOP selecionado -> só UFs daquele CFOP
-  const base = forms.id_cfop
-      ? aliquotas.value.filter(a => a.id_cfop === forms.id_cfop)
-      : aliquotas.value;
-
-  // retornar UFs únicas
-  return [...new Set(base.map(a => a.id_uf))]
-      .filter(Boolean)
-      .map(v => ({ title: v, value: v }));
+const ufsList = computed(() => {
+  // Se aliquotas tiver dados, usa com cross-filtering (UF x CFOP)
+  if (aliquotas.value.length > 0) {
+    const base = forms.id_cfop
+        ? aliquotas.value.filter(a => a.id_cfop === forms.id_cfop)
+        : aliquotas.value;
+    return [...new Set(base.map(a => a.id_uf))]
+        .filter(Boolean)
+        .map(v => ({ title: v, value: v }));
+  }
+  // Fallback: todas as UFs da API /manutencao/ufs
+  return (localizacaoStore.ufs || []).map(u => ({
+    title: u.SIGLA ?? u.sigla ?? u.Sigla ?? u.DESCUF ?? '',
+    value: u.SIGLA ?? u.sigla ?? u.Sigla ?? u.DESCUF ?? ''
+  }));
 });
 
 watch(
@@ -366,16 +376,34 @@ const formsNf = ref(null);
 
 const aliquotasInfos = computed(() => produtosStore.aliquotaInfos);
 
+const CAMPOS_ENTRADA_TRIBUTO = [
+  "base_icms", "aliquota_icms", "vlr_icms", "isento_icms",
+  "outras_despesas", "outras_despesas_foranf",
+  "base_icms_subst", "vlr_icms_subst",
+  "base_ipi", "vlr_ipi", "isento_ipi", "aliquota_ipi",
+  "vlr_seguro", "vlr_desconto", "vlr_frete", "tipo_frete",
+  "qtd_volume", "especie_volume", "peso_bruto", "peso_liquido",
+  "base_ii", "vlr_ii", "aliquota_ii",
+  "base_iss", "vlr_iss",
+  "vlr_pis_produto", "aliquota_pis",
+  "vlr_cofins_produto", "aliquota_cofins",
+];
+
 const salvarFormulario = async () => {
-  if (formsNf.value && !(await formsNf.value.validate())) {
+  const { valid } = await formsNf.value.validate()
+  if (!valid) {
     toast.error("Por favor, preencha os campos obrigatórios.");
     return;
   }
 
-  console.log(produtos.value);
+  const itemSemProduto = produtos.value.find((item) => !item.id_produto);
+  if (itemSemProduto) {
+    toast.error(`Vincule um produto ao item "${itemSemProduto.descprodutoxml ?? itemSemProduto.id_seq}" antes de salvar.`);
+    return;
+  }
 
-  forms.importacaoxml = forms.importacaoxml ? 'S' : 'N';
-  forms.nf_origem = forms.nf_origem ? 'S' : 'N';
+  forms.importacaoxml = forms.importacaoxml ? 1 : 0;
+  forms.nf_origem = forms.nf_origem ? 1 : 0;
   forms.arquivoxml = forms.arquivoxml ? forms.arquivoxml.name : null;
 
   if (forms.id_cfop && forms.id_uf) {
@@ -398,14 +426,56 @@ const salvarFormulario = async () => {
     forms.aliquota_icms_importacao = aliquotasInfos.value?.aliquota_icms_importacao;
   }
 
-  await produtosStore.cadastrarEntradaDfe(
-      {
-        ...normalizarForm(forms),
-        item: produtos.value
-      },
-      idEmpresa?.id ?? 1
-  )
+  const formsNormalizado = normalizarForm(forms);
 
+  await produtosStore.cadastrarEntradaDfe(formsNormalizado, idEmpresa?.id ?? 1);
+
+  if (produtosStore.errorMessage) {
+    toast.error(produtosStore.errorMessage);
+    return;
+  }
+
+  const idEntrada = produtosStore.entradadfeItem?.id;
+
+  if (idEntrada) {
+    const tributoPayload = { id_entrada: idEntrada };
+    for (const campo of CAMPOS_ENTRADA_TRIBUTO) {
+      tributoPayload[campo] = formsNormalizado[campo] ?? null;
+    }
+
+    await produtosStore.cadastrarEntradaTributo(tributoPayload);
+
+    if (produtosStore.errorMessage) {
+      toast.error(`Entrada salva, mas houve falha ao salvar a tributação: ${produtosStore.errorMessage}`);
+      return;
+    }
+
+    for (const item of produtos.value) {
+      await produtosStore.cadastrarEntradaItem({
+        id_entrada: idEntrada,
+        id_produto: item.id_produto,
+        quantidade: item.quantidade,
+        vlr_unitario: item.vlr_unitario,
+        id_cor: item.id_cor ?? null,
+        id_tamanho: item.id_tamanho ?? null,
+        descprodutovst: item.descprodutovst ?? null,
+        descprodutoxml: item.descprodutoxml ?? null,
+        desconto_total_item: item.desconto_total_item ?? 0,
+        vlr_total_item: item.vlr_total_item ?? null,
+        vlr_seguro_item: item.vlr_seguro_item ?? 0,
+        vlr_frete_item: item.vlr_frete_item ?? 0,
+        vlr_outras_item: item.vlr_outras_item ?? 0,
+        custo_medio: item.custo_medio ?? null,
+      });
+
+      if (produtosStore.errorMessage) {
+        toast.error(`Entrada e tributação salvos, mas houve falha ao salvar o item "${item.descprodutoxml ?? item.id_seq}": ${produtosStore.errorMessage}`);
+        return;
+      }
+    }
+  }
+
+  toast.success("Entrada de nota salva com sucesso!");
   cancelarFormulario();
 
 };
@@ -433,7 +503,7 @@ const camposFloat = [
 ];
 
 const camposInteiros = [
-  "id_fornecedor", "numero_nf", "serie_nf",
+  "id_fornecedor", "numero_nf",
   "id_almoxarifado",
   "id_transportadora", "qtd_volume",
   "id_planopagto",
@@ -461,6 +531,12 @@ const normalizarForm = (data) => {
     if (camposInteiros.includes(key)) {
       const num = Number(value);
       result[key] = isNaN(num) ? 0 : parseInt(num);
+      continue;
+    }
+
+    // serie_nf → sempre string
+    if (key === "serie_nf") {
+      result[key] = value === null || value === undefined || value === "" ? null : String(value);
       continue;
     }
 
@@ -704,6 +780,10 @@ onMounted(() => {
 
   if (estoqueStore.aliquotas.length === 0) {
     estoqueStore.buscarTodasAliquotas(idEmpresa?.id, "");
+  }
+
+  if (localizacaoStore.ufs.length === 0) {
+    localizacaoStore.buscarTodasUfs();
   }
 
   if (produtosStore.produtos.length === 0) {

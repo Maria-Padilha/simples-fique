@@ -35,7 +35,7 @@
 
 <script setup>
 import BuscaPadraoMenu from "@/components/base/menu/BuscaPadraoMenu.vue";
-import {ref, computed, defineEmits, watch, watchEffect} from "vue";
+import {ref, computed, defineEmits, watch, onMounted} from "vue";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
 
 const emit = defineEmits(["selecionar"]);
@@ -46,7 +46,7 @@ const termoPesquisa = ref("");
 const estoqueStore = useEstoqueStore();
 const cfops = computed(() => estoqueStore.cfops);
 
-watchEffect(() => {
+onMounted(() => {
   estoqueStore.buscarCfops("", 15);
 })
 

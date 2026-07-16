@@ -316,7 +316,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.atualizarEmbalagem(1, 5, { nome: 'Pack Editado' })
 
-      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-embalagens/5', {
+      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-embalagens/1/5', {
         nome: 'Pack Editado',
         id_produto: 1,
       })
@@ -330,7 +330,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.deletarEmbalagem(1, 5)
 
-      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-embalagens/5')
+      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-embalagens/1/5')
       expect(store.loading).toBe(false)
     })
   })
@@ -371,7 +371,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.atualizarFornecedor(1, 5, { nome: 'Forn Editado' })
 
-      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-fornecedors/5', {
+      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/produto-fornecedors/1/5', {
         nome: 'Forn Editado',
         id_produto: 1,
       })
@@ -385,9 +385,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.deletarFornecedor(1, 5)
 
-      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-fornecedors/5', {
-        params: { id_produto: 1 },
-      })
+      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/produto-fornecedors/1/5')
       expect(store.loading).toBe(false)
     })
   })
@@ -448,30 +446,60 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.buscarEntradaDfePorId(1, 1)
 
-      expect(mockApiPhp.get).toHaveBeenCalledWith('/estoque/entradas/1')
+      expect(mockApiPhp.get).toHaveBeenCalledWith('/estoque/entradas/1/1')
       expect(store.entradadfeItem).toEqual(entradaMock)
       expect(store.loading).toBe(false)
     })
 
-    it('cadastra entrada DFe com sucesso', async () => {
-      mockApiPhp.post.mockResolvedValueOnce({ data: {} })
+    it('cadastra entrada DFe com sucesso e guarda o id retornado', async () => {
+      mockApiPhp.post.mockResolvedValueOnce({ data: { data: { id: 1001, chave_acesso: '123' } } })
       mockApiPhp.get.mockResolvedValueOnce({ data: { data: [] } })
 
       const store = useProdutosStore()
       await store.cadastrarEntradaDfe({ chave_acesso: '123' }, 1)
 
       expect(mockApiPhp.post).toHaveBeenCalledWith('/estoque/entradas', { chave_acesso: '123' })
+      expect(store.entradadfeItem).toEqual({ id: 1001, chave_acesso: '123' })
       expect(store.loading).toBe(false)
     })
 
-    it('deleta entrada DFe com sucesso', async () => {
-      mockApiPhp.delete.mockResolvedValueOnce({})
+    it('cadastra tributação da entrada DFe com sucesso', async () => {
+      mockApiPhp.post.mockResolvedValueOnce({ data: {} })
+
+      const store = useProdutosStore()
+      await store.cadastrarEntradaTributo({ id_entrada: 1001, base_icms: 1000, vlr_icms: 120 })
+
+      expect(mockApiPhp.post).toHaveBeenCalledWith('/estoque/entrada-tributos', { id_entrada: 1001, base_icms: 1000, vlr_icms: 120 })
+      expect(store.errorMessage).toBe('')
+    })
+
+    it('reporta erro ao cadastrar tributação da entrada DFe', async () => {
+      mockApiPhp.post.mockRejectedValueOnce({ response: { data: { erro: 'Entrada não encontrada' } } })
+
+      const store = useProdutosStore()
+      await store.cadastrarEntradaTributo({ id_entrada: 999 })
+
+      expect(store.errorMessage).toBe('Entrada não encontrada')
+    })
+
+    it('cadastra item da entrada DFe com sucesso', async () => {
+      mockApiPhp.post.mockResolvedValueOnce({ data: {} })
+
+      const store = useProdutosStore()
+      await store.cadastrarEntradaItem({ id_entrada: 1001, id_produto: 42, quantidade: 10, vlr_unitario: 480 })
+
+      expect(mockApiPhp.post).toHaveBeenCalledWith('/estoque/entrada-itens', { id_entrada: 1001, id_produto: 42, quantidade: 10, vlr_unitario: 480 })
+      expect(store.errorMessage).toBe('')
+    })
+
+    it('cancela entrada DFe com sucesso', async () => {
+      mockApiPhp.post.mockResolvedValueOnce({ data: { mensagem: 'Entrada cancelada com sucesso' } })
       mockApiPhp.get.mockResolvedValueOnce({ data: { data: [] } })
 
       const store = useProdutosStore()
       await store.deletarEntradaDfe(1, 1)
 
-      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/entradas/1')
+      expect(mockApiPhp.post).toHaveBeenCalledWith('/estoque/entradas/1/1/cancelar')
       expect(store.loading).toBe(false)
     })
 
@@ -483,8 +511,39 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.atualizarEntradaDfe(1, 1, { numero: '9999' })
 
-      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/entradas/1', { numero: '9999' })
+      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/entradas/1/1', { numero: '9999' })
       expect(store.loading).toBe(false)
+    })
+
+    it('busca tributação da entrada DFe com sucesso', async () => {
+      const tributoMock = { id_entrada: 1, base_icms: 1000, vlr_icms: 120 }
+      mockApiPhp.get.mockResolvedValueOnce({ data: { data: tributoMock } })
+
+      const store = useProdutosStore()
+      await store.buscarEntradaTributoPorId(1)
+
+      expect(mockApiPhp.get).toHaveBeenCalledWith('/estoque/entrada-tributos/1')
+      expect(store.entradaTributoItem).toEqual(tributoMock)
+    })
+
+    it('mantém entradaTributoItem nulo quando a entrada não possui tributação cadastrada', async () => {
+      mockApiPhp.get.mockRejectedValueOnce({ response: { status: 404 } })
+
+      const store = useProdutosStore()
+      await store.buscarEntradaTributoPorId(1)
+
+      expect(store.entradaTributoItem).toBeNull()
+    })
+
+    it('busca itens da entrada DFe com sucesso', async () => {
+      const itensMock = [{ id_seq: 1, id_produto: 42, quantidade: 10 }]
+      mockApiPhp.get.mockResolvedValueOnce({ data: { data: itensMock } })
+
+      const store = useProdutosStore()
+      await store.buscarEntradaItens(1)
+
+      expect(mockApiPhp.get).toHaveBeenCalledWith('/estoque/entrada-itens', { params: { id_entrada: 1 } })
+      expect(store.entradaItens).toEqual(itensMock)
     })
   })
 
@@ -519,7 +578,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.deletarLocalizacao(1, 5)
 
-      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/localizacoes/5')
+      expect(mockApiPhp.delete).toHaveBeenCalledWith('/estoque/localizacoes/1/5')
       expect(store.loading).toBe(false)
     })
 
@@ -530,7 +589,7 @@ describe('useProdutosStore', () => {
       const store = useProdutosStore()
       await store.atualizarLocalizacao(1, 5, { nome: 'Galpão A' })
 
-      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/localizacoes/5', { nome: 'Galpão A' })
+      expect(mockApiPhp.put).toHaveBeenCalledWith('/estoque/localizacoes/1/5', { nome: 'Galpão A' })
       expect(store.loading).toBe(false)
     })
   })

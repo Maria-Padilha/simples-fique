@@ -6,36 +6,35 @@
         <v-card-text class="pa-4">
           <BotaoExpandTransition
               :formulario-aberto="formularioAberto"
-              texto-abrir="Novo Funcionário"
-              texto-fechar="Cancelar"
               @toggle="toggleFormulario"
-          />
+          >
+            <template #default>{{ formularioAberto ? 'Cancelar' : 'Novo Funcionário' }}</template>
+          </BotaoExpandTransition>
 
           <v-expand-transition>
             <div v-if="formularioAberto">
               <v-card class="background-card mb-7" elevation="0">
                 <v-card-title class="text-h6 pa-4">
-                  <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2"></v-icon>
+                  <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2" size="23px"/>
                   {{ editando ? 'Editar Funcionário' : 'Novo Funcionário' }}
                 </v-card-title>
                 <v-card-text class="pa-4">
                   <v-form ref="formRef" v-model="formValido">
-                    <v-row>
-                      <v-col cols="12" md="4">
-                        <v-text-field
-                            v-model="form.nome"
-                            label="Nome *"
-                            :rules="[rules.required]"
-                            maxlength="150"
-                            variant="outlined"
-                            density="compact"
-                            prepend-inner-icon="mdi-account"
-                        ></v-text-field>
-                      </v-col>
+                    <FormPessoa
+                        ref="formPessoaRef"
+                        v-model="formPessoa"
+                    />
 
-                      <v-col cols="12" md="3">
+                    <v-divider class="my-4"/>
+                    <div class="text-subtitle-2 font-weight-bold mb-3">
+                      <v-icon icon="mdi-account-hard-hat" class="mr-1" size="18px"/>
+                      Dados do Funcionário
+                    </div>
+
+                    <v-row dense>
+                      <v-col cols="12" md="4">
                         <v-select
-                            v-model="form.id_empresa"
+                            v-model="formFuncionario.id_empresa"
                             :items="empresas"
                             item-title="nome"
                             item-value="id"
@@ -43,96 +42,72 @@
                             :rules="[rules.required]"
                             variant="outlined"
                             density="compact"
-                        ></v-select>
+                            prepend-inner-icon="mdi-office-building"
+                            class="custom-text-field required-left-border"
+                        />
                       </v-col>
 
-                      <v-col cols="12" md="3">
+                      <v-col cols="12" md="4">
                         <v-text-field
-                            v-model="form.cpf"
-                            label="CPF"
-                            maxlength="14"
-                            variant="outlined"
-                            density="compact"
-                        ></v-text-field>
-                      </v-col>
-
-                      <v-col cols="12" md="2">
-                        <v-text-field
-                            v-model="form.telefone"
-                            label="Telefone"
-                            maxlength="20"
-                            variant="outlined"
-                            density="compact"
-                        ></v-text-field>
-                      </v-col>
-
-                      <v-col cols="12" md="3">
-                        <v-text-field
-                            v-model="form.cargo"
-                            label="Cargo"
-                            placeholder="Ex: Garçom, Cozinheiro"
-                            maxlength="80"
-                            variant="outlined"
-                            density="compact"
-                        ></v-text-field>
-                      </v-col>
-
-                      <v-col cols="12" md="3">
-                        <v-text-field
-                            v-model="form.data_admissao"
+                            v-model="formFuncionario.data_admissao"
                             label="Data de admissão"
                             type="date"
                             variant="outlined"
                             density="compact"
-                        ></v-text-field>
+                            prepend-inner-icon="mdi-calendar"
+                        />
                       </v-col>
                     </v-row>
 
-                    <v-divider class="my-4"></v-divider>
+                    <v-divider class="my-4"/>
+                    <div class="text-subtitle-2 font-weight-bold mb-3">
+                      <v-icon icon="mdi-login" class="mr-1" size="18px"/>
+                      Acesso ao Terminal
+                    </div>
 
-                    <v-row>
+                    <v-row dense>
                       <v-col cols="12">
                         <v-switch
-                            v-model="form.acessa_sistema_terminal"
+                            v-model="formFuncionario.acessa_sistema_terminal"
                             label="Acessa o sistema do terminal (totem/comandas/mesas)"
                             color="var(--text-color-laranja)"
                             hide-details
-                        ></v-switch>
+                        />
                         <p class="text-caption opacity-70 mt-1">
                           Cria um login restrito, que só acessa os apps de terminal — não o ERP administrativo.
                         </p>
                       </v-col>
                     </v-row>
 
-                    <v-row v-if="form.acessa_sistema_terminal">
+                    <v-row v-if="formFuncionario.acessa_sistema_terminal" dense>
                       <v-col cols="12" md="4">
                         <v-text-field
-                            v-model="form.email_login"
+                            v-model="formFuncionario.email_login"
                             label="E-mail de login *"
                             :rules="[rules.required, rules.email]"
                             maxlength="120"
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-email"
-                        ></v-text-field>
+                        />
                       </v-col>
 
                       <v-col cols="12" md="4">
                         <v-text-field
-                            v-model="form.senha"
+                            v-model="formFuncionario.senha"
                             :label="editando ? 'Nova senha (deixe em branco para manter)' : 'Senha *'"
                             :rules="editando ? [] : [rules.required, rules.senhaMinima]"
                             type="password"
                             variant="outlined"
                             density="compact"
                             prepend-inner-icon="mdi-lock"
-                        ></v-text-field>
+                        />
                       </v-col>
                     </v-row>
                   </v-form>
                 </v-card-text>
                 <v-card-actions class="pa-4">
-                  <v-spacer></v-spacer>
+                  <v-spacer/>
                   <v-btn color="grey" variant="text" @click="cancelarFormulario">Cancelar</v-btn>
                   <v-btn
                       color="var(--text-color-laranja)"
@@ -140,7 +115,8 @@
                       :disabled="!formValido"
                       @click="salvarFuncionario"
                       variant="flat"
-                      class="text-white">
+                      class="text-white"
+                  >
                     {{ editando ? 'Atualizar' : 'Salvar' }}
                   </v-btn>
                 </v-card-actions>
@@ -149,7 +125,7 @@
           </v-expand-transition>
 
           <TabelaPadrao
-              :formulario-aberto="formularioAberto"
+              v-if="!formularioAberto"
               :headers="headers"
               :items="funcionarios"
               :loading="loading"
@@ -162,23 +138,19 @@
               delete-title="Inativar"
               delete-tooltip="Inativar"
               delete-dialog-title="Inativar funcionário"
-              delete-dialog-message="O funcionário não é removido — apenas fica inativo e perde o acesso ao terminal, se houver."
+              delete-dialog-message="O funcionário será inativado."
               delete-item-display-field="nome"
               @edit-item="editarFuncionario"
               @confirm-delete="inativarFuncionario"
           >
-            <template v-slot:[`item.cargo`]="{ item }">
-              {{ item.cargo || '—' }}
-            </template>
-
             <template v-slot:[`item.acessa_sistema_terminal`]="{ item }">
-              <v-chip :color="item.acessa_sistema_terminal ? 'blue' : 'grey'" size="small" variant="tonal">
+              <v-chip :color="item.acessa_sistema_terminal ? 'info' : 'grey'" size="small" variant="tonal">
                 {{ item.acessa_sistema_terminal ? 'Acessa terminal' : 'Sem acesso' }}
               </v-chip>
             </template>
 
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip :color="item.ativo ? 'green' : 'red'" size="small">
+              <v-chip :color="item.ativo ? 'success' : 'error'" size="small">
                 {{ item.ativo ? 'Ativo' : 'Inativo' }}
               </v-chip>
             </template>
@@ -192,29 +164,53 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import apiPhp from '@/services/apiPhp'
-import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
-import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
+import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
+import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
+import FormPessoa from '@/components/base/padrao-paginas/FormPessoa.vue'
+import { useFuncionariosStore } from '@/stores/APIs/funcionarios'
+import { useEmpresaStore } from '@/stores/APIs/empresa'
+import { usePessoasStore } from '@/stores/APIs/pessoas'
 
-const funcionarios = ref([])
-const empresas = ref([])
-const loading = ref(false)
+const funcionariosStore = useFuncionariosStore()
+const empresaStore = useEmpresaStore()
+const pessoasStore = usePessoasStore()
+
+const funcionarios = computed(() => funcionariosStore.funcionarios)
+const empresas = computed(() => empresaStore.empresas.map((e) => ({ id: e.id, nome: e.razao_social || e.fantasia || `Empresa ${e.id}` })))
+const loading = computed(() => funcionariosStore.loading)
 const search = ref('')
 
 const formularioAberto = ref(false)
+const editando = ref(false)
 const formValido = ref(false)
 const formRef = ref(null)
-const editando = ref(false)
+const formPessoaRef = ref(null)
 
-const form = reactive({
+const formPessoa = reactive({
   id: null,
-  id_empresa: null,
-  nome: '',
-  cpf: '',
+  tipo_pessoa: 'F',
+  nome_razao: '',
+  apelido_fantasia: '',
+  cpf_cnpj: '',
+  rg_inscricao: '',
   telefone: '',
-  cargo: '',
+  celular: '',
+  whats: '',
+  website: '',
+  instagram: '',
+  facebook: '',
+  twitter_x: '',
+  tik_tok: '',
+  telegram: '',
+  enderecos: [],
+})
+
+const formFuncionario = reactive({
+  id: null,
+  id_pessoa: null,
+  id_empresa: null,
   data_admissao: '',
   acessa_sistema_terminal: false,
   email_login: '',
@@ -226,7 +222,6 @@ const snackbar = reactive({ show: false, message: '', color: 'success' })
 const headers = [
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Nome', key: 'nome', sortable: true },
-  { title: 'Cargo', key: 'cargo', sortable: true },
   { title: 'Acesso', key: 'acessa_sistema_terminal', sortable: false },
   { title: 'Status', key: 'ativo', sortable: false },
   { title: 'Ações', key: 'actions', sortable: false }
@@ -238,70 +233,28 @@ const rules = {
   senhaMinima: (v) => !v || v.length >= 6 || 'A senha deve ter no mínimo 6 caracteres'
 }
 
-const buscarFuncionarios = async () => {
-  loading.value = true
-  try {
-    const resp = await apiPhp.get('/manutencao/funcionarios')
-    funcionarios.value = Array.isArray(resp.data) ? resp.data : resp.data?.data || []
-  } catch (e) {
-    console.error(e)
-    funcionarios.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-const buscarEmpresas = async () => {
-  try {
-    const resp = await apiPhp.get('/manutencao/empresas')
-    const dados = Array.isArray(resp.data) ? resp.data : resp.data?.data || []
-    empresas.value = dados.map((e) => ({ id: e.id, nome: e.razao_social || e.fantasia || `Empresa ${e.id}` }))
-  } catch (e) {
-    console.error(e)
-    empresas.value = []
-  }
-}
-
 const toggleFormulario = () => {
   if (formularioAberto.value) {
     cancelarFormulario()
-  } else {
-    editando.value = false
-    resetarForm()
-    formularioAberto.value = true
+    return
   }
-}
-
-const editarFuncionario = (item) => {
-  editando.value = true
-  Object.assign(form, {
-    id: item.id,
-    id_empresa: item.id_empresa,
-    nome: item.nome,
-    cpf: item.cpf || '',
-    telefone: item.telefone || '',
-    cargo: item.cargo || '',
-    data_admissao: item.data_admissao ? item.data_admissao.slice(0, 10) : '',
-    acessa_sistema_terminal: !!item.acessa_sistema_terminal,
-    email_login: item.email_login || '',
-    senha: ''
-  })
+  editando.value = false
+  resetarForm()
   formularioAberto.value = true
 }
 
 const cancelarFormulario = () => {
   formularioAberto.value = false
+  editando.value = false
   resetarForm()
 }
 
 const resetarForm = () => {
-  Object.assign(form, {
+  formPessoaRef.value?.resetarForm()
+  Object.assign(formFuncionario, {
     id: null,
+    id_pessoa: null,
     id_empresa: empresas.value[0]?.id || null,
-    nome: '',
-    cpf: '',
-    telefone: '',
-    cargo: '',
     data_admissao: '',
     acessa_sistema_terminal: false,
     email_login: '',
@@ -310,67 +263,111 @@ const resetarForm = () => {
   if (formRef.value) formRef.value.resetValidation()
 }
 
-const mostrarMensagem = (message, color = 'success') => {
-  snackbar.message = message
-  snackbar.color = color
-  snackbar.show = true
+const editarFuncionario = async (item) => {
+  editando.value = true
+  formularioAberto.value = true
+
+  const resultado = await pessoasStore.buscarpessoaId(item.id_pessoa)
+  if (resultado) {
+    formPessoaRef.value?.preencherPessoa(resultado.pessoa, resultado.endereco)
+    const func = resultado.dadosFuncionario || {}
+    Object.assign(formFuncionario, {
+      id: func.id_colabo ?? item.id_colabo ?? item.id ?? null,
+      id_pessoa: item.id_pessoa ?? resultado.pessoa?.id ?? null,
+      id_empresa: func.id_empresa ?? item.id_empresa ?? null,
+      data_admissao: (func.data_admissao ?? item.data_admissao) ? (func.data_admissao ?? item.data_admissao).slice(0, 10) : '',
+      acessa_sistema_terminal: !!(func.acessa_sistema_terminal ?? item.acessa_sistema_terminal),
+      email_login: func.email_login ?? item.email_login ?? '',
+      senha: ''
+    })
+  }
 }
 
 const salvarFuncionario = async () => {
-  if (!formRef.value?.validate()) return
-  loading.value = true
+  const valid = await formRef.value?.validate()
+  if (valid && !valid.valid) return
+
   try {
-    const payload = {
-      id_empresa: form.id_empresa,
-      nome: form.nome,
-      cpf: form.cpf || null,
-      telefone: form.telefone || null,
-      cargo: form.cargo || null,
-      data_admissao: form.data_admissao || null,
-      acessa_sistema_terminal: form.acessa_sistema_terminal
+    const pessoaNova = !formPessoa.id
+    const payloadEntity = {
+      id_empresa: formFuncionario.id_empresa,
+      data_admissao: formFuncionario.data_admissao || null,
+      acessa_sistema_terminal: formFuncionario.acessa_sistema_terminal
     }
 
-    if (form.acessa_sistema_terminal) {
-      payload.email_login = form.email_login
-      if (form.senha) payload.senha = form.senha
+    if (formFuncionario.acessa_sistema_terminal) {
+      payloadEntity.email_login = formFuncionario.email_login
+      if (formFuncionario.senha) payloadEntity.senha = formFuncionario.senha
     }
 
     if (editando.value) {
-      await apiPhp.put(`/manutencao/funcionarios/${form.id}`, payload)
-      mostrarMensagem('Funcionário atualizado com sucesso!')
+      if (formPessoa.id) {
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa }, true, snackbar)
+      }
+      await funcionariosStore.atualizarFuncionario(formFuncionario.id, payloadEntity)
+      snackbar.message = 'Funcionário atualizado com sucesso!'
+    } else if (pessoaNova) {
+      const payload = {
+        tipo_pessoa: formPessoa.tipo_pessoa,
+        nome_razao: formPessoa.nome_razao,
+        apelido_fantasia: formPessoa.apelido_fantasia,
+        cpf_cnpj: (formPessoa.cpf_cnpj || '').replace(/\D/g, ''),
+        rg_inscricao: formPessoa.rg_inscricao || null,
+        telefone: (formPessoa.telefone || '').replace(/\D/g, '') || null,
+        celular: (formPessoa.celular || '').replace(/\D/g, '') || null,
+        whats: (formPessoa.whats || '').replace(/\D/g, '') || null,
+        website: formPessoa.website || null,
+        instagram: formPessoa.instagram || null,
+        facebook: formPessoa.facebook || null,
+        twitter_x: formPessoa.twitter_x || null,
+        tik_tok: formPessoa.tik_tok || null,
+        telegram: formPessoa.telegram || null,
+        endereco: (formPessoa.enderecos || []).map((end) => {
+          const copy = { ...end }
+          delete copy._buscandoCep
+          return copy
+        }),
+        ...payloadEntity
+      }
+      await funcionariosStore.criarFuncionario(payload)
+      snackbar.message = 'Funcionário cadastrado com sucesso!'
     } else {
-      await apiPhp.post('/manutencao/funcionarios', payload)
-      mostrarMensagem('Funcionário cadastrado com sucesso!')
+      await funcionariosStore.criarFuncionario({ id_pessoa: formPessoa.id, ...payloadEntity })
+      snackbar.message = 'Funcionário cadastrado com sucesso!'
     }
 
-    buscarFuncionarios()
+    snackbar.color = 'success'
+    snackbar.show = true
+    await funcionariosStore.buscarFuncionarios()
     cancelarFormulario()
   } catch (e) {
     console.error(e)
-    mostrarMensagem(e.validationMessage || e.response?.data?.erro || 'Erro ao salvar funcionário.', 'error')
-  } finally {
-    loading.value = false
+    snackbar.message = e.validationMessage || e.response?.data?.erro || 'Erro ao salvar funcionário.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 
 const inativarFuncionario = async (item) => {
-  loading.value = true
   try {
-    const id = item?.id || item
-    await apiPhp.delete(`/manutencao/funcionarios/${id}`)
-    mostrarMensagem('Funcionário inativado com sucesso!')
-    buscarFuncionarios()
+    const id = item?.id_colabo ?? item?.id ?? item
+    await funcionariosStore.inativarFuncionario(id)
+    snackbar.message = 'Funcionário inativado com sucesso!'
+    snackbar.color = 'success'
+    snackbar.show = true
+    await funcionariosStore.buscarFuncionarios()
   } catch (e) {
     console.error(e)
-    mostrarMensagem(e.response?.data?.erro || 'Erro ao inativar funcionário.', 'error')
-  } finally {
-    loading.value = false
+    snackbar.message = e.response?.data?.erro || 'Erro ao inativar funcionário.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 
 onMounted(async () => {
-  await buscarEmpresas()
-  resetarForm()
-  await buscarFuncionarios()
+  await Promise.all([
+    empresaStore.buscarTodasEmpresas(),
+    funcionariosStore.buscarFuncionarios()
+  ])
 })
 </script>

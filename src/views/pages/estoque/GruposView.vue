@@ -114,12 +114,11 @@
                     </v-col>
                     <v-col cols="12" md="6">
                       <v-file-input
-                          label="Foto do SubGrupo"
+                          label="Foto do SubGrupo (opcional)"
                           variant="outlined"
                           density="compact"
                           accept="image/png, image/jpeg, image/bmp"
                           hide-details="auto"
-                          :rules="validacao"
                           v-model="formSub.foto"
                           chips
                           prepend-inner-icon="mdi-image-outline"
@@ -134,7 +133,7 @@
                           variant="outlined"
                           label="Comissão Vendedor (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.perc_comissao_vendedor"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -149,7 +148,7 @@
                           variant="outlined"
                           label="Comissão Tecnico (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.perc_comissao_tecnico"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -165,7 +164,7 @@
                           variant="outlined"
                           label="Índice Custo (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.indice_custo"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -180,7 +179,7 @@
                           variant="outlined"
                           label="Índice Venda (%)"
                           hide-details="auto"
-                          :rules="validacao"
+                          :rules="validacaoPercentual"
                           v-model="formSub.indice_venda"
                           :theme="themeStore.darkMode ? 'dark' : 'light'"
                           prepend-inner-icon="mdi-percent-outline"
@@ -376,6 +375,10 @@
           }}
         </template>
       </excluir-modal>
+
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000" location="bottom right">
+        {{ snackbar.message }}
+      </v-snackbar>
     </template>
   </top-all-pages>
 </template>
@@ -386,12 +389,18 @@ import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 import {useThemeStore} from "@/stores/config-temas/theme";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
 import {ref, computed, watchEffect, reactive} from "vue";
-import {toast} from "vue3-toastify";
 import ExcluirModal from "@/components/base/modais/ExcluirModal.vue";
 import ExibirImagemModal from "@/components/base/modais/ExibirImagemModal.vue";
 
 const themeStore = useThemeStore();
 const estoqueStore = useEstoqueStore();
+
+const snackbar = reactive({ show: false, message: '', color: 'success' });
+const mostrarMensagem = (message, color = 'success') => {
+  snackbar.message = message;
+  snackbar.color = color;
+  snackbar.show = true;
+};
 
 const grupos = computed(() => estoqueStore.grupos);
 const subgrupos = computed(() => estoqueStore.subgrupos);
@@ -440,6 +449,11 @@ const toggleFormularioSub = () => {
 // CAMPOS DO FORMULÁRIO
 const validacao = [(v) => !!v || "O campo é obrigatório"];
 const validacaoFile = [(v) => !!v || "O campo é obrigatório"];
+const validacaoPercentual = [
+  (v) => !!v || "O campo é obrigatório",
+  (v) => Number(v) > 0 || "Deve ser maior que 0",
+  (v) => Number(v) <= 100 || "Não pode ser maior que 100",
+];
 
 const search = ref("");
 const base64 = ref("");
@@ -472,7 +486,7 @@ function converterBase64(event) {
   if (!arquivo) return
 
   if (arquivo.size > 150 * 1024) {
-    toast.error('O arquivo excede o tamanho máximo de 150KB.');
+    mostrarMensagem('O arquivo excede o tamanho máximo de 150KB.', 'error');
     erro.value = true;
     validacaoFile.push(() => false || "O arquivo excede o tamanho máximo de 30KB.");
     return
@@ -540,7 +554,7 @@ const salvarGrupo = () => {
   form.foto = base64.value;
 
   if (erro.value) {
-    toast.error('Corrija os erros antes de salvar.');
+    mostrarMensagem('Corrija os erros antes de salvar.', 'error');
     return;
   }
 

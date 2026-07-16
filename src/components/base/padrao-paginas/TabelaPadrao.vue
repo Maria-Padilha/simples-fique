@@ -19,13 +19,15 @@
         </div>
 
         <v-data-table
-          :items-per-page="itemPorPag"
+          :items-per-page="totalItems ? itemsPerPage : itemPorPag"
           :headers="headers"
           :items="items"
           :loading="loading"
           :item-key="itemKey"
           :item-value="itemKey"
-          :search="searchModel"
+          :search="totalItems ? undefined : searchModel"
+          :items-length="totalItems || undefined"
+          :page="currentPage"
           class="background-secondary minha-tabela"
           :hide-default-footer="esconderFooter"
           :show-expand="expandable"
@@ -34,6 +36,8 @@
           :show-select="showSelect"
           v-model:selected="localSelected"
           :item-selectable="itemSelectable || undefined"
+          @update:options="onUpdateOptions"
+          @click:row="(_, { item }) => emit('click-row', item)"
         >
           <!-- Slots dinâmicos para formatação customizada -->
           <template
@@ -73,7 +77,7 @@
                 v-if="showDeleteAction"
                 :icon="deleteIcon"
                 size="small"
-                color="error"
+                :color="deleteColor"
                 variant="text"
                 :title="deleteTooltip"
                 @click="handleDeleteItem(item)"
@@ -123,11 +127,11 @@
             Cancelar
           </v-btn>
           <v-btn
-            color="error"
+            :color="deleteColor"
             :loading="loading"
             @click="confirmDelete"
           >
-            Excluir
+            {{ deleteConfirmText }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -164,6 +168,20 @@ const props = defineProps({
   itemPorPag: {
     type: Number,
     default: 10
+  },
+
+  // Paginação server-side
+  totalItems: {
+    type: Number,
+    default: 0
+  },
+  currentPage: {
+    type: Number,
+    default: 1
+  },
+  itemsPerPage: {
+    type: Number,
+    default: 15
   },
 
   // Controle de formulário
@@ -229,11 +247,19 @@ const props = defineProps({
     type: String,
     default: 'mdi-delete'
   },
+  deleteColor: {
+    type: String,
+    default: 'error'
+  },
   deleteTooltip: {
     type: String,
     default: 'Excluir'
   },
   deleteTitle: {
+    type: String,
+    default: 'Excluir'
+  },
+  deleteConfirmText: {
     type: String,
     default: 'Excluir'
   },
@@ -309,7 +335,9 @@ const emit = defineEmits([
   'confirm-delete',
   'update:search',
   'update:expanded',
-  'update:selected'
+  'update:selected',
+  'update:options',
+  'click-row'
 ])
 
 // Reactive data
@@ -331,6 +359,13 @@ watch(localSelected, (val) => {
 
 const clearSelection = () => {
   localSelected.value = []
+}
+
+// Paginação server-side
+const onUpdateOptions = (options) => {
+  if (props.totalItems) {
+    emit('update:options', options)
+  }
 }
 
 // Methods

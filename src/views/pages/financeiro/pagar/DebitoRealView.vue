@@ -97,8 +97,6 @@
                     :items-per-page-options="[10, 25, 50, 100]"
                     density="compact"
                     :theme="themeStore.darkMode ? 'dark' : 'light'"
-                    show-expand
-                    :single-expand="true"
                 >
                   <template v-slot:top>
                     <v-toolbar flat>
@@ -111,68 +109,11 @@
                     <span class="font-weight-medium">{{ item.centroCusto }}</span>
                   </template>
 
-                  <!-- Colunas de datas (dinâmicas) -->
-                  <template v-for="data in datasUnicas" :key="data" v-slot:[`item.data_${data}`]="{ item }">
-                <span>
-                  {{ item[`data_${data}`] ? formatarMoeda(item[`data_${data}`]) : '-' }}
-                </span>
-                  </template>
-
                   <!-- Coluna Total -->
                   <template v-slot:[`item.total`]="{ item }">
                 <span class="font-weight-bold" style="color: var(--text-color-laranja)">
                   {{ formatarMoeda(item.total) }}
                 </span>
-                  </template>
-
-                  <!-- Conteúdo expandido -->
-                  <template v-slot:expanded-row="{ item }">
-                    <tr>
-                      <td :colspan="headers.length + 1" class="pa-0">
-                        <v-card flat class="background-card ma-2">
-                          <v-card-title class="text-subtitle-2 pa-3 d-flex align-center">
-                            <v-icon icon="mdi-format-list-bulleted" size="small" class="mr-2"></v-icon>
-                            Detalhamento das Despesas
-                          </v-card-title>
-                          <v-divider></v-divider>
-                          <v-card-text class="pa-0">
-                            <v-table density="compact">
-                              <thead>
-                              <tr>
-                                <th class="text-left">Conta</th>
-                                <th v-for="data in datasUnicas" :key="data" class="text-center">
-                                  {{ formatarDataCurta(data) }}
-                                </th>
-                                <th class="text-center">Total</th>
-                              </tr>
-                              </thead>
-                              <tbody>
-                              <tr v-for="(despesaAgrupada, index) in agruparDespesasPorConta(item.despesas)" :key="index">
-                                <td class="text-left">{{ despesaAgrupada.conta }}</td>
-                                <td v-for="data in datasUnicas" :key="data" class="text-center">
-                                  {{ despesaAgrupada[`data_${data}`] ? formatarMoeda(despesaAgrupada[`data_${data}`]) : '-' }}
-                                </td>
-                                <td class="text-center font-weight-medium">
-                                  {{ formatarMoeda(despesaAgrupada.total) }}
-                                </td>
-                              </tr>
-                              </tbody>
-                              <tfoot>
-                              <tr class="font-weight-bold">
-                                <td class="text-right">Subtotal:</td>
-                                <td v-for="data in datasUnicas" :key="data" class="text-center">
-                                  {{ formatarMoeda(calcularTotalPorData(item.despesas, data)) }}
-                                </td>
-                                <td class="text-center" style="color: var(--text-color-laranja)">
-                                  {{ formatarMoeda(item.total) }}
-                                </td>
-                              </tr>
-                              </tfoot>
-                            </v-table>
-                          </v-card-text>
-                        </v-card>
-                      </td>
-                    </tr>
                   </template>
 
                   <!-- Loading -->
@@ -193,9 +134,6 @@
                   <template #[`body.append`]>
                     <tr v-if="debitosPorCentroCusto.length > 0" class="font-weight-bold total-row">
                       <td class="text-right">TOTAL GERAL:</td>
-                      <td v-for="data in datasUnicas" :key="data" class="text-center">
-                        {{ formatarMoeda(totaisPorData[`data_${data}`] || 0) }}
-                      </td>
                       <td class="text-center" style="color: var(--text-color-laranja)">
                         {{ formatarMoeda(totalDebitos) }}
                       </td>
@@ -210,7 +148,7 @@
               <v-card-text class="pa-4">
                 <v-row>
                   <v-col cols="12" md="6">
-                    <div class="text-caption text-grey">Total de Débitos</div>
+                    <div class="text-caption text-grey">Centros de Custo com Débito</div>
                     <div class="text-h6 font-weight-bold">{{ debitosRealizados.length }}</div>
                   </v-col>
                   <v-col cols="12" md="6">
@@ -338,103 +276,29 @@ const periodos = [
   { title: 'Personalizado', value: 'personalizado' }
 ]
 
-// Headers da tabela (dinâmicos baseados nas datas)
-const headers = computed(() => {
-  const baseHeaders = [
-    { title: 'Centro de Custo', key: 'centroCusto', sortable: true, width: '200px' }
-  ]
+// Headers da tabela — a API de realizado retorna apenas o total por centro de custo,
+// sem granularidade por data/despesa
+const headers = [
+  { title: 'Centro de Custo', key: 'centroCusto', sortable: true, width: '300px' },
+  { title: 'Total Realizado', key: 'total', sortable: true, align: 'end', width: '200px' }
+]
 
-  // Adiciona uma coluna para cada data encontrada
-  const dataHeaders = datasUnicas.value.map(data => ({
-    title: formatarDataCurta(data),
-    key: `data_${data}`,
-    sortable: false,
-    align: 'center',
-    width: '120px'
-  }))
-
-  return [
-    ...baseHeaders,
-    ...dataHeaders,
-    { title: 'Total', key: 'total', sortable: true, align: 'end', width: '150px' }
-  ]
-})
-
-// Datas únicas encontradas nos débitos
-const datasUnicas = computed(() => {
-  if (!debitosRealizados.value.length) return []
-
-  const datas = new Set()
-  debitosRealizados.value.forEach(item => {
-    if (item.dtlancamento) {
-      datas.add(item.dtlancamento)
-    }
-  })
-
-  return Array.from(datas).sort()
-})
-
-// Computed
+// Total geral dos débitos realizados
 const totalDebitos = computed(() => {
   return debitosRealizados.value.reduce((sum, item) => {
-    return sum + parseFloat(item.valor || 0)
+    return sum + (parseFloat(item.total_realizado) || 0)
   }, 0)
 })
 
-// Agrupa débitos por centro de custo com valores por data
+// Mapeia a resposta da API ({ id_ccusto, desccentrocusto, total_realizado }) para o formato da tabela
 const debitosPorCentroCusto = computed(() => {
-  if (!debitosRealizados.value.length) return []
-
-  const agrupado = {}
-
-  debitosRealizados.value.forEach(item => {
-    const centroCusto = item.desccentrocusto || 'Sem Centro de Custo'
-    const key = `${item.id_ccusto || 0}_${centroCusto}`
-    const data = item.dtlancamento
-    const dataKey = `data_${data}`
-
-    if (!agrupado[key]) {
-      agrupado[key] = {
-        id: key,
-        centroCusto: centroCusto,
-        total: 0,
-        despesas: [] // Armazena despesas agrupadas por data
-      }
-
-      // Inicializa todas as datas com 0
-      datasUnicas.value.forEach(d => {
-        agrupado[key][`data_${d}`] = 0
-      })
-    }
-
-    // Acumula o valor na data correspondente
-    const valor = parseFloat(item.valor || 0)
-    agrupado[key][dataKey] = (agrupado[key][dataKey] || 0) + valor
-    agrupado[key].total += valor
-
-    // Armazena despesa para o detalhamento
-    agrupado[key].despesas.push({
-      dtlancamento: item.dtlancamento,
-      descconta: item.descconta,
-      valor: valor
-    })
-  })
-
-  return Object.values(agrupado).sort((a, b) => b.total - a.total)
-})
-
-// Totais por data
-const totaisPorData = computed(() => {
-  const totais = {}
-
-  datasUnicas.value.forEach(data => {
-    const dataKey = `data_${data}`
-    totais[dataKey] = debitosPorCentroCusto.value.reduce((sum, item) => {
-      return sum + (item[dataKey] || 0)
-    }, 0)
-  })
-
-  return totais
+  return debitosRealizados.value
+      .map(item => ({
+        id: item.id_ccusto,
+        centroCusto: item.desccentrocusto || 'Sem Centro de Custo',
+        total: parseFloat(item.total_realizado) || 0
+      }))
+      .sort((a, b) => b.total - a.total)
 })
 
 // Dados do gráfico de pizza
@@ -589,49 +453,6 @@ const formatarMoeda = (valor) => {
   }).format(valor)
 }
 
-const formatarDataCurta = (data) => {
-  if (!data) return '--'
-  try {
-    const [, mes, dia] = data.split('-')
-    return `${dia}/${mes.substring(1) || mes}`
-  } catch {
-    return '--'
-  }
-}
-
-// Agrupa despesas por conta para exibição detalhada
-const agruparDespesasPorConta = (despesas) => {
-  const agrupado = {}
-
-  despesas.forEach(despesa => {
-    const conta = despesa.descconta || 'Sem Conta'
-    const data = despesa.dtlancamento
-    const dataKey = `data_${data}`
-
-    if (!agrupado[conta]) {
-      agrupado[conta] = {
-        conta: conta,
-        total: 0
-      }
-      // Inicializa todas as datas
-      datasUnicas.value.forEach(d => {
-        agrupado[conta][`data_${d}`] = 0
-      })
-    }
-
-    agrupado[conta][dataKey] = (agrupado[conta][dataKey] || 0) + despesa.valor
-    agrupado[conta].total += despesa.valor
-  })
-
-  return Object.values(agrupado)
-}
-
-// Calcula total de despesas por data
-const calcularTotalPorData = (despesas, data) => {
-  return despesas
-      .filter(d => d.dtlancamento === data)
-      .reduce((sum, d) => sum + d.valor, 0)
-}
 
 // ========== EXPORTAÇÃO E IMPRESSÃO ==========
 
@@ -651,18 +472,15 @@ const dadosPDFAtual = ref(null)
 //   modalExportacaoAberto.value = true
 // }
 
-// Preparar dados para o template de impressão
+// Preparar dados para o template de impressão — a API de realizado só traz o total por centro de
+// custo (sem data/despesa detalhada), então o relatório impresso mostra apenas essa totalização.
+// `valor` é enviado como alias porque gerarHTMLCentroCusto (compartilhado com a tela de previsão)
+// lê item.valor como fallback para o total de cada linha.
 const prepararDadosParaImpressao = () => {
   return debitosPorCentroCusto.value.map(ccusto => ({
     centroCusto: ccusto.centroCusto,
     total: ccusto.total,
-    despesas: agruparDespesasPorConta(ccusto.despesas).map(d => ({
-      descricao: d.conta,
-      total: d.total,
-      ...Object.fromEntries(
-          datasUnicas.value.map(data => [`data_${data}`, d[`data_${data}`] || 0])
-      )
-    }))
+    valor: ccusto.total
   }))
 }
 
@@ -679,7 +497,7 @@ const handleExportarPDF = async ({ nomeRelatorio }) => {
     console.log('📄 Preparando preview do PDF:', dadosFormatados.length, 'centros de custo')
 
     // Gerar HTML com os dados
-    const htmlContent = gerarHTMLCentroCusto('Débitos Realizados', dadosFormatados, filtros, datasUnicas.value)
+    const htmlContent = gerarHTMLCentroCusto('Débitos Realizados', dadosFormatados, filtros, [])
 
     if (!htmlContent) {
       toast.error('Erro ao gerar conteúdo do PDF')
@@ -713,13 +531,12 @@ const handleExportarCSV = ({ nomeRelatorio }) => {
     }
 
     // Cabeçalhos
-    const cabecalhos = ['Centro de Custo', ...datasUnicas.value.map(d => formatarDataCurta(d)), 'Total']
+    const cabecalhos = ['Centro de Custo', 'Total']
     const linhas = [cabecalhos.map(h => `"${h}"`).join(',')]
 
     debitosPorCentroCusto.value.forEach(item => {
       const valores = [
         `"${item.centroCusto}"`,
-        ...datasUnicas.value.map(d => `"${formatarMoeda(item[`data_${d}`] || 0)}"`),
         `"${formatarMoeda(item.total)}"`
       ]
       linhas.push(valores.join(','))
@@ -728,7 +545,6 @@ const handleExportarCSV = ({ nomeRelatorio }) => {
     // Linha de totais
     linhas.push([
       '"TOTAL GERAL"',
-      ...datasUnicas.value.map(d => `"${formatarMoeda(totaisPorData.value[`data_${d}`] || 0)}"`),
       `"${formatarMoeda(totalDebitos.value)}"`
     ].join(','))
 
@@ -756,13 +572,12 @@ const handleExportarExcel = ({ nomeRelatorio }) => {
       return
     }
 
-    const cabecalhos = ['Centro de Custo', ...datasUnicas.value.map(d => formatarDataCurta(d)), 'Total']
+    const cabecalhos = ['Centro de Custo', 'Total']
     const linhas = [cabecalhos.join('\t')]
 
     debitosPorCentroCusto.value.forEach(item => {
       const valores = [
         item.centroCusto,
-        ...datasUnicas.value.map(d => formatarMoeda(item[`data_${d}`] || 0)),
         formatarMoeda(item.total)
       ]
       linhas.push(valores.join('\t'))
@@ -771,7 +586,6 @@ const handleExportarExcel = ({ nomeRelatorio }) => {
     // Linha de totais
     linhas.push([
       'TOTAL GERAL',
-      ...datasUnicas.value.map(d => formatarMoeda(totaisPorData.value[`data_${d}`] || 0)),
       formatarMoeda(totalDebitos.value)
     ].join('\t'))
 
@@ -794,13 +608,12 @@ const handleExportarExcel = ({ nomeRelatorio }) => {
 // Função para imprimir
 const handleImprimir = ({ nomeRelatorio }) => {
   try {
-    // Usar dados RAW da API
-    if (!debitosRealizados.value || debitosRealizados.value.length === 0) {
+    if (!debitosPorCentroCusto.value || debitosPorCentroCusto.value.length === 0) {
       toast.warning('Nenhum dado para imprimir')
       return
     }
 
-    abrirImpressaoCentroCusto(nomeRelatorio || 'Débitos Realizados', debitosRealizados.value, filtros)
+    abrirImpressaoCentroCusto(nomeRelatorio || 'Débitos Realizados', prepararDadosParaImpressao(), filtros)
   } catch (err) {
     console.error('❌ Erro ao imprimir:', err)
     toast.error('Erro ao imprimir')
@@ -820,23 +633,23 @@ const aplicarPeriodo = (periodo) => {
       break
 
     case 'semana': {
-      // Primeiro dia da semana (domingo)
+      // Domingo a sábado da semana atual
       const primeiroDiaSemana = hoje.getDate() - hoje.getDay()
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana + 6)
       break
     }
 
     case 'mes':
-      // Primeiro dia do mês
+      // Primeiro ao último dia do mês
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
       break
 
     case 'ano':
-      // Primeiro dia do ano
+      // 1º de janeiro a 31 de dezembro
       dataInicio = new Date(hoje.getFullYear(), 0, 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), 11, 31)
       break
 
     case '7dias':

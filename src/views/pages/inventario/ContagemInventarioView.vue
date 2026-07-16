@@ -351,7 +351,7 @@ const carregarLote = async (emp, id) => {
     lote.value = {
       id: dados.id,
       idEmpresa: parseInt(emp),
-      almoxarifadoNome: dados.descalmoxarifado || 'Almoxarifado',
+      almoxarifadoNome: dados.referencia_almoxarifado?.descalmoxarifado || dados.descalmoxarifado || 'Almoxarifado',
       data: dados.dtgeracao || dados.data,
       tipo: dados.tipo,
       itens: gridProdutos.map(produto => ({

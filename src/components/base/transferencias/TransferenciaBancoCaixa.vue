@@ -120,9 +120,8 @@
           <v-col cols="12" md="4">
             <v-text-field
               v-model="formData.valor"
+              v-mask-decimal.br="2"
               label="Valor"
-              type="number"
-              step="0.01"
               density="compact"
               variant="outlined"
               :rules="[rules.required, rules.valorPositivo]"
@@ -483,12 +482,21 @@ const termoTipoPagamento = ref('')
 const tipoPagamentoResultados = ref([])
 const tipoPagamentoSelecionado = ref('')
 
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 const formData = reactive({
   id_conta_corrente: null,
   id_caixa: null,
   data_movimento: new Date().toISOString().split('T')[0],
   data_compensacao: new Date().toISOString().split('T')[0],
-  valor: null,
+  valor: '',
   tipo_documento: null,
   numero_documento: null,
   id_historico_banco: null,
@@ -504,7 +512,7 @@ const formData = reactive({
 
 const rules = {
   required: (value) => !!value || 'Campo obrigatório',
-  valorPositivo: (value) => (value && parseFloat(value) > 0) || 'Valor deve ser maior que zero'
+  valorPositivo: (value) => (value && parseDecimalBR(value) > 0) || 'Valor deve ser maior que zero'
 }
 
 const pesquisarBancos = async () => {
@@ -648,8 +656,9 @@ const preencherObservacao = () => {
   if (!formData.observacoes || formData.observacoes.trim() === '') {
     const origem = bancoSelecionado.value || 'N/A'
     const destino = caixaSelecionado.value || 'N/A'
-    const valor = formData.valor ? `R$ ${formData.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'R$ 0,00'
-    
+    const valorNum = parseDecimalBR(formData.valor)
+    const valor = valorNum ? `R$ ${formatDecimalBR(valorNum)}` : 'R$ 0,00'
+
     formData.observacoes = `BANCO -> CAIXA "${origem}" para "${destino}": ${valor}`
   }
 }
@@ -677,7 +686,7 @@ const executarTransferencia = async () => {
       id_tipopagrec: formData.id_tipopagrec,
       nrdocumento: formData.numero_documento,
       dtlancamento: formData.data_movimento,
-      valor: formData.valor,
+      valor: parseDecimalBR(formData.valor),
       observacao: formData.observacoes || '',
       origem: 'M'
     }
@@ -699,7 +708,7 @@ const limparFormulario = () => {
     id_caixa: null,
     data_movimento: new Date().toISOString().split('T')[0],
     data_compensacao: new Date().toISOString().split('T')[0],
-    valor: null,
+    valor: '',
     tipo_documento: null,
     numero_documento: null,
     id_historico_banco: null,

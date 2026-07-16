@@ -293,8 +293,7 @@
                               density="compact"
                               prepend-inner-icon="mdi-currency-usd"
                               prefix="R$"
-                              type="number"
-                              step="0.01"
+                              v-mask-decimal.br="2"
                           ></v-text-field>
                         </v-col>
 
@@ -621,10 +620,19 @@ const formData = reactive({
   dtcobranca: '',
   tipo: 'C',
   nrdocumento: '',
-  valor: 0,
+  valor: '',
   observacao: ''
 })
 
+// Helpers de formatação de moeda BR
+const parseDecimalBR = (str) => {
+  if (!str && str !== 0) return null
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || null
+}
+const formatDecimalBR = (num) => {
+  if (!num && num !== 0) return ''
+  return parseFloat(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 // Regras de validação
 const rules = {
   required: (value) => {
@@ -633,7 +641,8 @@ const rules = {
   },
   valorPositivo: (value) => {
     if (value === null || value === undefined || value === '') return 'Campo obrigatório'
-    if (parseFloat(value) <= 0) return 'Valor deve ser maior que zero'
+    const num = parseDecimalBR(value)
+    if (!num || num <= 0) return 'Valor deve ser maior que zero'
     return true
   }
 }
@@ -688,23 +697,23 @@ const aplicarPeriodo = (periodo) => {
       break
     
     case 'semana': {
-      // Primeiro dia da semana (domingo)
+      // Domingo a sábado da semana atual
       const primeiroDiaSemana = hoje.getDate() - hoje.getDay()
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth(), primeiroDiaSemana + 6)
       break
     }
-    
+
     case 'mes':
-      // Primeiro dia do mês
+      // Primeiro ao último dia do mês
       dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
       break
-    
+
     case 'ano':
-      // Primeiro dia do ano
+      // 1º de janeiro a 31 de dezembro
       dataInicio = new Date(hoje.getFullYear(), 0, 1)
-      dataFim = hoje
+      dataFim = new Date(hoje.getFullYear(), 11, 31)
       break
     
     case '7dias':
@@ -759,7 +768,7 @@ const limparFormulario = () => {
     dtcobranca: '',
     tipo: 'C',
     nrdocumento: '',
-    valor: 0,
+    valor: '',
     observacao: ''
   })
   if (formRef.value) {
@@ -982,7 +991,7 @@ const salvarLancamento = async () => {
       local_lct: formData.local_lct,
       tipo: formData.tipo,
       dtlancamento: formData.dtlancamento,
-      valor: parseFloat(formData.valor),
+      valor: parseDecimalBR(formData.valor),
       data_cobranca: formData.dtcobranca || null,
       origem: 'ADT',
       observacao: formData.observacao || null,
@@ -1036,7 +1045,7 @@ const editarLancamento = async (item) => {
       tipo: record.tipo || 'C',
       dtcobranca: record.data_cobranca || record.dtcobranca || '',
       nrdocumento: record.nrdocumento || '',
-      valor: record.valor,
+      valor: formatDecimalBR(record.valor),
       observacao: record.observacao || ''
     })
     

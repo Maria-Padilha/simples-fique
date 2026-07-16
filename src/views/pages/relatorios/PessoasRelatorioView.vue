@@ -1,6 +1,6 @@
 <template>
   <div class="pa-4">
-    <v-card class="background-secondary my-4" elevation="1">
+    <v-card class="background-secondary my-4" elevation="0">
       <v-card-title class="text-h5 pa-4 d-flex justify-space-between align-center">
         <div class="d-flex align-center">
           <v-icon icon="mdi-account-multiple-outline" class="mr-3"></v-icon>
@@ -19,7 +19,6 @@
               prepend-inner-icon="mdi-magnify"
               variant="outlined"
               density="compact"
-              :theme="themeStore.darkMode ? 'dark' : 'light'"
             ></v-text-field>
           </v-col>
 
@@ -36,7 +35,6 @@
               label="Tipo de Pessoa"
               variant="outlined"
               density="compact"
-              :theme="themeStore.darkMode ? 'dark' : 'light'"
             ></v-select>
           </v-col>
 
@@ -52,7 +50,7 @@
               Atualizar
             </v-btn>
             <v-btn
-              color="primary"
+              color="var(--text-color-laranja)"
               variant="outlined"
               prepend-icon="mdi-download"
               @click="exportarRelatorio"
@@ -65,12 +63,16 @@
 
     <v-card elevation="0" class="background-secondary">
       <v-card-text class="pa-4">
-        <v-data-table
+        <TabelaPadrao
+          :formulario-aberto="false"
           :headers="headers"
           :items="dadosRelatorio"
           :loading="loading"
+          :show-edit-action="false"
+          :show-delete-action="false"
           item-key="id"
-          class="background-secondary"
+          no-data-icon="mdi-chart-bar"
+          no-data-text="Nenhum dado encontrado para os filtros aplicados."
         >
           <template v-slot:[`item.tipo_pessoa`]="{ item }">
             <v-chip
@@ -91,25 +93,31 @@
               {{ item.ativo === 'S' ? 'Ativa' : 'Inativa' }}
             </v-chip>
           </template>
-
-          <template v-slot:no-data>
-            <div class="text-center pa-4">
-              <v-icon icon="mdi-account-off" size="64" class="mb-2 opacity-60"></v-icon>
-              <p class="text-body-1">Nenhuma pessoa encontrada</p>
-            </div>
-          </template>
-        </v-data-table>
+        </TabelaPadrao>
       </v-card-text>
     </v-card>
+
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+      {{ snackbar.message }}
+    </v-snackbar>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
+import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 
 const themeStore = useThemeStore()
 const loading = ref(false)
+
+const snackbar = reactive({ show: false, message: '', color: 'success' })
+
+const mostrarMensagem = (message, color = 'success') => {
+  snackbar.message = message
+  snackbar.color = color
+  snackbar.show = true
+}
 
 const filtros = reactive({
   pesquisa: '',
@@ -135,7 +143,7 @@ const filtrarRelatorio = async () => {
     // TODO: Fazer requisição à API
     dadosRelatorio.value = []
   } catch (error) {
-    console.error('Erro ao filtrar relatório:', error)
+    mostrarMensagem('Erro ao carregar relatório', 'error')
   } finally {
     loading.value = false
   }
@@ -143,6 +151,6 @@ const filtrarRelatorio = async () => {
 
 const exportarRelatorio = () => {
   // TODO: Implementar export para Excel/PDF
-  console.log('Exportar relatório de pessoas')
+  // exportar relatório
 }
 </script>

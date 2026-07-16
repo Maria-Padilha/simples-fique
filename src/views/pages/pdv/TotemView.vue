@@ -194,13 +194,13 @@
               class="background-card rounded-lg"
           >
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip :color="itemRaw(item).ativo ? 'green' : 'red'" size="small">
+              <v-chip :color="itemRaw(item).ativo ? 'success' : 'error'" size="small">
                 {{ itemRaw(item).ativo ? 'Ativo' : 'Inativo' }}
               </v-chip>
             </template>
 
             <template v-slot:[`item.permite_sincronizacao`]="{ item }">
-              <v-chip :color="itemRaw(item).permite_sincronizacao ? 'blue' : 'grey'" size="small" variant="tonal">
+              <v-chip :color="itemRaw(item).permite_sincronizacao ? 'info' : 'default'" size="small" variant="tonal">
                 {{ itemRaw(item).permite_sincronizacao ? 'Sincroniza' : 'Bloqueado' }}
               </v-chip>
             </template>
@@ -224,7 +224,7 @@
                     icon="mdi-pencil"
                     size="small"
                     variant="text"
-                    color="blue"
+                    color="info"
                     title="Editar terminal"
                     @click="editarTotem(itemRaw(item))"
                 />
@@ -233,7 +233,7 @@
                     icon="mdi-delete"
                     size="small"
                     variant="text"
-                    color="red"
+                    color="error"
                     title="Excluir terminal"
                     @click="excluirTotem(itemRaw(item))"
                 />
@@ -339,7 +339,7 @@
                       <v-text-field
                           v-model="terminalConfigurando.descricao"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           hide-details
                       />
                     </v-col>
@@ -349,7 +349,7 @@
                       <v-text-field
                           v-model="terminalConfigurando.codigo"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           hide-details
                       />
                     </v-col>
@@ -362,7 +362,7 @@
                           item-title="title"
                           item-value="value"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           hide-details
                       />
                     </v-col>
@@ -373,7 +373,7 @@
                           v-model="terminalConfigurando.senha_terminal"
                           placeholder="Senha para acessar os paineis do terminal"
                           variant="outlined"
-                          density="comfortable"
+                          density="compact"
                           :append-inner-icon="verSenha ? 'mdi-eye-outline' : 'mdi-eye-off-outline'"
                           :type="verSenha ? 'text' : 'password'"
                           @click:append-inner="verSenha = !verSenha"
@@ -455,7 +455,7 @@
                               v-model="ambienteForm.nome"
                               placeholder="Ex: Cozinha, Bar, Área externa"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -468,7 +468,7 @@
                               item-title="title"
                               item-value="value"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -525,7 +525,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerAmbiente(ambiente)"
                         >
@@ -550,7 +550,7 @@
                               item-value="id"
                               placeholder="Selecione"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -561,7 +561,7 @@
                               v-model="menuForm.nome"
                               placeholder="Ex: Comidas, Bebidas, Combos"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -572,7 +572,7 @@
                               v-model="menuForm.icone"
                               placeholder="Ex: 🍔"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -609,7 +609,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerMenu(menu)"
                         >
@@ -649,7 +649,7 @@
                               item-title="nome"
                               item-value="id"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                               @update:model-value="preencherAmbienteDoMenu"
                           />
@@ -663,7 +663,7 @@
                               item-title="nome"
                               item-value="id"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -676,7 +676,7 @@
                               clearable
                               placeholder="Todos"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -690,7 +690,7 @@
                               item-value="id"
                               placeholder="Selecione"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                               multiple
                               chips
@@ -776,7 +776,7 @@
                             </div>
 
                             <v-btn
-                                color="red"
+                                color="error"
                                 variant="tonal"
                                 @click="removerProdutoVinculado(vinculo)"
                             >
@@ -807,7 +807,7 @@
                               v-model="mesaForm.numero"
                               placeholder="Ex: 12"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -818,7 +818,7 @@
                               v-model="mesaForm.nome"
                               placeholder="Ex: Varanda 3"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -830,7 +830,7 @@
                               type="number"
                               min="1"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -845,7 +845,7 @@
                               clearable
                               placeholder="Nenhum"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -880,7 +880,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerMesa(mesa)"
                         >
@@ -913,7 +913,7 @@
                               item-value="id"
                               placeholder="Selecione"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -924,7 +924,7 @@
                               v-model="funcionarioVincularForm.papel"
                               placeholder="Ex: garcom, caixa, cozinha"
                               variant="outlined"
-                              density="comfortable"
+                              density="compact"
                               hide-details
                           />
                         </v-col>
@@ -959,7 +959,7 @@
                         </div>
 
                         <v-btn
-                            color="red"
+                            color="error"
                             variant="tonal"
                             @click="removerVinculoFuncionario(vinculo)"
                         >

@@ -40,11 +40,18 @@ export const usePessoasStore = defineStore('pessoas', {
             rawForm.celular   = (rawForm.celular   || '').replace(/\D/g, '')
             rawForm.whats     = (rawForm.whats     || '').replace(/\D/g, '')
 
-            // Separar enderecos e descartar campos obsoletos (latitude, longitude)
+            // Separar enderecos e descartar campos obsoletos
             const { enderecos = [], ...pessoaData } = rawForm
             delete pessoaData.data
             delete pessoaData.latitude
             delete pessoaData.longitude
+            delete pessoaData.cliente
+            delete pessoaData.fornecedor
+            delete pessoaData.transportadora
+            delete pessoaData.colaborador
+            delete pessoaData.representante
+            delete pessoaData.id_red_ctb_cli
+            delete pessoaData.id_red_ctb_for
 
             const payload = {
                 ...pessoaData,
@@ -91,12 +98,21 @@ export const usePessoasStore = defineStore('pessoas', {
             this.loading = true;
             try {
                 const response = await apiPhp.get(`/manutencao/pessoas/${id}`);
-                const data = response.data?.data ?? response.data;
-                const pessoa = data?.pessoa ?? data ?? null
+                const data = response.data?.data ?? response.data ?? null;
+                const pessoa = data ?? null
                 const endereco = data?.endereco ?? []
                 this.pessoa = pessoa
                 this.errorMessage = '';
-                return { pessoa, endereco }
+                return {
+                    pessoa,
+                    endereco,
+                    dadosFornecedor: data?.dadosFornecedor ?? null,
+                    dadosCliente: data?.dadosCliente ?? null,
+                    dadosContador: data?.dadosContador ?? null,
+                    dadosTransportador: data?.dadosTransportador ?? null,
+                    dadosRepresentante: data?.dadosRepresentante ?? null,
+                    dadosFuncionario: data?.dadosFuncionario ?? null,
+                }
             } catch (error) {
                 this.errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido';
                 return null
@@ -109,12 +125,12 @@ export const usePessoasStore = defineStore('pessoas', {
             this.loading = true
             try {
                 await apiPhp.delete(`/manutencao/pessoas/${id}`)
-                snackbar.message = 'Pessoa excluída'
+                snackbar.message = 'Cliente inativado com sucesso'
                 snackbar.color = 'success'
                 snackbar.show = true
                 await this.buscarTodasPessoas();
             } catch (e) {
-                snackbar.message = 'Erro ao excluir pessoa'
+                snackbar.message = 'Erro ao inativar cliente'
                 snackbar.color = 'error'
                 snackbar.show = true
             } finally {
@@ -125,20 +141,12 @@ export const usePessoasStore = defineStore('pessoas', {
         async importarPessoasCSV(pessoas) {
             this.loading = true
             try {
-                // Processar cada pessoa e limpar máscaras
                 const pessoasProcessadas = pessoas.map(pessoa => ({
                     ...pessoa,
                     cpf_cnpj: pessoa.cpf_cnpj?.replace(/\D/g, '') || '',
                     telefone: pessoa.telefone?.replace(/\D/g, '') || '',
                     celular: pessoa.celular?.replace(/\D/g, '') || '',
                     whats: pessoa.whats?.replace(/\D/g, '') || '',
-                    latitude: pessoa.latitude ? Number(pessoa.latitude) : null,
-                    longitude: pessoa.longitude ? Number(pessoa.longitude) : null,
-                    cliente: pessoa.cliente || 'N',
-                    fornecedor: pessoa.fornecedor || 'N',
-                    transportadora: pessoa.transportadora || 'N',
-                    colaborador: pessoa.colaborador || 'N',
-                    representante: pessoa.representante || 'N',
                     ativo: pessoa.ativo || 'S'
                 }))
 
