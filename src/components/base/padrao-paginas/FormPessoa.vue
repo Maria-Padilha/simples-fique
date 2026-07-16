@@ -20,12 +20,29 @@
             :theme="themeStore.darkMode ? 'dark' : 'light'"
             class="custom-text-field required-left-border"
             prepend-inner-icon="mdi-account-circle"
+            :readonly="isReadonly('tipo_pessoa')"
+            :bg-color="isReadonly('tipo_pessoa') ? 'grey-lighten-4' : undefined"
         />
       </v-col>
 
       <v-col cols="12" md="3">
+        <!-- Bloqueado: exibe o valor já formatado, sem diretiva de máscara
+             (v-mask reescreve o valor via evento sintético e não convive bem com disabled) -->
         <v-text-field
-            v-if="form.tipo_pessoa === 'F'"
+            v-if="isReadonly('cpf_cnpj')"
+            :model-value="formatarCpfCnpj(form.cpf_cnpj)"
+            :label="form.tipo_pessoa === 'F' ? 'CPF' : 'CNPJ'"
+            variant="outlined"
+            density="compact"
+            hide-details="auto"
+            :theme="themeStore.darkMode ? 'dark' : 'light'"
+            class="custom-text-field"
+            prepend-inner-icon="mdi-card-account-details"
+            disabled
+            bg-color="grey-lighten-4"
+        />
+        <v-text-field
+            v-else-if="form.tipo_pessoa === 'F'"
             v-model="form.cpf_cnpj"
             label="CPF"
             maxlength="14"
@@ -68,8 +85,8 @@
             :theme="themeStore.darkMode ? 'dark' : 'light'"
             class="custom-text-field required-left-border"
             prepend-inner-icon="mdi-account"
-            :readonly="pessoaEncontrada"
-            :bg-color="pessoaEncontrada ? 'grey-lighten-4' : undefined"
+            :readonly="pessoaEncontrada || isReadonly('nome_razao')"
+            :bg-color="(pessoaEncontrada || isReadonly('nome_razao')) ? 'grey-lighten-4' : undefined"
         />
       </v-col>
 
@@ -85,6 +102,8 @@
             :theme="themeStore.darkMode ? 'dark' : 'light'"
             class="custom-text-field required-left-border"
             prepend-inner-icon="mdi-rename-box"
+            :readonly="isReadonly('apelido_fantasia')"
+            :bg-color="isReadonly('apelido_fantasia') ? 'grey-lighten-4' : undefined"
         />
       </v-col>
 
@@ -112,6 +131,20 @@
     <v-row dense>
       <v-col cols="12" md="3">
         <v-text-field
+            v-if="isReadonly('telefone')"
+            :model-value="formatarTelefone(form.telefone)"
+            label="Telefone"
+            variant="outlined"
+            density="compact"
+            hide-details="auto"
+            :theme="themeStore.darkMode ? 'dark' : 'light'"
+            class="custom-text-field"
+            prepend-inner-icon="mdi-phone"
+            disabled
+            bg-color="grey-lighten-4"
+        />
+        <v-text-field
+            v-else
             v-model="form.telefone"
             label="Telefone"
             maxlength="15"
@@ -127,6 +160,20 @@
 
       <v-col cols="12" md="3">
         <v-text-field
+            v-if="isReadonly('celular')"
+            :model-value="formatarTelefone(form.celular)"
+            label="Celular"
+            variant="outlined"
+            density="compact"
+            hide-details="auto"
+            :theme="themeStore.darkMode ? 'dark' : 'light'"
+            class="custom-text-field"
+            prepend-inner-icon="mdi-cellphone"
+            disabled
+            bg-color="grey-lighten-4"
+        />
+        <v-text-field
+            v-else
             v-model="form.celular"
             label="Celular"
             maxlength="15"
@@ -382,7 +429,7 @@
 
 <script setup>
 /* eslint-disable no-undef */
-import { ref, reactive, watch, onBeforeUnmount } from 'vue'
+import { ref, reactive, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
 import api from '@/services/api'
 import apiPhp from '@/services/apiPhp'
@@ -391,6 +438,12 @@ const props = defineProps({
   modelValue: {
     type: Object,
     required: true
+  },
+  // Nomes dos campos de form.* que o backend não aceita alterar nesta tela
+  // (ex: Contador/Fornecedor não editam dados de Pessoa pelo PUT da entidade)
+  readonlyFields: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -402,14 +455,56 @@ const rules = {
   required: (v) => !!v || 'Campo obrigatório',
 }
 
+const isReadonly = (field) => props.readonlyFields.includes(field)
+
+// Formatação manual para exibição em campos bloqueados (sem diretiva de máscara,
+// que reescreve o valor via evento sintético e não convive bem com disabled)
+const formatarCpfCnpj = (value) => {
+  const digits = (value || '').replace(/\D/g, '')
+  if (digits.length === 11) {
+    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+  }
+  if (digits.length === 14) {
+    return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+  }
+  return value || ''
+}
+
+const formatarTelefone = (value) => {
+  const digits = (value || '').replace(/\D/g, '')
+  if (digits.length === 11) {
+    return digits.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+  if (digits.length === 10) {
+    return digits.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+  }
+  return value || ''
+}
+
 // ── Referência reativa local (espelha o parent) ──────────
 const form = reactive({ ...props.modelValue })
 
+// Evita loop entre os dois watches abaixo (pai→filho e filho→pai)
+let syncingFromParent = false
+
+// Pai→filho: quando o parent reatribui modelValue (ex: ao carregar dados para edição)
+// syncingFromParent só é liberado após o nextTick pois o watch(form) abaixo
+// é assíncrono (flush padrão) e rodaria depois do Object.assign, não durante
+const stopSyncParent = watch(() => props.modelValue, async (val) => {
+  syncingFromParent = true
+  Object.assign(form, val)
+  await nextTick()
+  syncingFromParent = false
+}, { deep: true })
+
+// Filho→pai: mudanças digitadas nos campos sobem para o v-model do parent
 const stopSyncChild = watch(form, (val) => {
+  if (syncingFromParent) return
   emit('update:modelValue', { ...val })
 }, { deep: true })
 
 onBeforeUnmount(() => {
+  stopSyncParent()
   stopSyncChild()
 })
 

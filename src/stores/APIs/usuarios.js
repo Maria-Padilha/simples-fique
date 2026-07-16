@@ -8,15 +8,32 @@ export const useUsuariosStore = defineStore('usuarios', () => {
     const errorMessage = ref('')
     const successMessage = ref('')
 
-    async function buscarUsuarios() {
+    async function buscarUsuarios(params = {}) {
         loading.value = true
         try {
-            const response = await apiPhp.get('/manutencao/usuarios')
-            usuarios.value = Array.isArray(response.data) ? response.data : response.data?.data ?? []
+            const response = await apiPhp.get('/manutencao/usuarios', { params })
+            const lista = Array.isArray(response.data) ? response.data : response.data?.data ?? []
+            usuarios.value = lista.map((u) => ({
+                ...u,
+                ativo: u.ativo === 'S' || u.ativo === true,
+            }))
             errorMessage.value = ''
         } catch (error) {
             errorMessage.value = error?.response?.data?.message || error?.message || 'Erro ao buscar usuários'
             usuarios.value = []
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function buscarUsuarioPorId(id) {
+        loading.value = true
+        try {
+            const response = await apiPhp.get(`/manutencao/usuarios/${id}`)
+            return response.data?.data ?? response.data
+        } catch (error) {
+            errorMessage.value = error?.response?.data?.message || error?.message || 'Erro ao buscar usuário'
+            throw error
         } finally {
             loading.value = false
         }
@@ -66,6 +83,19 @@ export const useUsuariosStore = defineStore('usuarios', () => {
         }
     }
 
+    async function reativarUsuario(id) {
+        loading.value = true
+        try {
+            const response = await apiPhp.post(`/manutencao/usuarios/${id}/reativar`)
+            return response.data
+        } catch (error) {
+            errorMessage.value = error?.response?.data?.message || error?.message || 'Erro ao reativar usuário'
+            throw error
+        } finally {
+            loading.value = false
+        }
+    }
+
     async function buscarUsuarioEmpresas() {
         loading.value = true
         try {
@@ -101,9 +131,11 @@ export const useUsuariosStore = defineStore('usuarios', () => {
         errorMessage,
         successMessage,
         buscarUsuarios,
+        buscarUsuarioPorId,
         criarUsuario,
         atualizarUsuario,
         deletarUsuario,
+        reativarUsuario,
         buscarUsuarioEmpresas,
         salvarUsuarioEmpresa,
     }

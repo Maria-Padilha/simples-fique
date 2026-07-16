@@ -83,12 +83,10 @@
               item-key="id"
               no-data-icon="mdi-account-off"
               no-data-text="Nenhum usuário encontrado"
+              :show-delete-action="false"
               :show-custom-action="true"
               custom-action-icon="mdi-office-building"
-              delete-dialog-message="Esta ação não pode ser desfeita."
-              delete-item-display-field="nome"
               @edit-item="editarUsuario"
-              @confirm-delete="deletarUsuario"
               @custom-action="abrirModalEmpresaGrupo"
           >
             <!-- Slots para formatação customizada -->
@@ -97,17 +95,31 @@
             </template>
 
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip
-                  :color="item.ativo === 'S' ? 'success' : 'error'"
-                  size="x-small"
-                  variant="tonal"
-              >
-                {{ item.ativo === 'S' ? 'Ativo' : 'Inativo' }}
-              </v-chip>
+              <StatusPillToggle
+                  :active="item.ativo"
+                  :loading="statusToggling === item.id"
+                  @toggle="onToggleAtivoUsuario(item)"
+              />
             </template>
           </TabelaPadrao>
         </v-card-text>
       </v-card>
+
+      <v-dialog v-model="inativarDialog" max-width="420px">
+        <v-card class="background-secondary">
+          <v-card-title class="text-h6">Inativar usuário</v-card-title>
+          <v-card-text>
+            Tem certeza que deseja inativar "{{ usuarioParaInativar?.nome }}"?
+            <br><br>
+            Esta ação não pode ser desfeita.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer/>
+            <v-btn color="grey" variant="text" @click="fecharDialogInativar">Cancelar</v-btn>
+            <v-btn color="error" :loading="statusToggling === usuarioParaInativar?.id" @click="confirmarInativacao">Inativar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <!-- Modal de Empresa e Grupo de Usuário -->
       <v-dialog v-model="modalEmpresaGrupo" max-width="700px">
@@ -205,6 +217,7 @@ import { useEmpresaStore } from '@/stores/APIs/empresa'
 import { useGrupoUsuarioStore } from '@/stores/APIs/grupousuario'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
+import StatusPillToggle from '@/components/base/padrao-paginas/StatusPillToggle.vue'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
 
 const themeStore = useThemeStore();
@@ -247,7 +260,7 @@ const headers = [
   { title: 'Nome', key: 'nome', sortable: true },
   { title: 'E-mail', key: 'email', sortable: true },
   { title: 'Consolidar', key: 'consolidar', sortable: false },
-  { title: 'Ativo', key: 'ativo', align: 'center', width: 90, sortable: true },
+  { title: 'Status', key: 'ativo', sortable: false },
   { title: 'Ações', key: 'actions', sortable: false }
 ]
 
@@ -271,10 +284,26 @@ const toggleFormulario = () => {
   }
 }
 
-const editarUsuario = (u) => {
+const editarUsuario = async (u) => {
   editando.value = true
-  Object.assign(form, u)
   formularioAberto.value = true
+  try {
+    const data = await usuariosStore.buscarUsuarioPorId(u.id)
+    if (data) {
+      Object.assign(form, {
+        id_empresa: data.id_empresa || 1,
+        id: data.id,
+        nome: data.nome || '',
+        email: data.email || '',
+        consolidar: data.permite_consolidar || data.consolidar || 'N',
+      })
+    }
+  } catch (e) {
+    console.error(e)
+    snackbar.message = 'Erro ao carregar dados do usuário.'
+    snackbar.color = 'error'
+    snackbar.show = true
+  }
 }
 
 const cancelarFormulario = () => {
@@ -315,19 +344,66 @@ const salvarUsuario = async () => {
   }
 }
 
-const deletarUsuario = async (usuario) => {
+const statusToggling = ref(null)
+const inativarDialog = ref(false)
+const usuarioParaInativar = ref(null)
+
+const reativarUsuario = async (item) => {
+  const id = item?.id || item
+  statusToggling.value = id
   try {
-    const id = usuario?.id || usuario
-    await usuariosStore.deletarUsuario(id)
-    snackbar.message = 'Usuário excluído com sucesso!'
+    await usuariosStore.reativarUsuario(id)
+    snackbar.message = 'Usuário reativado com sucesso!'
     snackbar.color = 'success'
     snackbar.show = true
     buscarUsuarios()
   } catch (e) {
-    snackbar.message = 'Erro ao excluir usuário'
+    console.error(e)
+    snackbar.message = e.response?.data?.erro || e.response?.data?.message || 'Erro ao reativar usuário.'
     snackbar.color = 'error'
     snackbar.show = true
+  } finally {
+    statusToggling.value = null
   }
+}
+
+const deletarUsuario = async (usuario) => {
+  const id = usuario?.id || usuario
+  statusToggling.value = id
+  try {
+    await usuariosStore.deletarUsuario(id)
+    snackbar.message = 'Usuário inativado com sucesso!'
+    snackbar.color = 'success'
+    snackbar.show = true
+    buscarUsuarios()
+  } catch (e) {
+    snackbar.message = 'Erro ao inativar usuário'
+    snackbar.color = 'error'
+    snackbar.show = true
+  } finally {
+    statusToggling.value = null
+  }
+}
+
+const onToggleAtivoUsuario = (item) => {
+  if (item.ativo) {
+    usuarioParaInativar.value = item
+    inativarDialog.value = true
+  } else {
+    reativarUsuario(item)
+  }
+}
+
+const fecharDialogInativar = () => {
+  inativarDialog.value = false
+  usuarioParaInativar.value = null
+}
+
+const confirmarInativacao = async () => {
+  const item = usuarioParaInativar.value
+  if (!item) return
+  await deletarUsuario(item)
+  fecharDialogInativar()
 }
 
 const abrirModalEmpresaGrupo = async (usuario) => {

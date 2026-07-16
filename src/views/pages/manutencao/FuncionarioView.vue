@@ -13,6 +13,15 @@
 
           <v-expand-transition>
             <div v-if="formularioAberto">
+              <v-btn
+                  variant="text"
+                  color="grey"
+                  prepend-icon="mdi-arrow-left"
+                  class="mb-2"
+                  @click="cancelarFormulario"
+              >
+                Voltar
+              </v-btn>
               <v-card class="background-card mb-7" elevation="0">
                 <v-card-title class="text-h6 pa-4">
                   <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2" size="23px"/>
@@ -23,6 +32,7 @@
                     <FormPessoa
                         ref="formPessoaRef"
                         v-model="formPessoa"
+                        :readonly-fields="camposBloqueados"
                     />
 
                     <v-divider class="my-4"/>
@@ -135,14 +145,9 @@
               item-key="id"
               no-data-icon="mdi-account-hard-hat"
               no-data-text="Nenhum funcionário cadastrado"
-              delete-title="Inativar"
-              delete-tooltip="Inativar"
-              delete-dialog-title="Inativar funcionário"
-              delete-dialog-message="O funcionário será inativado."
-              delete-item-display-field="nome"
-              @edit-item="editarFuncionario"
-              @confirm-delete="inativarFuncionario"
-          >
+              :show-delete-action="false"
+          @edit-item="editarFuncionario"
+      >
             <template v-slot:[`item.acessa_sistema_terminal`]="{ item }">
               <v-chip :color="item.acessa_sistema_terminal ? 'info' : 'grey'" size="small" variant="tonal">
                 {{ item.acessa_sistema_terminal ? 'Acessa terminal' : 'Sem acesso' }}
@@ -150,13 +155,31 @@
             </template>
 
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip :color="item.ativo ? 'success' : 'error'" size="small">
-                {{ item.ativo ? 'Ativo' : 'Inativo' }}
-              </v-chip>
+              <StatusPillToggle
+                  :active="item.ativo"
+                  :loading="statusToggling === (item.id_colabo ?? item.id)"
+                  @toggle="onToggleAtivoFuncionario(item)"
+              />
             </template>
           </TabelaPadrao>
         </v-card-text>
       </v-card>
+
+      <v-dialog v-model="inativarDialog" max-width="420px">
+        <v-card class="background-secondary">
+          <v-card-title class="text-h6">Inativar funcionário</v-card-title>
+          <v-card-text>
+            Tem certeza que deseja inativar "{{ funcionarioParaInativar?.nome_razao }}"?
+            <br><br>
+            O funcionário será inativado.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer/>
+            <v-btn color="grey" variant="text" @click="fecharDialogInativar">Cancelar</v-btn>
+            <v-btn color="error" :loading="statusToggling === (funcionarioParaInativar?.id_colabo ?? funcionarioParaInativar?.id)" @click="confirmarInativacao">Inativar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
     </template>
@@ -169,6 +192,7 @@ import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import FormPessoa from '@/components/base/padrao-paginas/FormPessoa.vue'
+import StatusPillToggle from '@/components/base/padrao-paginas/StatusPillToggle.vue'
 import { useFuncionariosStore } from '@/stores/APIs/funcionarios'
 import { useEmpresaStore } from '@/stores/APIs/empresa'
 import { usePessoasStore } from '@/stores/APIs/pessoas'
@@ -219,9 +243,14 @@ const formFuncionario = reactive({
 
 const snackbar = reactive({ show: false, message: '', color: 'success' })
 
+// Backend não aceita alterar esses campos de Pessoa via PUT do funcionário
+// (tipo_pessoa é sempre F; e-mail usa o campo email_login, separado);
+// CPF/CNPJ nunca é editável depois de cadastrado (mudaria a identidade da pessoa)
+const camposBloqueados = computed(() => editando.value ? ['tipo_pessoa', 'celular', 'cpf_cnpj'] : [])
+
 const headers = [
   { title: 'ID', key: 'id', sortable: true },
-  { title: 'Nome', key: 'nome', sortable: true },
+  { title: 'Nome', key: 'nome_razao', sortable: true },
   { title: 'Acesso', key: 'acessa_sistema_terminal', sortable: false },
   { title: 'Status', key: 'ativo', sortable: false },
   { title: 'Ações', key: 'actions', sortable: false }
@@ -250,6 +279,24 @@ const cancelarFormulario = () => {
 }
 
 const resetarForm = () => {
+  Object.assign(formPessoa, {
+    id: null,
+    tipo_pessoa: 'F',
+    nome_razao: '',
+    apelido_fantasia: '',
+    cpf_cnpj: '',
+    rg_inscricao: '',
+    telefone: '',
+    celular: '',
+    whats: '',
+    website: '',
+    instagram: '',
+    facebook: '',
+    twitter_x: '',
+    tik_tok: '',
+    telegram: '',
+    enderecos: [],
+  })
   formPessoaRef.value?.resetarForm()
   Object.assign(formFuncionario, {
     id: null,
@@ -264,22 +311,46 @@ const resetarForm = () => {
 }
 
 const editarFuncionario = async (item) => {
-  editando.value = true
-  formularioAberto.value = true
+  try {
+    const data = await funcionariosStore.buscarFuncionarioPorId(item.id)
 
-  const resultado = await pessoasStore.buscarpessoaId(item.id_pessoa)
-  if (resultado) {
-    formPessoaRef.value?.preencherPessoa(resultado.pessoa, resultado.endereco)
-    const func = resultado.dadosFuncionario || {}
+    const p = data.pessoa || {}
+    Object.assign(formPessoa, {
+      id: p.id ?? data.id_pessoa ?? data.id ?? null,
+      tipo_pessoa: p.tipo_pessoa ?? 'F',
+      nome_razao: p.nome_razao ?? data.nome_razao ?? '',
+      cpf_cnpj: p.cpf_cnpj ?? data.cpf_cnpj ?? '',
+      apelido_fantasia: p.apelido_fantasia ?? '',
+      rg_inscricao: p.rg_inscricao ?? '',
+      telefone: p.telefone ?? data.telefone ?? '',
+      celular: p.celular ?? '',
+      whats: p.whats ?? '',
+      website: p.website ?? '',
+      instagram: p.instagram ?? '',
+      facebook: p.facebook ?? '',
+      twitter_x: p.twitter_x ?? '',
+      tik_tok: p.tik_tok ?? '',
+      telegram: p.telegram ?? '',
+      enderecos: p.enderecos ?? [],
+    })
+
     Object.assign(formFuncionario, {
-      id: func.id_colabo ?? item.id_colabo ?? item.id ?? null,
-      id_pessoa: item.id_pessoa ?? resultado.pessoa?.id ?? null,
-      id_empresa: func.id_empresa ?? item.id_empresa ?? null,
-      data_admissao: (func.data_admissao ?? item.data_admissao) ? (func.data_admissao ?? item.data_admissao).slice(0, 10) : '',
-      acessa_sistema_terminal: !!(func.acessa_sistema_terminal ?? item.acessa_sistema_terminal),
-      email_login: func.email_login ?? item.email_login ?? '',
+      id: data.id,
+      id_pessoa: data.id_pessoa || data.id,
+      id_empresa: data.id_empresa,
+      data_admissao: data.data_admissao ? data.data_admissao.slice(0, 10) : '',
+      acessa_sistema_terminal: !!data.acessa_sistema_terminal,
+      email_login: data.email_login || '',
       senha: ''
     })
+
+    editando.value = true
+    formularioAberto.value = true
+  } catch (e) {
+    console.error(e)
+    snackbar.message = e.response?.data?.erro || 'Erro ao carregar funcionário.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 
@@ -302,7 +373,7 @@ const salvarFuncionario = async () => {
 
     if (editando.value) {
       if (formPessoa.id) {
-        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa }, true, snackbar)
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa, ativo: 'S' }, true, snackbar)
       }
       await funcionariosStore.atualizarFuncionario(formFuncionario.id, payloadEntity)
       snackbar.message = 'Funcionário atualizado com sucesso!'
@@ -332,7 +403,10 @@ const salvarFuncionario = async () => {
       await funcionariosStore.criarFuncionario(payload)
       snackbar.message = 'Funcionário cadastrado com sucesso!'
     } else {
-      await funcionariosStore.criarFuncionario({ id_pessoa: formPessoa.id, ...payloadEntity })
+      if (formPessoa.id) {
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa, ativo: 'S' }, true, snackbar)
+      }
+      await funcionariosStore.criarFuncionario({ id_pessoa: formPessoa.id, nome_razao: formPessoa.nome_razao, ...payloadEntity })
       snackbar.message = 'Funcionário cadastrado com sucesso!'
     }
 
@@ -348,9 +422,14 @@ const salvarFuncionario = async () => {
   }
 }
 
+const statusToggling = ref(null)
+const inativarDialog = ref(false)
+const funcionarioParaInativar = ref(null)
+
 const inativarFuncionario = async (item) => {
+  const id = item?.id_colabo ?? item?.id ?? item
+  statusToggling.value = id
   try {
-    const id = item?.id_colabo ?? item?.id ?? item
     await funcionariosStore.inativarFuncionario(id)
     snackbar.message = 'Funcionário inativado com sucesso!'
     snackbar.color = 'success'
@@ -361,7 +440,49 @@ const inativarFuncionario = async (item) => {
     snackbar.message = e.response?.data?.erro || 'Erro ao inativar funcionário.'
     snackbar.color = 'error'
     snackbar.show = true
+  } finally {
+    statusToggling.value = null
   }
+}
+
+const reativarFuncionario = async (item) => {
+  const id = item?.id_colabo ?? item?.id ?? item
+  statusToggling.value = id
+  try {
+    await funcionariosStore.reativarFuncionario(id)
+    snackbar.message = 'Funcionário reativado com sucesso!'
+    snackbar.color = 'success'
+    snackbar.show = true
+    await funcionariosStore.buscarFuncionarios()
+  } catch (e) {
+    console.error(e)
+    snackbar.message = e.response?.data?.erro || e.response?.data?.message || 'Erro ao reativar funcionário.'
+    snackbar.color = 'error'
+    snackbar.show = true
+  } finally {
+    statusToggling.value = null
+  }
+}
+
+const onToggleAtivoFuncionario = (item) => {
+  if (item.ativo) {
+    funcionarioParaInativar.value = item
+    inativarDialog.value = true
+  } else {
+    reativarFuncionario(item)
+  }
+}
+
+const fecharDialogInativar = () => {
+  inativarDialog.value = false
+  funcionarioParaInativar.value = null
+}
+
+const confirmarInativacao = async () => {
+  const item = funcionarioParaInativar.value
+  if (!item) return
+  await inativarFuncionario(item)
+  fecharDialogInativar()
 }
 
 onMounted(async () => {
