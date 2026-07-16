@@ -425,7 +425,8 @@
                         color="var(--text-color-laranja)"
                         variant="flat"
                         class="text-white"
-                        @click="carregarConfigTerminal(terminalConfigurandoId)"
+                        :loading="loading"
+                        @click="salvarConfigOperacional"
                     >
                       Atualizar dados
                     </v-btn>
@@ -438,6 +439,7 @@
                   <v-tab value="produtos">Produtos Vinculados ao menu</v-tab>
                   <v-tab value="mesas">Mesas</v-tab>
                   <v-tab value="funcionarios">Funcionários</v-tab>
+                  <v-tab value="logs">Logs Cupom Fiscal</v-tab>
                 </v-tabs>
 
                 <v-tabs-window v-model="aba">
@@ -966,12 +968,81 @@
                       </div>
                     </v-card>
                   </v-tabs-window-item>
+
+                  <v-tabs-window-item value="logs">
+                    <!-- LOGS CUPOM FISCAL -->
+                    <v-card class="config-section" elevation="0">
+                      <div class="d-flex justify-space-between align-start flex-wrap ga-3 mb-3">
+                        <div>
+                          <h2>6. Logs Cupom Fiscal</h2>
+                          <p class="section-subtitle">
+                            Cupons fiscais rejeitados pela SEFAZ por dados/XML incorretos — a venda já foi
+                            concluída normalmente, mas o cupom fica pendente aqui até ser corrigido e reenviado.
+                          </p>
+                        </div>
+
+                        <v-btn
+                            variant="tonal"
+                            prepend-icon="mdi-refresh"
+                            :loading="logsCupomFiscalCarregando"
+                            @click="carregarLogsCupomFiscal(terminalConfigurandoId)"
+                        >
+                          Atualizar
+                        </v-btn>
+                      </div>
+
+                      <v-data-table
+                          :headers="logsCupomFiscalHeaders"
+                          :items="logsCupomFiscal"
+                          :loading="logsCupomFiscalCarregando"
+                          item-value="id"
+                          class="background-card rounded-lg"
+                      >
+                        <template v-slot:[`item.status`]="{ item }">
+                          <v-chip :color="item.status === 'aprovado' ? 'green' : 'red'" size="small">
+                            {{ item.status === 'aprovado' ? 'Aprovado' : 'Erro' }}
+                          </v-chip>
+                        </template>
+
+                        <template v-slot:[`item.mensagem_erro`]="{ item }">
+                          <span class="text-truncate d-inline-block" style="max-width: 320px;">
+                            {{ item.mensagem_erro }}
+                          </span>
+                        </template>
+
+                        <template v-slot:[`item.updated_at`]="{ item }">
+                          {{ formatarData(item.updated_at) }}
+                        </template>
+
+                        <template v-slot:[`item.actions`]="{ item }">
+                          <v-btn
+                              size="small"
+                              variant="text"
+                              color="var(--text-color-laranja)"
+                              @click="abrirDetalheLogCupomFiscal(item)"
+                          >
+                            Detalhes
+                          </v-btn>
+                        </template>
+                      </v-data-table>
+
+                      <div v-if="!logsCupomFiscal.length && !logsCupomFiscalCarregando" class="empty-box">
+                        Nenhum log de erro de cupom fiscal para este terminal.
+                      </div>
+                    </v-card>
+                  </v-tabs-window-item>
                 </v-tabs-window>
               </main>
             </section>
           </v-card-text>
         </v-card>
       </v-dialog>
+
+      <log-cupom-fiscal-detalhe-modal
+          v-model="dialogDetalheLogCupomFiscal"
+          :log="logSelecionado"
+          @atualizado="logCupomFiscalAtualizado"
+      />
 
       <v-snackbar v-model="snackbar.show" :color="snackbar.color">
         {{ snackbar.text }}
@@ -983,6 +1054,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import TopAllPages from "@/components/base/padrao-paginas/TopAllPages.vue";
+import LogCupomFiscalDetalheModal from "@/components/base/modais/LogCupomFiscalDetalheModal.vue";
 import api from '@/services/api'
 
 const formularioAberto = ref(false)
@@ -1015,6 +1087,19 @@ const grupos = ref([])
 const mesas = ref([])
 const funcionariosVinculados = ref([])
 const funcionariosDisponiveis = ref([])
+const logsCupomFiscal = ref([])
+const logsCupomFiscalCarregando = ref(false)
+const dialogDetalheLogCupomFiscal = ref(false)
+const logSelecionado = ref(null)
+
+const logsCupomFiscalHeaders = [
+  { title: 'Data', key: 'updated_at' },
+  { title: 'Status', key: 'status' },
+  { title: 'cStat', key: 'cstat' },
+  { title: 'Mensagem', key: 'mensagem_erro' },
+  { title: 'Tentativas', key: 'tentativas' },
+  { title: 'Ações', key: 'actions', sortable: false }
+]
 
 const formData = reactive({
   id: null,
@@ -1298,6 +1383,70 @@ const carregarConfigTerminal = async terminalId => {
     produto: v.produto ? { ...v.produto, emoji: '🛒', grupo: '' } : null,
     menu: menus.value.find(m => m.id === v.menu_id) || null
   }))
+
+  await carregarLogsCupomFiscal(terminalId)
+}
+
+const carregarLogsCupomFiscal = async terminalId => {
+  if (!terminalId) return
+
+  logsCupomFiscalCarregando.value = true
+  try {
+    const { data } = await api.get(`/api/v1/admin/terminais-venda/${terminalId}/logs-cupom-fiscal`, { headers: headers_auth() })
+    logsCupomFiscal.value = data?.data ?? []
+  } catch {
+    mostrarMensagem('Erro ao carregar logs de cupom fiscal.', 'error')
+  } finally {
+    logsCupomFiscalCarregando.value = false
+  }
+}
+
+const abrirDetalheLogCupomFiscal = item => {
+  logSelecionado.value = item
+  dialogDetalheLogCupomFiscal.value = true
+}
+
+const logCupomFiscalAtualizado = logAtualizado => {
+  if (!logAtualizado) return
+
+  const idx = logsCupomFiscal.value.findIndex(l => l.id === logAtualizado.id)
+  if (idx !== -1) logsCupomFiscal.value[idx] = logAtualizado
+
+  // Erros ficam no topo, aprovados vão para o final da fila — mesmo critério do backend.
+  logsCupomFiscal.value = [...logsCupomFiscal.value].sort(
+      (a, b) => (a.status === 'aprovado' ? 1 : 0) - (b.status === 'aprovado' ? 1 : 0)
+  )
+}
+
+const salvarConfigOperacional = async () => {
+  const terminal = terminalConfigurando.value
+  if (!terminal) return
+
+  loading.value = true
+  try {
+    const payload = {
+      nome: terminal.descricao,
+      codigo: terminal.codigo,
+      status: terminal.ativo ? 'ativo' : 'inativo',
+      permite_sincronizacao: terminal.permite_sincronizacao,
+      emite_cupom_fiscal: terminal.emite_cupom_fiscal,
+      emite_ticket: terminal.emite_ticket,
+      modo_ticket: terminal.modo_ticket
+    }
+
+    if (terminal.senha_terminal) {
+      payload.senha_operacional = terminal.senha_terminal
+    }
+
+    await api.put(`/api/v1/admin/terminais-venda/${terminal.id}`, payload, { headers: headers_auth() })
+    await carregarTotems()
+    mostrarMensagem('Dados operacionais atualizados com sucesso.', 'success')
+  } catch (error) {
+    const msg = error.response?.data?.erro || error.response?.data?.message || 'Erro ao atualizar dados operacionais.'
+    mostrarMensagem(msg, 'error')
+  } finally {
+    loading.value = false
+  }
 }
 
 const toggleFormulario = () => {
