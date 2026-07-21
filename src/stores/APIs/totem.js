@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/services/api'
+import apiPhp from '@/services/apiPhp'
 import { toast } from 'vue3-toastify'
 
 export const useTotemStore = defineStore('totem', {
@@ -33,7 +33,7 @@ export const useTotemStore = defineStore('totem', {
       this.loading = true
 
       try {
-        const { data } = await api.get('/api/v1/admin/terminais-venda')
+        const { data } = await apiPhp.get('/admin/terminais-venda')
 
         this.terminais = Array.isArray(data) ? data : data.data ?? []
         this.errorMessage = ''
@@ -67,14 +67,14 @@ export const useTotemStore = defineStore('totem', {
         respFuncVinculados,
         respFuncTodos
       ] = await Promise.all([
-        safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/ambientes`)),
-        safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/menus`)),
-        safe(api.get('/api/v1/admin/produtos-catalogo')),
-        safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/produtos-vinculados`)),
-        safe(api.get('/api/v1/estoque/grupos')),
-        safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/mesas`)),
-        safe(api.get(`/api/v1/admin/terminais-venda/${terminalId}/funcionarios`)),
-        safe(api.get('/api/v1/manutencao/funcionarios'))
+        safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/ambientes`)),
+        safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/menus`)),
+        safe(apiPhp.get('/admin/produtos-catalogo')),
+        safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/produtos-vinculados`)),
+        safe(apiPhp.get('/estoque/grupos')),
+        safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/mesas`)),
+        safe(apiPhp.get(`/admin/terminais-venda/${terminalId}/funcionarios`)),
+        safe(apiPhp.get('/manutencao/funcionarios'))
       ])
 
       this.ambientes = respAmbientes.data?.data ?? respAmbientes.data ?? []
@@ -126,10 +126,10 @@ export const useTotemStore = defineStore('totem', {
         let response
 
         if (formData.id) {
-          response = await api.put(`/api/v1/admin/terminais-venda/${formData.id}`, payload)
+          response = await apiPhp.put(`/admin/terminais-venda/${formData.id}`, payload)
           this.successMessage = 'Terminal atualizado com sucesso!'
         } else {
-          response = await api.post('/api/v1/admin/terminais-venda', payload)
+          response = await apiPhp.post('/admin/terminais-venda', payload)
           this.successMessage = 'Terminal cadastrado com sucesso!'
         }
 
@@ -158,7 +158,7 @@ export const useTotemStore = defineStore('totem', {
       this.loading = true
 
       try {
-        await api.delete(`/api/v1/admin/terminais-venda/${id}`)
+        await apiPhp.delete(`/admin/terminais-venda/${id}`)
 
         this.successMessage = 'Terminal excluído com sucesso!'
         this.errorMessage = ''
@@ -187,7 +187,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async salvarAmbiente(terminalId, payload) {
       try {
-        const response = await api.post(`/api/v1/admin/terminais-venda/${terminalId}/ambientes`, payload)
+        const response = await apiPhp.post(`/admin/terminais-venda/${terminalId}/ambientes`, payload)
 
         this.successMessage = 'Ambiente cadastrado com sucesso!'
         this.errorMessage = ''
@@ -209,7 +209,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async removerAmbiente(ambienteId) {
       try {
-        await api.delete(`/api/v1/admin/terminais-venda-ambientes/${ambienteId}`)
+        await apiPhp.delete(`/admin/terminais-venda-ambientes/${ambienteId}`)
 
         this.successMessage = 'Ambiente removido com sucesso!'
         this.errorMessage = ''
@@ -234,7 +234,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async salvarMenu(terminalId, payload) {
       try {
-        const response = await api.post(`/api/v1/admin/terminais-venda/${terminalId}/menus`, payload)
+        const response = await apiPhp.post(`/admin/terminais-venda/${terminalId}/menus`, payload)
 
         this.successMessage = 'Menu cadastrado com sucesso!'
         this.errorMessage = ''
@@ -256,7 +256,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async removerMenu(menuId) {
       try {
-        await api.delete(`/api/v1/admin/terminais-venda-menus/${menuId}`)
+        await apiPhp.delete(`/admin/terminais-venda-menus/${menuId}`)
 
         this.successMessage = 'Menu removido com sucesso!'
         this.errorMessage = ''
@@ -281,8 +281,8 @@ export const useTotemStore = defineStore('totem', {
      */
     async vincularProduto(menuId, payload) {
       try {
-        const response = await api.post(
-          `/api/v1/admin/terminais-venda-menus/${menuId}/produtos`,
+        const response = await apiPhp.post(
+          `/admin/terminais-venda-menus/${menuId}/produtos`,
           payload
         )
 
@@ -309,7 +309,7 @@ export const useTotemStore = defineStore('totem', {
       try {
         await Promise.all(
           produtos.map(p =>
-            api.post(`/api/v1/admin/terminais-venda-menus/${menuId}/produtos`, p)
+            apiPhp.post(`/admin/terminais-venda-menus/${menuId}/produtos`, p)
           )
         )
 
@@ -331,7 +331,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async removerProdutoVinculado(vinculoId) {
       try {
-        await api.delete(`/api/v1/admin/terminais-venda-menu-produtos/${vinculoId}`)
+        await apiPhp.delete(`/admin/terminais-venda-menu-produtos/${vinculoId}`)
 
         this.successMessage = 'Produto removido do menu com sucesso!'
         this.errorMessage = ''
@@ -356,7 +356,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async salvarMesa(terminalId, payload) {
       try {
-        const response = await api.post(`/api/v1/admin/terminais-venda/${terminalId}/mesas`, payload)
+        const response = await apiPhp.post(`/admin/terminais-venda/${terminalId}/mesas`, payload)
 
         this.successMessage = 'Mesa cadastrada com sucesso!'
         this.errorMessage = ''
@@ -378,7 +378,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async removerMesa(mesaId) {
       try {
-        await api.delete(`/api/v1/admin/terminais-venda-mesas/${mesaId}`)
+        await apiPhp.delete(`/admin/terminais-venda-mesas/${mesaId}`)
 
         this.successMessage = 'Mesa removida com sucesso!'
         this.errorMessage = ''
@@ -403,8 +403,8 @@ export const useTotemStore = defineStore('totem', {
      */
     async vincularFuncionario(terminalId, payload) {
       try {
-        const response = await api.post(
-          `/api/v1/admin/terminais-venda/${terminalId}/funcionarios`,
+        const response = await apiPhp.post(
+          `/admin/terminais-venda/${terminalId}/funcionarios`,
           payload
         )
 
@@ -428,7 +428,7 @@ export const useTotemStore = defineStore('totem', {
      */
     async removerFuncionario(vinculoId) {
       try {
-        await api.delete(`/api/v1/admin/terminais-venda-funcionarios/${vinculoId}`)
+        await apiPhp.delete(`/admin/terminais-venda-funcionarios/${vinculoId}`)
 
         this.successMessage = 'Funcionário desvinculado do terminal com sucesso!'
         this.errorMessage = ''

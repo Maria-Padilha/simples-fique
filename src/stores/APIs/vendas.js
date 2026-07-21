@@ -10,7 +10,8 @@ export const useVendasStore = defineStore('vendas', {
     successMessage: '',
     motivosPerda: [],
     terminais: [],
-    ambientes: []
+    ambientes: [],
+    catalogoProdutos: []
   }),
 
   actions: {
@@ -243,6 +244,28 @@ export const useVendasStore = defineStore('vendas', {
         console.error('Erro ao deletar terminal:', error)
         toast.error(this.errorMessage)
         return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * LISTAR CATÁLOGO DE PRODUTOS (para vincular couvert/taxa de serviço ao terminal)
+     *
+     * @return {Promise<void>}
+     */
+    async listarCatalogoProdutos() {
+      this.loading = true
+
+      try {
+        const response = await apiPhp.get('/admin/produtos-catalogo')
+
+        this.catalogoProdutos = response.data || []
+        this.errorMessage = ''
+      } catch (error) {
+        this.errorMessage = error.response?.data?.message || 'Erro ao buscar catálogo de produtos'
+        console.error('Erro ao listar catálogo de produtos:', error)
+        toast.error(this.errorMessage)
       } finally {
         this.loading = false
       }

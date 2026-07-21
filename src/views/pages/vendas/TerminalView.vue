@@ -1,7 +1,7 @@
 <template>
   <top-all-pages icon="mdi-monitor-dashboard">
     <template #titulo>Terminal de Vendas</template>
-    
+
     <template #section>
       <BotaoExpandTransition
         :formulario-aberto="formularioAberto"
@@ -18,15 +18,15 @@
               <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2"></v-icon>
               {{ editando ? 'Editar Terminal' : 'Novo Terminal' }}
             </v-card-title>
-            
+
             <v-card-text class="pa-4">
               <v-form ref="formRef" v-model="formValido">
                 <v-row>
-                  <!-- Linha 1 - Descrição do Terminal e Nome do Dispositivo -->
+                  <!-- Identificação -->
                   <v-col cols="12" md="4">
                     <v-text-field
-                      v-model="formData.descterminal"
-                      label="Descrição do Terminal *"
+                      v-model="formData.nome"
+                      label="Nome do Terminal *"
                       variant="outlined"
                       density="compact"
                       prepend-inner-icon="mdi-monitor-dashboard"
@@ -38,37 +38,25 @@
 
                   <v-col cols="12" md="4">
                     <v-text-field
-                      v-model="formData.nome_dispositivo"
-                      label="Nome do Dispositivo"
+                      v-model="formData.codigo"
+                      label="Código *"
                       variant="outlined"
                       density="compact"
-                      prepend-inner-icon="mdi-devices"
+                      prepend-inner-icon="mdi-identifier"
                       hide-details="auto"
+                      :rules="[rules.required]"
                       color="var(--text-color-laranja)"
                     />
                   </v-col>
 
-                  <!-- Linha 2 - IP do Dispositivo -->
                   <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="formData.ip_dispositivo"
-                      label="IP do Dispositivo"
+                    <v-select
+                      v-model="formData.status"
+                      :items="opcoesStatus"
+                      label="Status"
                       variant="outlined"
                       density="compact"
-                      prepend-inner-icon="mdi-ip-network"
-                      hide-details="auto"
-                      color="var(--text-color-laranja)"
-                      placeholder="192.168.1.1"
-                    />
-                  </v-col>
-
-                  <v-col cols="12" md="4">
-                    <v-text-field
-                      v-model="formData.imp_nfe_nfce"
-                      label="Impressora NF-e / NFC-e"
-                      variant="outlined"
-                      density="compact"
-                      prepend-inner-icon="mdi-printer"
+                      prepend-inner-icon="mdi-toggle-switch"
                       hide-details="auto"
                       color="var(--text-color-laranja)"
                     />
@@ -76,11 +64,57 @@
 
                   <v-col cols="12" md="4">
                     <v-text-field
-                      v-model="formData.imp_ipc_nfe_nfce"
-                      label="Impressora IPC NF-e / NFC-e"
+                      v-model="formData.senha_operacional"
+                      label="Senha Operacional"
+                      :hint="editando ? 'Deixe em branco para manter a senha atual' : 'Usada por totem/comandas/chamados para acessar o terminal'"
+                      persistent-hint
+                      type="password"
                       variant="outlined"
                       density="compact"
-                      prepend-inner-icon="mdi-printer-pos"
+                      prepend-inner-icon="mdi-lock"
+                      color="var(--text-color-laranja)"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="4">
+                    <v-select
+                      v-model="formData.modo_ticket"
+                      :items="opcoesModoTicket"
+                      label="Modo de Emissão de Ticket"
+                      variant="outlined"
+                      density="compact"
+                      prepend-inner-icon="mdi-ticket-confirmation"
+                      hide-details="auto"
+                      color="var(--text-color-laranja)"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model.number="formData.valor_couvert_padrao"
+                      label="Valor Couvert Padrão"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      variant="outlined"
+                      density="compact"
+                      prepend-inner-icon="mdi-cash"
+                      hide-details="auto"
+                      color="var(--text-color-laranja)"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model.number="formData.percentual_taxa_servico_padrao"
+                      label="Taxa de Serviço Padrão (%)"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      variant="outlined"
+                      density="compact"
+                      prepend-inner-icon="mdi-percent"
                       hide-details="auto"
                       color="var(--text-color-laranja)"
                     />
@@ -88,28 +122,59 @@
 
                   <v-col cols="12" md="4">
                     <v-select
-                      v-model="formData.totem_autoatendimento"
-                      :items="opcoesSimNao"
-                      label="Totem de Autoatendimento"
+                      v-model="formData.produto_id_couvert"
+                      :items="opcoesProdutos"
+                      label="Produto do Couvert"
                       variant="outlined"
                       density="compact"
-                      prepend-inner-icon="mdi-tablet"
+                      prepend-inner-icon="mdi-food"
                       hide-details="auto"
+                      clearable
                       color="var(--text-color-laranja)"
                     />
                   </v-col>
 
                   <v-col cols="12" md="4">
                     <v-select
-                      v-model="formData.imprime_pedido"
-                      :items="opcoesImprimePedido"
-                      label="Impressão de Pedido"
+                      v-model="formData.produto_id_taxa_servico"
+                      :items="opcoesProdutos"
+                      label="Produto da Taxa de Serviço"
                       variant="outlined"
                       density="compact"
-                      prepend-inner-icon="mdi-printer-check"
+                      prepend-inner-icon="mdi-room-service"
                       hide-details="auto"
+                      clearable
                       color="var(--text-color-laranja)"
                     />
+                  </v-col>
+
+                  <v-col cols="12">
+                    <v-row dense>
+                      <v-col cols="12" md="4">
+                        <v-switch
+                          v-model="formData.permite_sincronizacao"
+                          label="Permite sincronização"
+                          color="var(--text-color-laranja)"
+                          hide-details
+                        />
+                      </v-col>
+                      <v-col cols="12" md="4">
+                        <v-switch
+                          v-model="formData.emite_cupom_fiscal"
+                          label="Emite cupom fiscal"
+                          color="var(--text-color-laranja)"
+                          hide-details
+                        />
+                      </v-col>
+                      <v-col cols="12" md="4">
+                        <v-switch
+                          v-model="formData.emite_ticket"
+                          label="Emite ticket"
+                          color="var(--text-color-laranja)"
+                          hide-details
+                        />
+                      </v-col>
+                    </v-row>
                   </v-col>
                 </v-row>
               </v-form>
@@ -159,10 +224,32 @@
             item-key="id"
             no-data-icon="mdi-monitor-dashboard"
             no-data-text="Nenhum terminal cadastrado"
-            delete-item-display-field="descterminal"
+            delete-item-display-field="nome"
             @edit-item="editarTerminal"
             @confirm-delete="excluirTerminal"
-          />
+          >
+            <template v-slot:[`item.status`]="{ item }">
+              <v-chip :color="item.status === 'ativo' ? 'success' : 'error'" size="small">
+                {{ item.status === 'ativo' ? 'Ativo' : 'Inativo' }}
+              </v-chip>
+            </template>
+
+            <template v-slot:[`item.emite_cupom_fiscal`]="{ item }">
+              <v-icon :color="item.emite_cupom_fiscal ? 'success' : 'grey'">
+                {{ item.emite_cupom_fiscal ? 'mdi-check-circle' : 'mdi-close-circle' }}
+              </v-icon>
+            </template>
+
+            <template v-slot:[`item.emite_ticket`]="{ item }">
+              <v-icon :color="item.emite_ticket ? 'success' : 'grey'">
+                {{ item.emite_ticket ? 'mdi-check-circle' : 'mdi-close-circle' }}
+              </v-icon>
+            </template>
+
+            <template v-slot:[`item.ambientes_count`]="{ item }">
+              {{ item.ambientes_count ?? 0 }}
+            </template>
+          </TabelaPadrao>
         </v-card-text>
       </v-card>
 
@@ -174,8 +261,8 @@
             Confirmar Exclusão
           </v-card-title>
           <v-card-text class="pa-4">
-            Tem certeza que deseja excluir o terminal <strong>{{ formData.descterminal }}</strong>?
-            <br>Esta ação não poderá ser desfeita.
+            Tem certeza que deseja excluir o terminal <strong>{{ formData.nome }}</strong>?
+            <br>Se o terminal já possuir pedidos, ele será apenas inativado em vez de excluído.
           </v-card-text>
           <v-card-actions class="pa-4">
             <v-spacer></v-spacer>
@@ -221,39 +308,50 @@ const itemsFiltrados = computed(() => {
   return Array.isArray(dados) ? dados : []
 })
 
+const opcoesProdutos = computed(() => {
+  const produtos = vendasStore.catalogoProdutos || []
+  return produtos.map((produto) => ({ title: produto.descproduto, value: produto.id }))
+})
+
 // Opções dos selects
-const opcoesSimNao = [
-  { title: 'Sim', value: 'S' },
-  { title: 'Não', value: 'N' }
+const opcoesStatus = [
+  { title: 'Ativo', value: 'ativo' },
+  { title: 'Inativo', value: 'inativo' }
 ]
 
-const opcoesImprimePedido = [
-  { title: '1 - Imprime Totem', value: '1' },
-  { title: '2 - Imprime Ambiente', value: '2' },
-  { title: '3 - Imprime Ambos', value: '3' },
-  { title: '4 - Não Imprime', value: '4' }
+const opcoesModoTicket = [
+  { title: 'Agrupado', value: 'agrupado' },
+  { title: 'Por Unidade', value: 'por_unidade' },
+  { title: 'Não Emitir', value: 'nao_emitir' }
 ]
 
 // Form Data
 const formData = reactive({
   id: null,
-  descterminal: '',
-  nome_dispositivo: '',
-  ip_dispositivo: '',
-  imp_nfe_nfce: '',
-  imp_ipc_nfe_nfce: '',
-  totem_autoatendimento: 'N',
-  imprime_pedido: '4'
+  nome: '',
+  codigo: '',
+  status: 'ativo',
+  senha_operacional: '',
+  permite_sincronizacao: true,
+  emite_cupom_fiscal: true,
+  emite_ticket: true,
+  modo_ticket: 'agrupado',
+  valor_couvert_padrao: 0,
+  percentual_taxa_servico_padrao: 10,
+  produto_id_couvert: null,
+  produto_id_taxa_servico: null
 })
 
 // Headers da tabela
 const headers = [
   { title: 'ID', key: 'id', sortable: true },
-  { title: 'Descrição', key: 'descterminal', sortable: true },
-  { title: 'Dispositivo', key: 'nome_dispositivo', sortable: true },
-  { title: 'IP', key: 'ip_dispositivo', sortable: true },
-  { title: 'Impressora NF-e/NFC-e', key: 'imp_nfe_nfce', sortable: false },
-  { title: 'Impressora IPC', key: 'imp_ipc_nfe_nfce', sortable: false },
+  { title: 'Nome', key: 'nome', sortable: true },
+  { title: 'Código', key: 'codigo', sortable: true },
+  { title: 'Status', key: 'status', sortable: true },
+  { title: 'Ambientes', key: 'ambientes_count', sortable: false },
+  { title: 'Cupom Fiscal', key: 'emite_cupom_fiscal', sortable: false },
+  { title: 'Ticket', key: 'emite_ticket', sortable: false },
+  { title: 'Modo Ticket', key: 'modo_ticket', sortable: false },
   { title: 'Ações', key: 'actions', sortable: false }
 ]
 
@@ -271,18 +369,27 @@ const toggleFormulario = () => {
   }
 }
 
+const resetFormData = () => {
+  formData.id = null
+  formData.nome = ''
+  formData.codigo = ''
+  formData.status = 'ativo'
+  formData.senha_operacional = ''
+  formData.permite_sincronizacao = true
+  formData.emite_cupom_fiscal = true
+  formData.emite_ticket = true
+  formData.modo_ticket = 'agrupado'
+  formData.valor_couvert_padrao = 0
+  formData.percentual_taxa_servico_padrao = 10
+  formData.produto_id_couvert = null
+  formData.produto_id_taxa_servico = null
+}
+
 const cancelarFormulario = () => {
   formRef.value?.reset()
   formRef.value?.resetValidation()
   editando.value = false
-  formData.id = null
-  formData.descterminal = ''
-  formData.nome_dispositivo = ''
-  formData.ip_dispositivo = ''
-  formData.imp_nfe_nfce = ''
-  formData.imp_ipc_nfe_nfce = ''
-  formData.totem_autoatendimento = 'N'
-  formData.imprime_pedido = '4'
+  resetFormData()
   formularioAberto.value = false
 }
 
@@ -292,13 +399,21 @@ const salvarTerminal = async () => {
 
   try {
     const payload = {
-      descterminal: formData.descterminal,
-      nome_dispositivo: formData.nome_dispositivo || null,
-      ip_dispositivo: formData.ip_dispositivo || null,
-      imp_nfe_nfce: formData.imp_nfe_nfce || null,
-      imp_ipc_nfe_nfce: formData.imp_ipc_nfe_nfce || null,
-      totem_autoatendimento: formData.totem_autoatendimento,
-      imprime_pedido: formData.imprime_pedido
+      nome: formData.nome,
+      codigo: formData.codigo,
+      status: formData.status,
+      permite_sincronizacao: formData.permite_sincronizacao,
+      emite_cupom_fiscal: formData.emite_cupom_fiscal,
+      emite_ticket: formData.emite_ticket,
+      modo_ticket: formData.modo_ticket,
+      valor_couvert_padrao: formData.valor_couvert_padrao || 0,
+      percentual_taxa_servico_padrao: formData.percentual_taxa_servico_padrao || 0,
+      produto_id_couvert: formData.produto_id_couvert || null,
+      produto_id_taxa_servico: formData.produto_id_taxa_servico || null
+    }
+
+    if (formData.senha_operacional) {
+      payload.senha_operacional = formData.senha_operacional
     }
 
     if (editando.value) {
@@ -316,17 +431,22 @@ const salvarTerminal = async () => {
 
 const editarTerminal = (item) => {
   formData.id = item.id
-  formData.descterminal = item.descterminal
-  formData.nome_dispositivo = item.nome_dispositivo || ''
-  formData.ip_dispositivo = item.ip_dispositivo || ''
-  formData.imp_nfe_nfce = item.imp_nfe_nfce || ''
-  formData.imp_ipc_nfe_nfce = item.imp_ipc_nfe_nfce || ''
-  formData.totem_autoatendimento = item.totem_autoatendimento || 'N'
-  formData.imprime_pedido = item.imprime_pedido || '4'
-  
+  formData.nome = item.nome
+  formData.codigo = item.codigo
+  formData.status = item.status || 'ativo'
+  formData.senha_operacional = ''
+  formData.permite_sincronizacao = !!item.permite_sincronizacao
+  formData.emite_cupom_fiscal = !!item.emite_cupom_fiscal
+  formData.emite_ticket = !!item.emite_ticket
+  formData.modo_ticket = item.modo_ticket || 'agrupado'
+  formData.valor_couvert_padrao = Number(item.valor_couvert_padrao) || 0
+  formData.percentual_taxa_servico_padrao = Number(item.percentual_taxa_servico_padrao) || 0
+  formData.produto_id_couvert = item.produto_id_couvert || null
+  formData.produto_id_taxa_servico = item.produto_id_taxa_servico || null
+
   editando.value = true
   formularioAberto.value = true
-  
+
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -357,5 +477,6 @@ const excluirConfirmado = async () => {
 // Lifecycle
 onMounted(async () => {
   await vendasStore.listarTerminais()
+  await vendasStore.listarCatalogoProdutos()
 })
 </script>
