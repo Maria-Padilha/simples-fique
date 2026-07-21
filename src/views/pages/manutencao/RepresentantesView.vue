@@ -13,6 +13,15 @@
 
           <v-expand-transition>
             <div v-if="formularioAberto">
+              <v-btn
+                  variant="text"
+                  color="grey"
+                  prepend-icon="mdi-arrow-left"
+                  class="mb-2"
+                  @click="cancelarFormulario"
+              >
+                Voltar
+              </v-btn>
               <v-card class="background-card mb-7" elevation="0">
                 <v-card-title class="text-h6 pa-4">
                   <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2" size="23px"/>
@@ -23,6 +32,7 @@
                     <FormPessoa
                         ref="formPessoaRef"
                         v-model="formPessoa"
+                        :readonly-fields="camposBloqueados"
                         @pessoa-encontrada="handlePessoaEncontrada"
                         @pessoa-nao-encontrada="handlePessoaNaoEncontrada"
                     />
@@ -99,22 +109,35 @@
               item-key="id"
               no-data-icon="mdi-account-tie"
               no-data-text="Nenhum representante cadastrado"
-              delete-title="Inativar"
-              delete-tooltip="Inativar"
-              delete-dialog-title="Inativar representante"
-              delete-dialog-message="O representante será inativado."
-              delete-item-display-field="pessoa_nome"
+              :show-delete-action="false"
               @edit-item="editarRepresentante"
-              @confirm-delete="inativarRepresentante"
           >
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip :color="item.ativo ? 'success' : 'error'" size="small">
-                {{ item.ativo ? 'Ativo' : 'Inativo' }}
-              </v-chip>
+              <StatusPillToggle
+                  :active="item.ativo"
+                  :loading="statusToggling === item.id"
+                  @toggle="onToggleAtivoRepresentante(item)"
+              />
             </template>
           </TabelaPadrao>
         </v-card-text>
       </v-card>
+
+      <v-dialog v-model="inativarDialog" max-width="420px">
+        <v-card class="background-secondary">
+          <v-card-title class="text-h6">Inativar representante</v-card-title>
+          <v-card-text>
+            Tem certeza que deseja inativar "{{ representanteParaInativar?.pessoa_nome }}"?
+            <br><br>
+            O representante será inativado.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer/>
+            <v-btn color="grey" variant="text" @click="fecharDialogInativar">Cancelar</v-btn>
+            <v-btn color="error" :loading="statusToggling === representanteParaInativar?.id" @click="confirmarInativacao">Inativar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
     </template>
@@ -127,6 +150,7 @@ import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import FormPessoa from '@/components/base/padrao-paginas/FormPessoa.vue'
+import StatusPillToggle from '@/components/base/padrao-paginas/StatusPillToggle.vue'
 import { useRepresentantesStore } from '@/stores/APIs/representantes'
 import { usePessoasStore } from '@/stores/APIs/pessoas'
 
@@ -172,6 +196,9 @@ const formRepresentante = reactive({
 
 const snackbar = reactive({ show: false, message: '', color: 'success' })
 
+// CPF/CNPJ nunca é editável depois de cadastrado (mudaria a identidade da pessoa)
+const camposBloqueados = computed(() => editando.value ? ['cpf_cnpj'] : [])
+
 const headers = [
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Representante', key: 'pessoa_nome', sortable: true },
@@ -198,6 +225,24 @@ const cancelarFormulario = () => {
 }
 
 const resetarForm = () => {
+  Object.assign(formPessoa, {
+    id: null,
+    tipo_pessoa: 'F',
+    nome_razao: '',
+    apelido_fantasia: '',
+    cpf_cnpj: '',
+    rg_inscricao: '',
+    telefone: '',
+    celular: '',
+    whats: '',
+    website: '',
+    instagram: '',
+    facebook: '',
+    twitter_x: '',
+    tik_tok: '',
+    telegram: '',
+    enderecos: [],
+  })
   formPessoaRef.value?.resetarForm({ tipo_pessoa: 'F' })
   Object.assign(formRepresentante, {
     id: null,
@@ -236,17 +281,42 @@ const editarRepresentante = async (item) => {
   editando.value = true
   formularioAberto.value = true
 
-  const resultado = await pessoasStore.buscarpessoaId(item.id_pessoa)
-  if (resultado) {
-    formPessoaRef.value?.preencherPessoa(resultado.pessoa, resultado.endereco)
-    const rep = resultado.dadosRepresentante || {}
-    Object.assign(formRepresentante, {
-      id: rep.id_representante ?? item.id ?? null,
-      id_pessoa: item.id_pessoa ?? resultado.pessoa?.id ?? null,
-      contato: rep.contato ?? item.contato ?? '',
-      fonerepresentante: rep.fonerepresentante ?? item.fonerepresentante ?? '',
-      observacao: rep.observacao ?? item.observacao ?? ''
-    })
+  try {
+    const data = await representantesStore.buscarRepresentantePorId(item.id)
+    if (data) {
+      const p = data.pessoa || {}
+      Object.assign(formPessoa, {
+        id: p.id ?? data.id_pessoa ?? data.id ?? null,
+        tipo_pessoa: p.tipo_pessoa ?? 'F',
+        nome_razao: p.nome_razao ?? data.nome ?? '',
+        cpf_cnpj: p.cpf_cnpj ?? data.cpf ?? '',
+        apelido_fantasia: p.apelido_fantasia ?? '',
+        rg_inscricao: p.rg_inscricao ?? '',
+        telefone: p.telefone ?? data.telefone ?? '',
+        celular: p.celular ?? '',
+        whats: p.whats ?? '',
+        website: p.website ?? '',
+        instagram: p.instagram ?? '',
+        facebook: p.facebook ?? '',
+        twitter_x: p.twitter_x ?? '',
+        tik_tok: p.tik_tok ?? '',
+        telegram: p.telegram ?? '',
+        enderecos: p.enderecos ?? [],
+      })
+      Object.assign(formRepresentante, {
+        id: data.id_representante ?? data.id ?? null,
+        id_pessoa: p.id ?? data.id_pessoa ?? data.id ?? null,
+        contato: data.contato ?? '',
+        fonerepresentante: data.fonerepresentante ?? '',
+        observacao: data.observacao ?? ''
+      })
+    }
+  } catch (e) {
+    console.error(e)
+    editando.value = false
+    snackbar.message = e.response?.data?.erro || 'Erro ao carregar representante.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 
@@ -264,7 +334,7 @@ const salvarRepresentante = async () => {
 
     if (editando.value) {
       if (formPessoa.id) {
-        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa }, true, snackbar)
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa, ativo: 'S' }, true, snackbar)
       }
       await representantesStore.atualizarRepresentante(formRepresentante.id, payloadEntity)
       snackbar.message = 'Representante atualizado com sucesso!'
@@ -294,7 +364,10 @@ const salvarRepresentante = async () => {
       await representantesStore.criarRepresentante(payload)
       snackbar.message = 'Representante cadastrado com sucesso!'
     } else {
-      await representantesStore.criarRepresentante({ id_pessoa: formPessoa.id, ...payloadEntity })
+      if (formPessoa.id) {
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa, ativo: 'S' }, true, snackbar)
+      }
+      await representantesStore.criarRepresentante({ id_pessoa: formPessoa.id, nome: formPessoa.nome_razao, ...payloadEntity })
       snackbar.message = 'Representante cadastrado com sucesso!'
     }
 
@@ -310,9 +383,14 @@ const salvarRepresentante = async () => {
   }
 }
 
+const statusToggling = ref(null)
+const inativarDialog = ref(false)
+const representanteParaInativar = ref(null)
+
 const inativarRepresentante = async (item) => {
+  const id = item?.id ?? item
+  statusToggling.value = id
   try {
-    const id = item?.id ?? item
     await representantesStore.inativarRepresentante(id)
     snackbar.message = 'Representante inativado com sucesso!'
     snackbar.color = 'success'
@@ -323,7 +401,49 @@ const inativarRepresentante = async (item) => {
     snackbar.message = e.response?.data?.erro || 'Erro ao inativar representante.'
     snackbar.color = 'error'
     snackbar.show = true
+  } finally {
+    statusToggling.value = null
   }
+}
+
+const reativarRepresentante = async (item) => {
+  const id = item?.id ?? item
+  statusToggling.value = id
+  try {
+    await representantesStore.reativarRepresentante(id)
+    snackbar.message = 'Representante reativado com sucesso!'
+    snackbar.color = 'success'
+    snackbar.show = true
+    await representantesStore.buscarRepresentantes()
+  } catch (e) {
+    console.error(e)
+    snackbar.message = e.response?.data?.erro || e.response?.data?.message || 'Erro ao reativar representante.'
+    snackbar.color = 'error'
+    snackbar.show = true
+  } finally {
+    statusToggling.value = null
+  }
+}
+
+const onToggleAtivoRepresentante = (item) => {
+  if (item.ativo) {
+    representanteParaInativar.value = item
+    inativarDialog.value = true
+  } else {
+    reativarRepresentante(item)
+  }
+}
+
+const fecharDialogInativar = () => {
+  inativarDialog.value = false
+  representanteParaInativar.value = null
+}
+
+const confirmarInativacao = async () => {
+  const item = representanteParaInativar.value
+  if (!item) return
+  await inativarRepresentante(item)
+  fecharDialogInativar()
 }
 
 onMounted(async () => {

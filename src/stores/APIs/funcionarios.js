@@ -6,14 +6,27 @@ export const useFuncionariosStore = defineStore('funcionarios', () => {
   const loading = ref(false)
   const funcionarios = ref([])
 
-  const buscarFuncionarios = async () => {
+  const buscarFuncionarios = async (params = {}) => {
     loading.value = true
     try {
-      const resp = await apiPhp.get('/manutencao/funcionarios')
+      const resp = await apiPhp.get('/manutencao/funcionarios', { params })
       funcionarios.value = Array.isArray(resp.data) ? resp.data : resp.data?.data || []
     } catch (e) {
       console.error(e)
       funcionarios.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const buscarFuncionarioPorId = async (id) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.get(`/manutencao/funcionarios/${id}`)
+      return resp.data?.data ?? resp.data
+    } catch (e) {
+      console.error(e)
+      throw e
     } finally {
       loading.value = false
     }
@@ -48,12 +61,24 @@ export const useFuncionariosStore = defineStore('funcionarios', () => {
     }
   }
 
+  const reativarFuncionario = async (id) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.post(`/manutencao/funcionarios/${id}/reativar`)
+      return resp.data
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading,
     funcionarios,
     buscarFuncionarios,
+    buscarFuncionarioPorId,
     criarFuncionario,
     atualizarFuncionario,
-    inativarFuncionario
+    inativarFuncionario,
+    reativarFuncionario
   }
 })

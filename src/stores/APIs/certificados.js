@@ -1,7 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import apiPhp from '@/services/apiPhp'
-import { toast } from 'vue3-toastify'
 
 export const useCertificadosStore = defineStore('certificados', () => {
   const loading = ref(false)
@@ -25,19 +24,54 @@ export const useCertificadosStore = defineStore('certificados', () => {
   const cadastrarCertificado = async (formData) => {
     loading.value = true
     try {
-      await apiPhp.post('/manutencao/certificados', formData, {
+      const resp = await apiPhp.post('/manutencao/certificados', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      toast.success('Certificado cadastrado com sucesso!')
       await buscarCertificados()
-      return true
-    } catch (e) {
-      const msg = e?.validationMessage
-        || e?.response?.data?.erro
-        || e?.response?.data?.message
-        || 'Erro ao cadastrar certificado'
-      toast.error(msg)
-      return false
+      return resp.data
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const ativarCertificado = async (idCertificado) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.post(`/manutencao/certificados/${idCertificado}/ativar`)
+      await buscarCertificados()
+      return resp.data
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const inativarCertificado = async (idCertificado) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.post(`/manutencao/certificados/${idCertificado}/inativar`)
+      await buscarCertificados()
+      return resp.data
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const excluirCertificado = async (idCertificado) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.delete(`/manutencao/certificados/${idCertificado}`)
+      await buscarCertificados()
+      return resp.data
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const buscarCertificadoPorId = async (idCertificado) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.get(`/manutencao/certificados/${idCertificado}`)
+      return resp.data?.data ?? resp.data
     } finally {
       loading.value = false
     }
@@ -47,6 +81,10 @@ export const useCertificadosStore = defineStore('certificados', () => {
     loading,
     certificados,
     buscarCertificados,
-    cadastrarCertificado
+    buscarCertificadoPorId,
+    cadastrarCertificado,
+    ativarCertificado,
+    inativarCertificado,
+    excluirCertificado
   }
 })

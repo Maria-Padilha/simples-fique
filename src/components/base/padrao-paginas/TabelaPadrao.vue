@@ -74,13 +74,23 @@
               ></v-btn>
 
               <v-btn
-                v-if="showDeleteAction"
+                v-if="showDeleteAction && item.ativo !== false && item.ativo !== 'N'"
                 :icon="deleteIcon"
                 size="small"
                 :color="deleteColor"
                 variant="text"
                 :title="deleteTooltip"
                 @click="handleDeleteItem(item)"
+              ></v-btn>
+
+              <v-btn
+                v-if="showDeleteAction && (item.ativo === false || item.ativo === 'N')"
+                :icon="reactivateIcon"
+                size="small"
+                :color="reactivateColor"
+                variant="text"
+                :title="reactivateTitle"
+                @click="$emit('reactivate-item', item)"
               ></v-btn>
             </div>
           </template>
@@ -264,6 +274,20 @@ const props = defineProps({
     default: 'Excluir'
   },
 
+  // Configuração de reativar
+  reactivateIcon: {
+    type: String,
+    default: 'mdi-restore'
+  },
+  reactivateColor: {
+    type: String,
+    default: 'success'
+  },
+  reactivateTitle: {
+    type: String,
+    default: 'Reativar'
+  },
+
   // Configuração do no-data
   noDataIcon: {
     type: String,
@@ -333,6 +357,7 @@ const emit = defineEmits([
   'delete-item',
   'custom-action',
   'confirm-delete',
+  'reactivate-item',
   'update:search',
   'update:expanded',
   'update:selected',

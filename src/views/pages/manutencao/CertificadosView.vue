@@ -224,6 +224,7 @@
               item-key="id_certificado"
               no-data-icon="mdi-certificate-outline"
               no-data-text="Nenhum certificado cadastrado"
+              @click-row="abrirDetalhe"
           >
             <template v-slot:[`item.id_certificado`]="{ item }">
               <span class="text-caption">{{ item.id_certificado?.slice(0, 16) }}…</span>
@@ -237,14 +238,26 @@
               {{ formatarData(item.dtvalidade_fin) }}
             </template>
 
-            <template v-slot:[`item.situacao_calculada`]="{ item }">
-              <v-chip
-                  :color="certificadoAtivo(item) ? 'green' : 'red'"
-                  variant="outlined"
+            <template v-slot:[`item.situacao`]="{ item }">
+              <StatusPillToggle
+                  :active="item.situacao === 'A'"
+                  :loading="statusToggling === item.id_certificado"
+                  @toggle="onToggleAtivoCertificado(item)"
+              />
+            </template>
+
+            <template v-slot:[`item.actions`]="{ item }">
+              <v-btn
+                  v-if="item.situacao !== 'A'"
+                  icon
                   size="small"
+                  variant="text"
+                  color="error"
+                  @click="confirmarExclusao(item)"
               >
-                {{ certificadoAtivo(item) ? 'Ativo' : 'Vencido' }}
-              </v-chip>
+                <v-icon icon="mdi-delete-outline"/>
+                <v-tooltip activator="parent" location="top">Excluir</v-tooltip>
+              </v-btn>
             </template>
           </TabelaPadrao>
         </v-card-text>
@@ -284,6 +297,148 @@
           :nome-programa="'Certificados Digitais'"
           :tipo-acesso="tipoAcessoNegado"
       />
+
+      <!-- Modal de Confirmação de Exclusão -->
+      <v-dialog v-model="modalExcluir" max-width="420">
+        <v-card class="background-secondary" elevation="0">
+          <v-card-title class="d-flex flex-column align-center pt-6 pb-2 px-6">
+            <v-icon icon="mdi-close-circle-outline" color="error" size="56" class="mb-3"/>
+            <p class="text-subtitle-1 font-weight-medium text-center texto-color-primary">
+              Excluir este certificado?
+            </p>
+          </v-card-title>
+          <v-card-text class="text-center px-6 pb-2">
+            <p class="text-body-2 text-medium-emphasis" style="font-weight:500;color:var(--text-color)">
+              {{ certificadoSelecionado?.descricao }}
+            </p>
+            <p class="text-body-2 text-medium-emphasis mt-2">
+              Tem certeza que deseja excluir? Esta ação não pode ser desfeita.
+            </p>
+          </v-card-text>
+          <v-card-actions class="justify-end pa-4 pt-2">
+            <v-btn color="grey" variant="text" size="small" @click="modalExcluir = false">Cancelar</v-btn>
+            <v-btn
+                color="error"
+                variant="flat"
+                size="small"
+                class="text-white"
+                :loading="certificadosStore.loading"
+                @click="excluir"
+            >
+              Excluir
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Modal de Confirmação de Inativação -->
+      <v-dialog v-model="modalInativar" max-width="420">
+        <v-card class="background-secondary" elevation="0">
+          <v-card-title class="d-flex flex-column align-center pt-6 pb-2 px-6">
+            <v-icon icon="mdi-close-circle-outline" color="warning" size="56" class="mb-3"/>
+            <p class="text-subtitle-1 font-weight-medium text-center texto-color-primary">
+              Inativar este certificado?
+            </p>
+          </v-card-title>
+          <v-card-text class="text-center px-6 pb-2">
+            <p class="text-body-2 text-medium-emphasis" style="font-weight:500;color:var(--text-color)">
+              {{ certificadoParaInativar?.descricao }}
+            </p>
+          </v-card-text>
+          <v-card-actions class="justify-end pa-4 pt-2">
+            <v-btn color="grey" variant="text" size="small" @click="fecharModalInativar">Cancelar</v-btn>
+            <v-btn
+                color="warning"
+                variant="flat"
+                size="small"
+                class="text-white"
+                :loading="statusToggling === certificadoParaInativar?.id_certificado"
+                @click="confirmarInativacao"
+            >
+              Inativar
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Modal de Detalhe do Certificado -->
+      <v-dialog v-model="modalDetalhe" max-width="600">
+        <v-card class="background-secondary" elevation="0">
+          <v-card-title class="pa-0">
+            <div class="background-laranja d-flex align-center justify-between py-3 pl-4 pr-2">
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-certificate" class="mr-2" size="22"/>
+                <p class="text-lg">Detalhe do Certificado</p>
+              </div>
+              <v-btn icon="mdi-close" variant="text" size="small" @click="modalDetalhe = false"/>
+            </div>
+          </v-card-title>
+
+          <v-card-text class="pa-4">
+            <v-progress-linear v-if="carregandoDetalhe" indeterminate color="primary" class="mb-4"/>
+            <template v-if="detalheCertificado">
+              <v-row dense>
+                <v-col cols="12">
+                  <div class="text-caption text-grey mb-1">Descrição</div>
+                  <div class="text-body-1 texto-color-primary">{{ detalheCertificado.descricao || '-' }}</div>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Código (SHA1)</div>
+                  <div class="text-body-2 texto-color-primary" style="word-break:break-all">
+                    {{ detalheCertificado.id_certificado }}
+                  </div>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Modelo</div>
+                  <div class="text-body-1 texto-color-primary">{{ detalheCertificado.id_modelo || '-' }}</div>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Situação</div>
+                  <v-chip
+                      :color="detalheCertificado.situacao === 'A' ? 'success' : 'error'"
+                      size="small"
+                  >
+                    {{ detalheCertificado.situacao === 'A' ? 'Ativo' : 'Inativo' }}
+                  </v-chip>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Arquivo</div>
+                  <div class="text-body-2 texto-color-primary">{{ detalheCertificado.arquivo_pfx || '-' }}</div>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Válido a partir de</div>
+                  <div class="text-body-1 texto-color-primary">{{ formatarData(detalheCertificado.dtvalidade_ini) }}</div>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Válido até</div>
+                  <div class="text-body-1 texto-color-primary">{{ formatarData(detalheCertificado.dtvalidade_fin) }}</div>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Alerta vencimento (dias)</div>
+                  <div class="text-body-1 texto-color-primary">{{ detalheCertificado.dias_alerta_venc ?? '-' }}</div>
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <div class="text-caption text-grey mb-1">Empresa</div>
+                  <div class="text-body-1 texto-color-primary">{{ detalheCertificado.id_empresa || '-' }}</div>
+                </v-col>
+              </v-row>
+            </template>
+          </v-card-text>
+          <v-card-actions class="pa-4 pt-0">
+            <v-spacer/>
+            <v-btn
+                color="var(--text-color-laranja)"
+                variant="tonal"
+                class="text-none"
+                density="comfortable"
+                prepend-icon="mdi-close"
+                @click="modalDetalhe = false"
+            >
+              Fechar
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </template>
   </top-all-pages>
 </template>
@@ -295,6 +450,7 @@ import { useCertificadosStore } from '@/stores/APIs/certificados'
 import { usePermissoes } from '@/utils/usePermissoes'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
+import StatusPillToggle from '@/components/base/padrao-paginas/StatusPillToggle.vue'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 import ExportacaoModal from '@/components/base/modais/ExportacaoModal.vue'
 import PdfPreviewModal from '@/components/base/modais/PdfPreviewModal.vue'
@@ -328,6 +484,15 @@ const snackbar = reactive({
 const modalExportacaoAberto = ref(false)
 const modalPreviewPDF = ref(false)
 const previewHTMLContent = ref('')
+
+// Modal de exclusão
+const modalExcluir = ref(false)
+const certificadoSelecionado = ref(null)
+
+// Modal de detalhe
+const modalDetalhe = ref(false)
+const detalheCertificado = ref(null)
+const carregandoDetalhe = ref(false)
 
 // Campos do formulário de importação
 const descricao = ref('')
@@ -363,7 +528,8 @@ const headers = [
   { title: 'Válido de', key: 'dtvalidade_ini', sortable: true },
   { title: 'Válido até', key: 'dtvalidade_fin', sortable: true },
   { title: 'Alerta (dias)', key: 'dias_alerta_venc', sortable: true },
-  { title: 'Situação', key: 'situacao_calculada', sortable: false }
+  { title: 'Situação', key: 'situacao', sortable: false },
+  { title: 'Ações', key: 'actions', sortable: false }
 ]
 
 watch(arquivoPfx, (arquivo) => {
@@ -486,17 +652,17 @@ const salvarCertificado = async () => {
   formData.append('dtvalidade_ini', validoApos.value)
   formData.append('dtvalidade_fin', validoAte.value)
 
-  const ok = await certificadosStore.cadastrarCertificado(formData)
-  if (ok) {
+  try {
+    await certificadosStore.cadastrarCertificado(formData)
+    mostrarMensagem('Certificado cadastrado com sucesso!')
     cancelarFormulario()
+  } catch (e) {
+    const msg = e?.response?.data?.errors?.situacao?.[0]
+      || e?.response?.data?.message
+      || e?.response?.data?.erro
+      || 'Erro ao cadastrar certificado'
+    mostrarMensagem(msg, 'error')
   }
-}
-
-const certificadoAtivo = (item) => {
-  const hoje = new Date()
-  const inicio = new Date(item.dtvalidade_ini)
-  const fim = new Date(item.dtvalidade_fin)
-  return hoje >= inicio && hoje <= fim
 }
 
 const calcularSituacao = () => {
@@ -520,5 +686,98 @@ const paraInputDate = (date) => {
   const mes = String(d.getMonth() + 1).padStart(2, '0')
   const ano = d.getFullYear()
   return `${ano}-${mes}-${dia}`
+}
+
+const abrirDetalhe = async (item) => {
+  modalDetalhe.value = true
+  carregandoDetalhe.value = true
+  detalheCertificado.value = null
+  try {
+    const data = await certificadosStore.buscarCertificadoPorId(item.id_certificado)
+    detalheCertificado.value = data
+  } catch (e) {
+    console.error(e)
+    mostrarMensagem('Erro ao carregar detalhe do certificado.', 'error')
+    modalDetalhe.value = false
+  } finally {
+    carregandoDetalhe.value = false
+  }
+}
+
+const statusToggling = ref(null)
+const modalInativar = ref(false)
+const certificadoParaInativar = ref(null)
+
+const ativar = async (item) => {
+  statusToggling.value = item.id_certificado
+  try {
+    await certificadosStore.ativarCertificado(item.id_certificado)
+    mostrarMensagem('Certificado ativado com sucesso!')
+  } catch (e) {
+    const msg = e?.response?.data?.errors?.situacao?.[0]
+      || e?.response?.data?.message
+      || e?.response?.data?.erro
+      || 'Erro ao ativar certificado'
+    mostrarMensagem(msg, 'error')
+  } finally {
+    statusToggling.value = null
+  }
+}
+
+const inativar = async (item) => {
+  statusToggling.value = item.id_certificado
+  try {
+    await certificadosStore.inativarCertificado(item.id_certificado)
+    mostrarMensagem('Certificado inativado com sucesso!')
+  } catch (e) {
+    const msg = e?.response?.data?.errors?.situacao?.[0]
+      || e?.response?.data?.message
+      || e?.response?.data?.erro
+      || 'Erro ao inativar certificado'
+    mostrarMensagem(msg, 'error')
+  } finally {
+    statusToggling.value = null
+  }
+}
+
+const onToggleAtivoCertificado = (item) => {
+  if (item.situacao === 'A') {
+    certificadoParaInativar.value = item
+    modalInativar.value = true
+  } else {
+    ativar(item)
+  }
+}
+
+const fecharModalInativar = () => {
+  modalInativar.value = false
+  certificadoParaInativar.value = null
+}
+
+const confirmarInativacao = async () => {
+  const item = certificadoParaInativar.value
+  if (!item) return
+  await inativar(item)
+  fecharModalInativar()
+}
+
+const confirmarExclusao = (item) => {
+  certificadoSelecionado.value = item
+  modalExcluir.value = true
+}
+
+const excluir = async () => {
+  try {
+    await certificadosStore.excluirCertificado(certificadoSelecionado.value.id_certificado)
+    modalExcluir.value = false
+    certificadoSelecionado.value = null
+    mostrarMensagem('Certificado excluído com sucesso!')
+  } catch (e) {
+    const msg = e?.response?.data?.errors?.situacao?.[0]
+      || e?.response?.data?.message
+      || e?.response?.data?.erro
+      || 'Erro ao excluir certificado'
+    mostrarMensagem(msg, 'error')
+  }
 }
 </script>

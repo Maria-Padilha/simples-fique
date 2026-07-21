@@ -13,6 +13,15 @@
 
           <v-expand-transition>
             <div v-if="formularioAberto">
+              <v-btn
+                  variant="text"
+                  color="grey"
+                  prepend-icon="mdi-arrow-left"
+                  class="mb-2"
+                  @click="cancelarFormulario"
+              >
+                Voltar
+              </v-btn>
               <v-card class="background-card mb-7" elevation="0">
                 <v-card-title class="text-h6 pa-4">
                   <v-icon :icon="editando ? 'mdi-pencil' : 'mdi-plus'" class="mr-2" size="23px"/>
@@ -23,6 +32,7 @@
                     <FormPessoa
                         ref="formPessoaRef"
                         v-model="formPessoa"
+                        :readonly-fields="camposBloqueados"
                         @pessoa-encontrada="handlePessoaEncontrada"
                         @pessoa-nao-encontrada="handlePessoaNaoEncontrada"
                     />
@@ -148,22 +158,35 @@
               item-key="id"
               no-data-icon="mdi-truck"
               no-data-text="Nenhum fornecedor cadastrado"
-              delete-title="Inativar"
-              delete-tooltip="Inativar"
-              delete-dialog-title="Inativar fornecedor"
-              delete-dialog-message="O fornecedor será inativado."
-              delete-item-display-field="pessoa_nome"
+              :show-delete-action="false"
               @edit-item="editarFornecedor"
-              @confirm-delete="inativarFornecedor"
           >
             <template v-slot:[`item.ativo`]="{ item }">
-              <v-chip :color="item.ativo ? 'success' : 'error'" size="small">
-                {{ item.ativo ? 'Ativo' : 'Inativo' }}
-              </v-chip>
+              <StatusPillToggle
+                  :active="item.ativo"
+                  :loading="statusToggling === item.id"
+                  @toggle="onToggleAtivoFornecedor(item)"
+              />
             </template>
           </TabelaPadrao>
         </v-card-text>
       </v-card>
+
+      <v-dialog v-model="inativarDialog" max-width="420px">
+        <v-card class="background-secondary">
+          <v-card-title class="text-h6">Inativar fornecedor</v-card-title>
+          <v-card-text>
+            Tem certeza que deseja inativar "{{ fornecedorParaInativar?.pessoa_nome }}"?
+            <br><br>
+            O fornecedor será inativado.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer/>
+            <v-btn color="grey" variant="text" @click="fecharDialogInativar">Cancelar</v-btn>
+            <v-btn color="error" :loading="statusToggling === fornecedorParaInativar?.id" @click="confirmarInativacao">Inativar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">{{ snackbar.message }}</v-snackbar>
     </template>
@@ -176,6 +199,7 @@ import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import FormPessoa from '@/components/base/padrao-paginas/FormPessoa.vue'
+import StatusPillToggle from '@/components/base/padrao-paginas/StatusPillToggle.vue'
 import { useFornecedoresStore } from '@/stores/APIs/fornecedores'
 import { usePessoasStore } from '@/stores/APIs/pessoas'
 import { useFinanceiroStore } from '@/stores/APIs/financeiro'
@@ -227,6 +251,9 @@ const formFornecedor = reactive({
 
 const snackbar = reactive({ show: false, message: '', color: 'success' })
 
+// Fornecedor não edita dados de Pessoa via PUT do fornecedor — só via cadastro de Pessoa
+const camposBloqueados = computed(() => editando.value ? ['nome_razao', 'cpf_cnpj', 'tipo_pessoa', 'telefone', 'celular'] : [])
+
 const headers = [
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Fornecedor', key: 'pessoa_nome', sortable: true },
@@ -264,6 +291,24 @@ const cancelarFormulario = () => {
 }
 
 const resetarForm = () => {
+  Object.assign(formPessoa, {
+    id: null,
+    tipo_pessoa: 'J',
+    nome_razao: '',
+    apelido_fantasia: '',
+    cpf_cnpj: '',
+    rg_inscricao: '',
+    telefone: '',
+    celular: '',
+    whats: '',
+    website: '',
+    instagram: '',
+    facebook: '',
+    twitter_x: '',
+    tik_tok: '',
+    telegram: '',
+    enderecos: [],
+  })
   formPessoaRef.value?.resetarForm({ tipo_pessoa: 'J' })
   Object.assign(formFornecedor, {
     id: null,
@@ -311,20 +356,45 @@ const editarFornecedor = async (item) => {
   editando.value = true
   formularioAberto.value = true
 
-  const resultado = await pessoasStore.buscarpessoaId(item.id_pessoa)
-  if (resultado) {
-    formPessoaRef.value?.preencherPessoa(resultado.pessoa, resultado.endereco)
-    const forn = resultado.dadosFornecedor || {}
-    Object.assign(formFornecedor, {
-      id: forn.id_fornecedor ?? item.id ?? null,
-      id_pessoa: item.id_pessoa ?? resultado.pessoa?.id ?? null,
-      contato: forn.contato ?? item.contato ?? '',
-      fonecontato: forn.fonecontato ?? item.fonecontato ?? '',
-      observacao: forn.observacao ?? item.observacao ?? '',
-      limitecredito: (forn.limitecredito ?? item.limitecredito) ? formatDecimalBR(forn.limitecredito ?? item.limitecredito) : '',
-      dtvencto_limite: (forn.dtvencto_limite ?? item.dtvencto_limite) ? (forn.dtvencto_limite ?? item.dtvencto_limite).slice(0, 10) : null,
-      id_red_ctb_for: forn.id_red_ctb_for ?? item.id_red_ctb_for ?? null
-    })
+  try {
+    const data = await fornecedoresStore.buscarFornecedorPorId(item.id)
+    if (data) {
+      const p = data.pessoa || {}
+      Object.assign(formPessoa, {
+        id: p.id ?? data.id_pessoa ?? data.id ?? null,
+        tipo_pessoa: p.tipo_pessoa ?? 'F',
+        nome_razao: p.nome_razao ?? data.nome_razao ?? '',
+        cpf_cnpj: p.cpf_cnpj ?? data.cpf_cnpj ?? '',
+        apelido_fantasia: p.apelido_fantasia ?? '',
+        rg_inscricao: p.rg_inscricao ?? '',
+        telefone: p.telefone ?? data.telefone ?? '',
+        celular: p.celular ?? '',
+        whats: p.whats ?? '',
+        website: p.website ?? '',
+        instagram: p.instagram ?? '',
+        facebook: p.facebook ?? '',
+        twitter_x: p.twitter_x ?? '',
+        tik_tok: p.tik_tok ?? '',
+        telegram: p.telegram ?? '',
+        enderecos: p.enderecos ?? [],
+      })
+      Object.assign(formFornecedor, {
+        id: data.id_fornecedor ?? data.id ?? null,
+        id_pessoa: p.id ?? data.id_pessoa ?? data.id ?? null,
+        contato: data.contato ?? '',
+        fonecontato: data.fonecontato ?? '',
+        observacao: data.observacao ?? '',
+        limitecredito: data.limitecredito ? formatDecimalBR(data.limitecredito) : '',
+        dtvencto_limite: data.dtvencto_limite ? data.dtvencto_limite.slice(0, 10) : null,
+        id_red_ctb_for: data.id_red_ctb_for ?? null
+      })
+    }
+  } catch (e) {
+    console.error(e)
+    editando.value = false
+    snackbar.message = e.response?.data?.erro || 'Erro ao carregar fornecedor.'
+    snackbar.color = 'error'
+    snackbar.show = true
   }
 }
 
@@ -346,7 +416,7 @@ const salvarFornecedor = async () => {
     if (editando.value) {
       // Edição: atualizar pessoa separadamente (se existe)
       if (formPessoa.id) {
-        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa }, true, snackbar)
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa, ativo: 'S' }, true, snackbar)
       }
       await fornecedoresStore.atualizarFornecedor(formFornecedor.id, payloadEntity)
       snackbar.message = 'Fornecedor atualizado com sucesso!'
@@ -378,7 +448,10 @@ const salvarFornecedor = async () => {
       snackbar.message = 'Fornecedor cadastrado com sucesso!'
     } else {
       // Pessoa já existe: id_pessoa + campos da entidade
-      await fornecedoresStore.criarFornecedor({ id_pessoa: formPessoa.id, ...payloadEntity })
+      if (formPessoa.id) {
+        await pessoasStore.salvarPessoa(formRef.value, { ...formPessoa, ativo: 'S' }, true, snackbar)
+      }
+      await fornecedoresStore.criarFornecedor({ id_pessoa: formPessoa.id, nome: formPessoa.nome_razao, ...payloadEntity })
       snackbar.message = 'Fornecedor cadastrado com sucesso!'
     }
 
@@ -394,9 +467,14 @@ const salvarFornecedor = async () => {
   }
 }
 
+const statusToggling = ref(null)
+const inativarDialog = ref(false)
+const fornecedorParaInativar = ref(null)
+
 const inativarFornecedor = async (item) => {
+  const id = item?.id ?? item
+  statusToggling.value = id
   try {
-    const id = item?.id ?? item
     await fornecedoresStore.inativarFornecedor(id)
     snackbar.message = 'Fornecedor inativado com sucesso!'
     snackbar.color = 'success'
@@ -407,7 +485,49 @@ const inativarFornecedor = async (item) => {
     snackbar.message = e.response?.data?.erro || 'Erro ao inativar fornecedor.'
     snackbar.color = 'error'
     snackbar.show = true
+  } finally {
+    statusToggling.value = null
   }
+}
+
+const reativarFornecedor = async (item) => {
+  const id = item?.id ?? item
+  statusToggling.value = id
+  try {
+    await fornecedoresStore.reativarFornecedor(id)
+    snackbar.message = 'Fornecedor reativado com sucesso!'
+    snackbar.color = 'success'
+    snackbar.show = true
+    await fornecedoresStore.buscarFornecedores()
+  } catch (e) {
+    console.error(e)
+    snackbar.message = e.response?.data?.erro || e.response?.data?.message || 'Erro ao reativar fornecedor.'
+    snackbar.color = 'error'
+    snackbar.show = true
+  } finally {
+    statusToggling.value = null
+  }
+}
+
+const onToggleAtivoFornecedor = (item) => {
+  if (item.ativo) {
+    fornecedorParaInativar.value = item
+    inativarDialog.value = true
+  } else {
+    reativarFornecedor(item)
+  }
+}
+
+const fecharDialogInativar = () => {
+  inativarDialog.value = false
+  fornecedorParaInativar.value = null
+}
+
+const confirmarInativacao = async () => {
+  const item = fornecedorParaInativar.value
+  if (!item) return
+  await inativarFornecedor(item)
+  fecharDialogInativar()
 }
 
 onMounted(async () => {

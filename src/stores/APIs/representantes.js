@@ -31,7 +31,7 @@ export const useRepresentantesStore = defineStore('representantes', () => {
     loading.value = true
     try {
       const resp = await apiPhp.get(`/manutencao/representantes/${id}`)
-      return resp.data
+      return resp.data?.data ?? resp.data
     } catch (e) {
       console.error(e)
       throw e
@@ -78,8 +78,21 @@ export const useRepresentantesStore = defineStore('representantes', () => {
     }
   }
 
+  const reativarRepresentante = async (id) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.post(`/manutencao/representantes/${id}/reativar`)
+      return resp.data
+    } catch (e) {
+      console.error(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading, representantes,
-    buscarRepresentantes, buscarRepresentantePorId, criarRepresentante, atualizarRepresentante, inativarRepresentante
+    buscarRepresentantes, buscarRepresentantePorId, criarRepresentante, atualizarRepresentante, inativarRepresentante, reativarRepresentante
   }
 })

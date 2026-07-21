@@ -31,7 +31,7 @@ export const useFornecedoresStore = defineStore('fornecedores', () => {
     loading.value = true
     try {
       const resp = await apiPhp.get(`/manutencao/fornecedores/${id}`)
-      return resp.data
+      return resp.data?.data ?? resp.data
     } catch (e) {
       console.error(e)
       throw e
@@ -78,8 +78,21 @@ export const useFornecedoresStore = defineStore('fornecedores', () => {
     }
   }
 
+  const reativarFornecedor = async (id) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.post(`/manutencao/fornecedores/${id}/reativar`)
+      return resp.data
+    } catch (e) {
+      console.error(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading, fornecedores,
-    buscarFornecedores, buscarFornecedorPorId, criarFornecedor, atualizarFornecedor, inativarFornecedor
+    buscarFornecedores, buscarFornecedorPorId, criarFornecedor, atualizarFornecedor, inativarFornecedor, reativarFornecedor
   }
 })

@@ -31,7 +31,7 @@ export const useContadoresStore = defineStore('contadores', () => {
     loading.value = true
     try {
       const resp = await apiPhp.get(`/manutencao/contadores/${id}`)
-      return resp.data
+      return resp.data?.data ?? resp.data
     } catch (e) {
       console.error(e)
       throw e
@@ -78,8 +78,21 @@ export const useContadoresStore = defineStore('contadores', () => {
     }
   }
 
+  const reativarContador = async (id) => {
+    loading.value = true
+    try {
+      const resp = await apiPhp.post(`/manutencao/contadores/${id}/reativar`)
+      return resp.data
+    } catch (e) {
+      console.error(e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading, contadores,
-    buscarContadores, buscarContadorPorId, criarContador, atualizarContador, inativarContador
+    buscarContadores, buscarContadorPorId, criarContador, atualizarContador, inativarContador, reativarContador
   }
 })
