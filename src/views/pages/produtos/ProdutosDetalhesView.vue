@@ -597,6 +597,36 @@
                             :theme="themeStore.darkMode ? 'dark' : 'light'"
                         />
                       </v-col>
+
+                      <v-col cols="12" md="6">
+                        <v-select
+                            density="compact"
+                            variant="outlined"
+                            label="Fórmula de cálculo do tributo (substitui o cálculo percentual)"
+                            clearable
+                            :items="formulasDisponiveis"
+                            item-title="descformula"
+                            item-value="id"
+                            hide-details="auto"
+                            v-model="formsTributo.id_formula"
+                            :theme="themeStore.darkMode ? 'dark' : 'light'"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="6">
+                        <v-autocomplete
+                            density="compact"
+                            variant="outlined"
+                            label="Usar dados de uma Alíquota UF específica"
+                            clearable
+                            :items="aliquotasDisponiveis"
+                            item-title="label"
+                            :item-value="(item) => `${item.id_uf}|${item.id_cfop}`"
+                            hide-details="auto"
+                            v-model="aliquotaSelecionada"
+                            :theme="themeStore.darkMode ? 'dark' : 'light'"
+                        />
+                      </v-col>
                     </v-row>
                   </v-form>
                 </template>
@@ -1539,6 +1569,7 @@ import {useProdutosStore} from "@/stores/APIs/produtos";
 import {useEstoqueStore} from "@/stores/APIs/estoque";
 import {useThemeStore} from "@/stores/config-temas/theme";
 import {usePessoasStore} from "@/stores/APIs/pessoas";
+import {useFormulasStore} from "@/stores/APIs/formulas";
 import {computed, reactive, ref, watchEffect, watch} from "vue";
 import GruposMenu from "@/components/base/menu/GruposMenu.vue";
 import ClassesMenu from "@/components/base/menu/ClassesMenu.vue";
@@ -1558,6 +1589,7 @@ const produtosStore = useProdutosStore();
 const estoqueStore = useEstoqueStore();
 const themeStore = useThemeStore();
 const pessoasStore = usePessoasStore();
+const formulasStore = useFormulasStore();
 
 const id = route.params.id;
 const idEmpresa = JSON.parse(localStorage.getItem('empresaSelecionada'));
@@ -2451,6 +2483,13 @@ const editandoTributo = ref(false);
 const formRefTributo = ref(null);
 
 const cests = computed(() => estoqueStore.cests);
+const formulasDisponiveis = computed(() => formulasStore.formulas);
+const aliquotasDisponiveis = computed(() =>
+  (estoqueStore.aliquotas || []).map((a) => ({
+    ...a,
+    label: `${a.id_uf} - ${a.id_cfop}`,
+  }))
+);
 
 const formsTributo = reactive({
   id_produto: Number(id),
@@ -2459,6 +2498,27 @@ const formsTributo = reactive({
   margem_lucro_bruto: null,
   margem_lucro_cnae: null,
   incidenciafiscal: null,
+  id_formula: null,
+  id_uf_aliquota: null,
+  id_cfop_aliquota: null,
+});
+
+// Preenchido ao escolher uma Alíquota UF específica no autocomplete — a chave é
+// composta (id_uf + id_cfop), então usamos "uf|cfop" como item-value do v-autocomplete.
+const aliquotaSelecionada = computed({
+  get: () => (formsTributo.id_uf_aliquota && formsTributo.id_cfop_aliquota
+    ? `${formsTributo.id_uf_aliquota}|${formsTributo.id_cfop_aliquota}`
+    : null),
+  set: (valor) => {
+    if (!valor) {
+      formsTributo.id_uf_aliquota = null;
+      formsTributo.id_cfop_aliquota = null;
+      return;
+    }
+    const [uf, cfop] = valor.split('|');
+    formsTributo.id_uf_aliquota = uf;
+    formsTributo.id_cfop_aliquota = cfop;
+  }
 });
 
 const camposIncidenciaFiscal = [
@@ -2480,6 +2540,8 @@ const headersTributo = [
   {title: 'CEST', key: 'id_cest'},
   {title: 'Margem Lucro Bruto (%)', key: 'margem_lucro_bruto'},
   {title: 'Margem Lucro CNAE (%)', key: 'margem_lucro_cnae'},
+  {title: 'Fórmula', key: 'id_formula'},
+  {title: 'Alíquota UF', key: 'id_uf_aliquota'},
   {title: 'Ações', key: 'acoes', sortable: false},
 ];
 
@@ -2753,6 +2815,12 @@ watchEffect(async () => {
   }
   if (cests.value.length === 0) {
     await estoqueStore.buscarCests();
+  }
+  if (formulasDisponiveis.value.length === 0) {
+    await formulasStore.buscarFormulas();
+  }
+  if (aliquotasDisponiveis.value.length === 0) {
+    await estoqueStore.buscarTodasAliquotas(idEmpresa?.id);
   }
   if (tributos.value.length === 0) {
     await produtosStore.buscarTributoPorId(idEmpresa?.id, id);

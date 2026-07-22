@@ -274,6 +274,42 @@
                           suffix="%"
                         />
                       </v-col>
+
+                      <!-- Fórmula -->
+                      <v-col cols="12" md="6">
+                        <v-select
+                          v-model="form.id_formula"
+                          :items="formulasStore.formulas"
+                          item-title="descformula"
+                          item-value="id"
+                          label="Fórmula de cálculo do tributo (substitui o cálculo percentual)"
+                          variant="outlined"
+                          density="compact"
+                          hide-details="auto"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                          class="custom-text-field"
+                          prepend-inner-icon="mdi-function-variant"
+                          clearable
+                        />
+                      </v-col>
+
+                      <!-- Alíquota UF de referência -->
+                      <v-col cols="12" md="6">
+                        <v-autocomplete
+                          v-model="aliquotaSelecionada"
+                          :items="aliquotasDisponiveis"
+                          item-title="label"
+                          :item-value="(item) => `${item.id_uf}|${item.id_cfop}`"
+                          label="Usar dados de uma Alíquota UF cadastrada (preenche UF/CFOP)"
+                          variant="outlined"
+                          density="compact"
+                          hide-details="auto"
+                          :theme="themeStore.darkMode ? 'dark' : 'light'"
+                          class="custom-text-field"
+                          prepend-inner-icon="mdi-map-search-outline"
+                          clearable
+                        />
+                      </v-col>
                     </v-row>
                   </v-form>
                 </v-card-text>
@@ -340,6 +376,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useThemeStore } from '@/stores/config-temas/theme'
 import { useGrupoTributacaoStore } from '@/stores/APIs/grupoTributacao'
 import { useMensagensStore } from '@/stores/APIs/mensagens'
+import { useFormulasStore } from '@/stores/APIs/formulas'
+import { useEstoqueStore } from '@/stores/APIs/estoque'
 import TopAllPages from '@/components/base/padrao-paginas/TopAllPages.vue'
 import BotaoExpandTransition from '@/components/base/padrao-paginas/BotaoExpandTransition.vue'
 import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
@@ -347,6 +385,8 @@ import TabelaPadrao from '@/components/base/padrao-paginas/TabelaPadrao.vue'
 const themeStore = useThemeStore()
 const grupoTributacaoStore = useGrupoTributacaoStore()
 const mensagensStore = useMensagensStore()
+const formulasStore = useFormulasStore()
+const estoqueStore = useEstoqueStore()
 
 const empresaSelecionada = JSON.parse(localStorage.getItem('empresaSelecionada'))
 const idEmp = empresaSelecionada?.id ?? null
@@ -380,7 +420,28 @@ const form = reactive({
   aliquota_icms: null,
   reducao_base_calc: null,
   diferenca_aliq: null,
+  id_formula: null,
 })
+
+// Escolher uma Alíquota UF cadastrada preenche id_uf/id_cfop automaticamente —
+// forma mais amigável de usar os dados dela (ICMS/PIS/COFINS/etc no cálculo)
+// em vez de digitar UF/CFOP manualmente. Chave composta "uf|cfop".
+const aliquotaSelecionada = computed({
+  get: () => (form.id_uf && form.id_cfop ? `${form.id_uf}|${form.id_cfop}` : null),
+  set: (valor) => {
+    if (!valor) return
+    const [uf, cfop] = valor.split('|')
+    form.id_uf = uf
+    form.id_cfop = cfop
+  }
+})
+
+const aliquotasDisponiveis = computed(() =>
+  (estoqueStore.aliquotas || []).map((a) => ({
+    ...a,
+    label: `${a.id_uf} - ${a.id_cfop}`,
+  }))
+)
 
 const rules = {
   required: (v) => !!v || 'Campo obrigatório'
@@ -472,6 +533,7 @@ function resetarForm() {
     aliquota_icms: null,
     reducao_base_calc: null,
     diferenca_aliq: null,
+    id_formula: null,
   })
   formRef.value?.resetValidation()
 }
@@ -505,6 +567,22 @@ async function carregarMensagens() {
   }
 }
 
+async function carregarFormulas() {
+  try {
+    await formulasStore.buscarFormulas()
+  } catch (error) {
+    mostrarMensagem('Erro ao carregar fórmulas', 'error')
+  }
+}
+
+async function carregarAliquotas() {
+  try {
+    await estoqueStore.buscarTodasAliquotas(idEmp)
+  } catch (error) {
+    mostrarMensagem('Erro ao carregar alíquotas UF', 'error')
+  }
+}
+
 async function salvarGrupo() {
   const { id, ...payload } = form
 
@@ -534,6 +612,6 @@ async function excluirGrupo(item) {
 }
 
 onMounted(async () => {
-  await Promise.all([carregarGrupos(), carregarMensagens()])
+  await Promise.all([carregarGrupos(), carregarMensagens(), carregarFormulas(), carregarAliquotas()])
 })
 </script>

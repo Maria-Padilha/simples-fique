@@ -30,7 +30,6 @@ import FuncionarioView from '@/views/pages/manutencao/FuncionarioView.vue';
 import OperacaoView from '@/views/pages/pdv/OperacaoView.vue';
 import AmbienteView from '@/views/pages/vendas/AmbienteView.vue';
 import PosicaoEstoqueView from '@/views/pages/estoque/PosicaoEstoqueView.vue';
-import GrupoTributacaoView from '@/views/pages/estoque/GrupoTributacaoView.vue';
 import TransfAlmoxView from '@/views/pages/estoque/TransfAlmoxView.vue';
 import PdvCaixaView from '@/views/pages/pdv/CaixaView.vue';
 import TotemView from '@/views/pages/pdv/TotemView.vue';
@@ -324,11 +323,6 @@ const routes = [
         path: '/paginas/estoque/grupo',
         name: 'grupo',
         component: () => import('@/views/pages/estoque/GruposView.vue')
-    },
-    {
-        path: '/paginas/estoque/grupo-tributacao',
-        name: 'grupo_tributacao',
-        component: GrupoTributacaoView
     },
     {
         path: '/paginas/estoque/classe',

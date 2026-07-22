@@ -561,19 +561,19 @@ const enviarForms = async () => {
 
   try {
     // Preparar os dados para envio no formato esperado
-    const dadosFormulario = {
-      data: [
+    const dadosFormulario = [
         {
           nome: nome.value,
           email: email.value,
           telefone: telefone.value,
 
         }
-      ]
-    };
+    ];
+
+    const apibase = process.env.VUE_APP_PHP_API_URL;
 
     // Fazer a requisição POST para o webhook do n8n adicione aqui o link do webhook
-    const response = await fetch('https://backend.simplesfique.com.br//saas', {
+    const response = await fetch(`${apibase}/saas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
